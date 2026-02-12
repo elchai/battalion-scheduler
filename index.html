@@ -2136,6 +2136,17 @@ function saveShift() {
         }
     }
 
+    // Validate: warn if multiple commanders in same shift
+    const cmdRoles = ['מ"כ', 'מ"מ', 'סמל'];
+    const selectedCmds = soldiers.filter(sid => {
+        const sol = state.soldiers.find(s => s.id === sid);
+        return sol && cmdRoles.some(r => sol.role.includes(r));
+    });
+    if (selectedCmds.length > 1) {
+        const cmdNames = selectedCmds.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
+        if (!confirm(`שים לב! שיבצת ${selectedCmds.length} מפקדים למשמרת:\n${cmdNames}\n\nהאם אתה בטוח?`)) return;
+    }
+
     state.shifts.push({
         id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
         company, task, date, shiftName, startTime, endTime, soldiers
