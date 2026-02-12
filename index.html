@@ -768,7 +768,7 @@
             </div>
         </div>
         <div class="quick-stats">
-            <div class="quick-stat"><div class="value">198</div><div class="label">סה"כ כוח אדם</div></div>
+            <div class="quick-stat"><div class="value" id="statTotalPersonnel">198</div><div class="label">סה"כ כוח אדם</div></div>
             <div class="quick-stat"><div class="value">4</div><div class="label">פלוגות</div></div>
             <div class="quick-stat"><div class="value" id="statAssigned">0</div><div class="label">משובצים</div></div>
             <div class="quick-stat"><div class="value" id="statHome">0</div><div class="label">בבית</div></div>
@@ -1842,24 +1842,59 @@ function showToast(msg, type='success') {
 }
 
 function updateGlobalStats() {
-    const assignedIds = new Set();
-    state.shifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
-    const manualLeaveCount = state.leaves.filter(l => isCurrentlyOnLeave(l)).length;
+    const unit = currentUser ? currentUser.unit : 'gdudi';
+    const isGdudi = unit === 'gdudi';
 
-    // Count rotation-based leaves
+    // Filter data by user's unit
+    const filterCompanies = isGdudi ? ['a','b','c','d'] : [unit];
+
+    let totalSol = 0, totalCmd = 0, totalOff = 0;
+    filterCompanies.forEach(k => {
+        const c = companyData[k];
+        totalSol += c.totals.soldiers;
+        totalCmd += c.totals.commanders;
+        totalOff += c.totals.officers;
+    });
+
+    document.getElementById('totalSoldiers').textContent = totalSol;
+    document.getElementById('totalCommanders').textContent = totalCmd;
+    document.getElementById('totalOfficers').textContent = totalOff;
+    const totalEl = document.getElementById('statTotalPersonnel');
+    if (totalEl) totalEl.textContent = totalSol + totalCmd + totalOff;
+
+    const relevantShifts = state.shifts.filter(sh => filterCompanies.includes(sh.company));
+    const assignedIds = new Set();
+    relevantShifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
+
+    const relevantLeaves = state.leaves.filter(l => filterCompanies.includes(l.company));
+    const manualLeaveCount = relevantLeaves.filter(l => isCurrentlyOnLeave(l)).length;
+
     let rotLeaveCount = 0;
     state.rotationGroups.forEach(g => {
         const status = getRotationStatus(g, new Date());
-        if (!status.inBase) rotLeaveCount += g.soldiers.length;
+        if (!status.inBase) {
+            const groupInUnit = g.soldiers.filter(sid => {
+                const sol = state.soldiers.find(s => s.id === sid);
+                return sol && filterCompanies.includes(sol.company);
+            });
+            rotLeaveCount += groupInUnit.length;
+        }
     });
 
     const totalLeave = manualLeaveCount + rotLeaveCount;
 
     document.getElementById('totalOnDuty').textContent = assignedIds.size;
     document.getElementById('totalOnLeave').textContent = totalLeave;
-    document.getElementById('statAssigned').textContent = assignedIds.size;
-    document.getElementById('statHome').textContent = totalLeave;
-    document.getElementById('statAvailable').textContent = Math.max(0, state.soldiers.length - assignedIds.size - totalLeave);
+
+    const statAssigned = document.getElementById('statAssigned');
+    const statHome = document.getElementById('statHome');
+    const statAvailable = document.getElementById('statAvailable');
+    if (statAssigned) statAssigned.textContent = assignedIds.size;
+    if (statHome) statHome.textContent = totalLeave;
+    if (statAvailable) {
+        const regSoldiers = state.soldiers.filter(s => filterCompanies.includes(s.company)).length;
+        statAvailable.textContent = Math.max(0, regSoldiers - assignedIds.size - totalLeave);
+    }
 }
 
 function exportCompanyData(compKey) {
