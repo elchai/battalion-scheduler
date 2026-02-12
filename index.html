@@ -1375,7 +1375,7 @@ function init() {
     loadState();
     loadTasksFromStorage();
     // Force re-sync if data version changed (multi-sheet support)
-    const dataVersion = 'v3_multisheet';
+    const dataVersion = 'v4_allsheets_fix';
     if (localStorage.getItem('battalionDataVersion') !== dataVersion) {
         state.soldiers = state.soldiers.filter(s => !s.fromSheets);
         localStorage.setItem('battalionDataVersion', dataVersion);
@@ -1415,13 +1415,21 @@ function syncFromGoogleSheets(silent) {
 
         results.forEach(({ key, csv }) => {
             if (key === 'support') {
-                sheetSoldiers.push(...parseSupportSheet(csv));
+                const parsed = parseSupportSheet(csv);
+                console.log(`Sheet support: ${parsed.length} soldiers`);
+                sheetSoldiers.push(...parsed);
             } else {
-                sheetSoldiers.push(...parseCombatSheet(csv, key));
+                const parsed = parseCombatSheet(csv, key);
+                console.log(`Sheet ${key}: ${parsed.length} soldiers`);
+                sheetSoldiers.push(...parsed);
             }
         });
 
         state.soldiers = [...manualSoldiers, ...sheetSoldiers];
+        // Log per-company counts
+        const counts = {};
+        ALL_COMPANIES.forEach(k => { counts[k] = state.soldiers.filter(s => s.company === k).length; });
+        console.log('Soldiers per company:', counts);
         updateCompanyTotals();
         saveState();
         renderAll();
