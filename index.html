@@ -84,7 +84,10 @@
             gap: 2px;
             background: rgba(0,0,0,0.15);
             overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
+        .nav-tabs::-webkit-scrollbar { display: none; }
         .nav-tab {
             padding: 10px 20px;
             cursor: pointer;
@@ -555,13 +558,93 @@
             body { background: white; }
         }
         @media (max-width: 768px) {
-            .header-top { flex-direction: column; gap: 10px; padding: 10px 14px; }
-            .header-stats { flex-wrap: wrap; justify-content: center; }
-            .main-content { padding: 12px; }
+            /* Compact header */
+            .header { position: sticky; }
+            .header-top { flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
+            .header-title { gap: 8px; }
+            .header-title h1 { font-size: 1em; }
+            .header-title img { width: 30px !important; height: 30px !important; }
+            .header-title .badge { font-size: 0.6em; padding: 2px 8px; }
+            .header-stats { gap: 4px; font-size: 0.75em; width: 100%; justify-content: space-between; }
+            .header-stat { padding: 4px 6px; border-radius: 6px; flex: 1; min-width: 0; }
+            .header-stat .num { font-size: 1.1em; }
+            .header-stat .label { font-size: 0.65em; }
+            .user-badge { font-size: 0.75em !important; padding: 3px 8px !important; }
+
+            /* Tabs: scrollable, compact */
+            .nav-tabs { padding: 0 6px; gap: 1px; -webkit-overflow-scrolling: touch; }
+            .nav-tab { padding: 7px 12px; font-size: 0.78em; }
+            .nav-tab .tab-count { font-size: 0.7em; padding: 1px 5px; margin-right: 3px; }
+
+            /* Content */
+            .main-content { padding: 10px 8px; }
             .companies-grid { grid-template-columns: 1fr; }
+
+            /* Action bar: 2x2 grid */
+            .action-bar { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px; }
+            .action-bar .btn { font-size: 0.78em; padding: 8px 6px; justify-content: center; width: 100%; }
+
+            /* Tables: scrollable */
+            .sub-section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table { font-size: 0.82em; min-width: 500px; }
+
+            /* Personnel grid: single column */
+            .personnel-grid { grid-template-columns: 1fr; gap: 6px; }
+            .person-card { padding: 8px 10px; }
+            .person-info h4 { font-size: 0.83em; }
+            .person-info .meta { font-size: 0.72em; }
+            .person-status { font-size: 0.68em; padding: 3px 7px; }
+
+            /* Shift cards: single column */
+            .shifts-grid { grid-template-columns: 1fr; gap: 8px; }
+            .shift-card-header h4 { font-size: 0.85em; }
+            .shift-time { font-size: 0.72em; padding: 2px 7px; }
+
+            /* Section titles */
+            .section-title { font-size: 1em; }
+            .section-title .icon { width: 28px; height: 28px; font-size: 0.85em; }
+            .sub-section { margin-bottom: 16px; }
+
+            /* Forms */
             .form-row { grid-template-columns: 1fr; }
-            .rotation-label { min-width: 80px; font-size: 0.75em; }
+            .modal-body { padding: 14px; }
+            .modal-footer { padding: 10px 14px; }
+
+            /* Modals */
+            .modal { max-height: 90vh; }
+
+            /* Settings */
+            .settings-grid { grid-template-columns: 1fr; }
+            .settings-card { padding: 14px; }
+            .task-edit-row { grid-template-columns: 1fr 45px 45px 45px 45px auto; gap: 4px; font-size: 0.78em; }
+
+            /* Login */
             .login-box { width: 92% !important; min-width: auto !important; }
+            .login-logo img { width: 60px !important; height: 60px !important; }
+            .login-box h2 { font-size: 1.2em; }
+
+            /* Toast position */
+            .toast-container { top: auto; bottom: 20px; left: 10px; right: 10px; }
+            .toast { font-size: 0.82em; }
+
+            /* Rotation */
+            .rotation-label { min-width: 80px; font-size: 0.75em; }
+
+            /* Quick stats in overview */
+            .quick-stat { padding: 8px 6px; }
+            .quick-stat .value { font-size: 1.3em; }
+            .quick-stat .label { font-size: 0.7em; }
+
+            /* Info box */
+            .info-box { font-size: 0.82em; padding: 10px 12px; }
+        }
+        @media (max-width: 400px) {
+            .header-title h1 { font-size: 0.9em; }
+            .header-title .badge { display: none; }
+            .header-stat .num { font-size: 1em; }
+            .nav-tab { padding: 6px 10px; font-size: 0.72em; }
+            .action-bar .btn { font-size: 0.72em; padding: 7px 4px; }
+            .person-card { padding: 6px 8px; }
         }
 
         /* Shift soldier status in dropdown */
