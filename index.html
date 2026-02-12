@@ -564,6 +564,43 @@
             .login-box { width: 92% !important; min-width: auto !important; }
         }
 
+        /* Shift soldier status in dropdown */
+        select option.option-assigned { background: #FFF3E0; color: #E65100; }
+        select option.option-on-leave { background: #FFEBEE; color: #C62828; }
+        /* Shift preset buttons */
+        .shift-presets { display: flex; gap: 6px; margin-bottom: 10px; }
+        .shift-preset-btn {
+            flex: 1; padding: 6px 10px; border: 2px solid var(--border); border-radius: 8px;
+            background: var(--bg); cursor: pointer; font-family: inherit; font-size: 0.85em;
+            font-weight: 600; transition: all 0.2s; text-align: center;
+        }
+        .shift-preset-btn:hover { border-color: var(--primary); background: #e3f2fd; }
+        .shift-preset-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
+        /* Settings page */
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; }
+        .settings-card {
+            background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+            padding: 20px; border-top: 4px solid var(--primary);
+        }
+        .settings-card h3 { font-size: 1.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .settings-field { margin-bottom: 12px; }
+        .settings-field label { display: block; font-size: 0.85em; font-weight: 600; margin-bottom: 4px; color: var(--text-light); }
+        .settings-field input, .settings-field select {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+            font-family: inherit; font-size: 0.9em;
+        }
+        .settings-field input:focus, .settings-field select:focus { border-color: var(--primary); outline: none; }
+        .settings-row { display: flex; gap: 12px; }
+        .settings-row .settings-field { flex: 1; }
+        .settings-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .task-edit-row {
+            display: grid; grid-template-columns: 1fr 60px 60px 60px 60px auto; gap: 6px;
+            align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85em;
+        }
+        .task-edit-row input { padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85em; text-align: center; }
+        .task-edit-row input:first-child { text-align: right; }
+        .task-edit-header { font-weight: 700; color: var(--text-light); font-size: 0.8em; border-bottom: 2px solid var(--border); }
+
         /* Login Screen */
         .login-screen {
             position: fixed;
@@ -758,6 +795,7 @@
         <button class="nav-tab tab-hq" style="border-top:3px solid #607D8B;" onclick="switchTab('hq')">חפ"ק מג"ד</button>
         <button class="nav-tab tab-palsam" style="border-top:3px solid #795548;" onclick="switchTab('palsam')">פלס"ם</button>
         <button class="nav-tab tab-rotation" onclick="switchTab('rotation')">&#128260; רוטציה 10/4</button>
+        <button class="nav-tab tab-settings" style="border-top:3px solid #F44336; margin-right:auto;" onclick="switchTab('settings')">&#9881; הגדרות</button>
     </div>
 </div>
 
@@ -930,11 +968,19 @@
                 <label>משימה / פעילות</label>
                 <select id="shiftTask"></select>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>תאריך</label>
-                    <input type="date" id="shiftDate">
+            <div class="form-group">
+                <label>תאריך</label>
+                <input type="date" id="shiftDate" onchange="updateShiftOptions()">
+            </div>
+            <div class="form-group">
+                <label>תבנית משמרת</label>
+                <div class="shift-presets">
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('morning', this)">בוקר</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('afternoon', this)">צהריים</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('night', this)">לילה</button>
                 </div>
+            </div>
+            <div class="form-row">
                 <div class="form-group">
                     <label>שם המשמרת</label>
                     <input type="text" id="shiftName" placeholder='בוקר / צהריים / לילה'>
@@ -943,11 +989,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>שעת התחלה</label>
-                    <input type="time" id="shiftStart" value="08:00">
+                    <input type="time" id="shiftStart" value="08:00" onchange="updateShiftOptions()">
                 </div>
                 <div class="form-group">
                     <label>שעת סיום</label>
-                    <input type="time" id="shiftEnd" value="16:00">
+                    <input type="time" id="shiftEnd" value="16:00" onchange="updateShiftOptions()">
                 </div>
             </div>
             <div class="form-group">
@@ -1066,6 +1112,17 @@
         </div>
     </div>
 </div>
+<!-- ====== TAB: SETTINGS ====== -->
+<div class="tab-content" id="tab-settings">
+    <div class="main-content">
+        <div class="info-box">
+            <span class="info-icon">&#9881;</span>
+            <div><strong>הגדרות מערכת</strong> - שינויים נשמרים אוטומטית. רק מנהל המערכת יכול לגשת לדף זה.</div>
+        </div>
+        <div class="settings-grid" id="settingsContent"></div>
+    </div>
+</div>
+
 <!-- Footer Credit -->
 <div style="text-align:center;padding:20px;background:var(--primary-dark);color:rgba(255,255,255,0.6);font-size:0.8em;margin-top:30px;">
     <a href="https://wa.me/972542012000" target="_blank" style="color:rgba(255,255,255,0.8);text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
@@ -1076,8 +1133,40 @@
 </div><!-- end mainApp -->
 
 <script>
+// ==================== SETTINGS ====================
+const DEFAULT_SETTINGS = {
+    adminName: 'אלחי פיין',
+    password: '1875',
+    shiftPresets: {
+        morning:   { name: 'בוקר',    start: '06:00', end: '14:00' },
+        afternoon: { name: 'צהריים',  start: '14:00', end: '22:00' },
+        night:     { name: 'לילה',    start: '22:00', end: '06:00' }
+    },
+    rotationDaysIn: 10,
+    rotationDaysOut: 4,
+    sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE'
+};
+
+let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+
+function loadSettings() {
+    const saved = localStorage.getItem('battalionSettings');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        settings = { ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...parsed };
+        if (parsed.shiftPresets) settings.shiftPresets = { ...DEFAULT_SETTINGS.shiftPresets, ...parsed.shiftPresets };
+    }
+}
+
+function saveSettings() {
+    localStorage.setItem('battalionSettings', JSON.stringify(settings));
+}
+
+function isAdmin() {
+    return currentUser && currentUser.name === settings.adminName;
+}
+
 // ==================== LOGIN ====================
-const CORRECT_PASSWORD = '1875';
 let currentUser = null;
 
 function doLogin() {
@@ -1095,7 +1184,7 @@ function doLogin() {
         document.getElementById('loginError').classList.add('show');
         return;
     }
-    if (password !== CORRECT_PASSWORD) {
+    if (password !== settings.password) {
         document.getElementById('loginError').textContent = 'סיסמה שגויה, נסה שוב';
         document.getElementById('loginError').classList.add('show');
         return;
@@ -1148,6 +1237,7 @@ function applyUnitFilter() {
     document.querySelector('.tab-hq').style.display = (isGdudi || unit === 'hq') ? '' : 'none';
     document.querySelector('.tab-palsam').style.display = (isGdudi || unit === 'palsam') ? '' : 'none';
     document.querySelector('.tab-rotation').style.display = isGdudi ? '' : 'none';
+    document.querySelector('.tab-settings').style.display = isAdmin() ? '' : 'none';
 }
 
 // Check for existing session
@@ -1257,15 +1347,16 @@ function saveState() {
 
 // ==================== INIT ====================
 // Google Sheets config
-const SHEET_ID = '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE';
-const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-const SHEET_URLS = {
-    support: BASE_URL,
-    a: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה א'),
-    b: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה ב'),
-    c: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה ג'),
-    d: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה ד')
-};
+function getSheetUrls() {
+    const base = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:csv`;
+    return {
+        support: base,
+        a: base + '&sheet=' + encodeURIComponent('פלוגה א'),
+        b: base + '&sheet=' + encodeURIComponent('פלוגה ב'),
+        c: base + '&sheet=' + encodeURIComponent('פלוגה ג'),
+        d: base + '&sheet=' + encodeURIComponent('פלוגה ד')
+    };
+}
 const ALL_COMPANIES = ['a','b','c','d','hq','palsam'];
 
 const deptToCompany = {
@@ -1280,7 +1371,9 @@ const deptToCompany = {
 };
 
 function init() {
+    loadSettings();
     loadState();
+    loadTasksFromStorage();
     // Force re-sync if data version changed (multi-sheet support)
     const dataVersion = 'v3_multisheet';
     if (localStorage.getItem('battalionDataVersion') !== dataVersion) {
@@ -1312,7 +1405,7 @@ function renderAll() {
 function syncFromGoogleSheets(silent) {
     if (!silent) showToast('מסנכרן מגוגל שיטס...', 'success');
 
-    const fetches = Object.entries(SHEET_URLS).map(([key, url]) =>
+    const fetches = Object.entries(getSheetUrls()).map(([key, url]) =>
         fetch(url).then(r => r.text()).then(csv => ({ key, csv }))
     );
 
@@ -1810,8 +1903,9 @@ function switchTab(tab) {
     if (tabBtn) tabBtn.classList.add('active');
     const tabContent = document.getElementById(`tab-${tab}`);
     if (tabContent) tabContent.classList.add('active');
-    if (['a','b','c','d'].includes(tab)) renderCompanyTab(tab);
+    if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
     if (tab === 'rotation') renderRotationTab();
+    if (tab === 'settings') renderSettingsTab();
 }
 
 // ==================== SOLDIER ====================
@@ -1862,12 +1956,30 @@ function deleteSoldier(id) {
 // ==================== SHIFT ====================
 function openAddShift(company) {
     document.getElementById('shiftCompany').value = company || 'a';
+    // Reset preset buttons
+    document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
     updateShiftOptions();
     openModal('addShiftModal');
 }
 
+function applyShiftPreset(preset, btn) {
+    const p = settings.shiftPresets[preset];
+    if (!p) return;
+    document.getElementById('shiftName').value = p.name;
+    document.getElementById('shiftStart').value = p.start;
+    document.getElementById('shiftEnd').value = p.end;
+    document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateShiftOptions();
+}
+
 function updateShiftOptions() {
     const company = document.getElementById('shiftCompany').value;
+    const date = document.getElementById('shiftDate').value;
+    const startTime = document.getElementById('shiftStart').value;
+    const endTime = document.getElementById('shiftEnd').value;
+
+    // Tasks dropdown with capacity info
     const taskSel = document.getElementById('shiftTask');
     taskSel.innerHTML = '';
     const tasks = companyData[company].tasks;
@@ -1877,12 +1989,18 @@ function updateShiftOptions() {
         taskSel.appendChild(opt);
     } else {
         tasks.forEach(t => {
+            const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers;
+            const assigned = state.shifts.filter(sh => sh.company === company && sh.task === t.name && sh.date === date &&
+                sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + sh.soldiers.length, 0);
             const opt = document.createElement('option');
-            opt.value = t.name; opt.textContent = t.name;
+            opt.value = t.name;
+            opt.textContent = needed > 0 ? `${t.name} (${assigned}/${needed})` : t.name;
+            if (needed > 0 && assigned >= needed) opt.style.color = '#C62828';
             taskSel.appendChild(opt);
         });
     }
-    // Soldiers: only from selected company, grouped by מחלקה
+
+    // Soldiers: only from selected company, with status indicators
     const solSel = document.getElementById('shiftSoldiers');
     solSel.innerHTML = '';
 
@@ -1897,11 +2015,25 @@ function updateShiftOptions() {
         Object.entries(groups).forEach(([unit, soldiers]) => {
             const grp = document.createElement('optgroup');
             grp.label = unit;
-            soldiers.sort((a,b) => a.name.localeCompare(b.name, 'he'));
+            soldiers.sort((a,b) => {
+                const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime);
+                const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime);
+                if (aStatus.available !== bStatus.available) return aStatus.available ? -1 : 1;
+                return a.name.localeCompare(b.name, 'he');
+            });
             soldiers.forEach(s => {
+                const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
                 const opt = document.createElement('option');
                 opt.value = s.id;
-                opt.textContent = `${s.name} (${s.role})`;
+                if (status.onLeave) {
+                    opt.textContent = `${s.name} - (בבית)`;
+                    opt.className = 'option-on-leave';
+                } else if (status.assignedTo) {
+                    opt.textContent = `${s.name} - (${status.assignedTo})`;
+                    opt.className = 'option-assigned';
+                } else {
+                    opt.textContent = `${s.name} (${s.role})`;
+                }
                 grp.appendChild(opt);
             });
             solSel.appendChild(grp);
@@ -1914,15 +2046,88 @@ function updateShiftOptions() {
     }
 }
 
+// Check soldier status for a specific date/time
+function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
+    // Check if on leave
+    const onLeave = state.leaves.some(l => l.soldierId === soldierId && isOnLeaveForDate(l, date));
+    if (onLeave) return { available: false, onLeave: true, assignedTo: null };
+
+    // Check rotation
+    const rotGroup = getRotationGroupForSoldier(soldierId);
+    if (rotGroup) {
+        const checkDate = date ? new Date(date + 'T12:00:00') : new Date();
+        const rotStatus = getRotationStatus(rotGroup, checkDate);
+        if (!rotStatus.inBase) return { available: false, onLeave: true, assignedTo: null };
+    }
+
+    // Check overlapping shifts
+    const overlap = state.shifts.find(sh =>
+        sh.date === date && sh.soldiers.includes(soldierId) &&
+        sh.startTime < endTime && sh.endTime > startTime
+    );
+    if (overlap) {
+        const taskName = overlap.task + (overlap.shiftName ? ' ' + overlap.shiftName : '');
+        return { available: false, onLeave: false, assignedTo: `${taskName} ${overlap.startTime}-${overlap.endTime}` };
+    }
+
+    return { available: true, onLeave: false, assignedTo: null };
+}
+
+function isOnLeaveForDate(leave, date) {
+    if (!date) return false;
+    const checkDate = new Date(date + 'T12:00:00');
+    const start = new Date(`${leave.startDate}T${leave.startTime || '00:00'}`);
+    const end = new Date(`${leave.endDate}T${leave.endTime || '23:59'}`);
+    return checkDate >= start && checkDate <= end;
+}
+
+function hasTimeOverlap(soldierId, date, startTime, endTime) {
+    return state.shifts.find(sh =>
+        sh.date === date && sh.soldiers.includes(soldierId) &&
+        sh.startTime < endTime && sh.endTime > startTime
+    );
+}
+
 function saveShift() {
     const company = document.getElementById('shiftCompany').value;
-    const task = document.getElementById('shiftTask').value;
+    const taskRaw = document.getElementById('shiftTask').value;
+    const task = taskRaw.replace(/\s*\(\d+\/\d+\)$/, ''); // strip capacity indicator
     const date = document.getElementById('shiftDate').value;
     const shiftName = document.getElementById('shiftName').value.trim();
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
     const soldiers = Array.from(document.getElementById('shiftSoldiers').selectedOptions).map(o => o.value);
     if (!task || !date || !startTime || !endTime) { showToast('יש למלא את כל השדות', 'error'); return; }
+    if (soldiers.length === 0) { showToast('יש לבחור חיילים לשיבוץ', 'error'); return; }
+
+    // Validate: check for double-booking
+    const conflicts = [];
+    soldiers.forEach(sid => {
+        const overlap = hasTimeOverlap(sid, date, startTime, endTime);
+        if (overlap) {
+            const sol = state.soldiers.find(s => s.id === sid);
+            conflicts.push(`${sol ? sol.name : '?'} כבר משובץ ל${overlap.task} (${overlap.startTime}-${overlap.endTime})`);
+        }
+    });
+    if (conflicts.length > 0) {
+        showToast('שיבוץ כפול: ' + conflicts.join(', '), 'error');
+        return;
+    }
+
+    // Validate: check shift capacity
+    const taskData = companyData[company].tasks.find(t => t.name === task);
+    if (taskData) {
+        const needed = taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers;
+        const alreadyAssigned = state.shifts.filter(sh =>
+            sh.company === company && sh.task === task && sh.date === date &&
+            sh.startTime < endTime && sh.endTime > startTime
+        ).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+        if (needed > 0 && alreadyAssigned + soldiers.length > needed) {
+            showToast(`המשמרת מלאה! (${alreadyAssigned}/${needed} משובצים, ניסיון להוסיף ${soldiers.length})`, 'error');
+            return;
+        }
+    }
+
     state.shifts.push({
         id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
         company, task, date, shiftName, startTime, endTime, soldiers
@@ -1931,7 +2136,7 @@ function saveShift() {
     closeModal('addShiftModal');
     renderCompanyTab(company);
     updateGlobalStats();
-    showToast(`משמרת ${task} נוצרה`);
+    showToast(`משמרת ${task} נוצרה עם ${soldiers.length} חיילים`);
 }
 
 function deleteShift(id) {
@@ -2119,6 +2324,221 @@ function updateGlobalStats() {
         const regSoldiers = state.soldiers.filter(s => filterCompanies.includes(s.company)).length;
         statAvailable.textContent = Math.max(0, regSoldiers - assignedIds.size - totalLeave);
     }
+}
+
+// ==================== SETTINGS PAGE ====================
+function renderSettingsTab() {
+    const container = document.getElementById('settingsContent');
+    if (!container) return;
+    const companyNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד', hq: 'חפ"ק מג"ד', palsam: 'פלס"ם' };
+
+    container.innerHTML = `
+    <!-- Shift Presets -->
+    <div class="settings-card">
+        <h3>&#9200; שעות משמרות</h3>
+        <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">הגדר שעות ברירת מחדל לכפתורי בוקר/צהריים/לילה</p>
+        ${['morning','afternoon','night'].map(key => {
+            const p = settings.shiftPresets[key];
+            const labels = { morning: 'בוקר', afternoon: 'צהריים', night: 'לילה' };
+            return `<div class="settings-row" style="margin-bottom:8px;">
+                <div class="settings-field"><label>${labels[key]}</label></div>
+                <div class="settings-field"><label>התחלה</label><input type="time" value="${p.start}" onchange="updatePreset('${key}','start',this.value)"></div>
+                <div class="settings-field"><label>סיום</label><input type="time" value="${p.end}" onchange="updatePreset('${key}','end',this.value)"></div>
+            </div>`;
+        }).join('')}
+    </div>
+
+    <!-- Rotation -->
+    <div class="settings-card">
+        <h3>&#128260; רוטציה</h3>
+        <div class="settings-row">
+            <div class="settings-field">
+                <label>ימים בבסיס</label>
+                <input type="number" min="1" max="30" value="${settings.rotationDaysIn}" onchange="settings.rotationDaysIn=parseInt(this.value);saveSettings();">
+            </div>
+            <div class="settings-field">
+                <label>ימים בבית</label>
+                <input type="number" min="1" max="14" value="${settings.rotationDaysOut}" onchange="settings.rotationDaysOut=parseInt(this.value);saveSettings();">
+            </div>
+        </div>
+    </div>
+
+    <!-- Security -->
+    <div class="settings-card">
+        <h3>&#128274; אבטחה</h3>
+        <div class="settings-field">
+            <label>סיסמת כניסה</label>
+            <input type="text" value="${settings.password}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
+        </div>
+        <div class="settings-field">
+            <label>שם מנהל מערכת (אדמין)</label>
+            <input type="text" value="${settings.adminName}" onchange="settings.adminName=this.value.trim();saveSettings();showToast('שם אדמין עודכן');">
+        </div>
+    </div>
+
+    <!-- Google Sheets -->
+    <div class="settings-card">
+        <h3>&#128196; קישור גוגל שיטס</h3>
+        <div class="settings-field">
+            <label>מזהה הגיליון (Sheet ID)</label>
+            <input type="text" value="${settings.sheetId}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
+        </div>
+        <div class="settings-actions">
+            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">&#128260; סנכרון מחדש</button>
+        </div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="settings-card">
+        <h3>&#128451; ניהול נתונים</h3>
+        <div class="settings-actions">
+            <button class="btn btn-primary" onclick="exportAllData()">&#128190; ייצוא נתונים (JSON)</button>
+            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">&#128194; ייבוא נתונים (JSON)</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(this)">
+            <button class="btn btn-danger" onclick="resetAllData()">&#9888; איפוס כל הנתונים</button>
+        </div>
+        <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
+            סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
+        </div>
+    </div>
+
+    <!-- Task Management -->
+    <div class="settings-card" style="grid-column: 1 / -1;">
+        <h3>&#128203; ניהול משימות לפי פלוגה</h3>
+        <div class="form-group" style="margin-bottom:14px;">
+            <select id="settingsTaskCompany" onchange="renderTaskEditor()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
+                ${ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || ['a','b','c','d'].includes(k)).map(k =>
+                    `<option value="${k}">${companyNames[k]}</option>`
+                ).join('')}
+            </select>
+        </div>
+        <div id="taskEditorContainer"></div>
+    </div>`;
+
+    renderTaskEditor();
+}
+
+function renderTaskEditor() {
+    const compKey = document.getElementById('settingsTaskCompany')?.value || 'a';
+    const container = document.getElementById('taskEditorContainer');
+    if (!container) return;
+    const tasks = companyData[compKey].tasks;
+
+    container.innerHTML = `
+        <div class="task-edit-row task-edit-header">
+            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>משמרות</span><span></span>
+        </div>
+        ${tasks.map((t, i) => `
+            <div class="task-edit-row">
+                <input value="${t.name}" onchange="updateTask('${compKey}',${i},'name',this.value)">
+                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
+                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
+            </div>
+        `).join('')}
+        <div style="margin-top:10px;">
+            <button class="btn btn-success btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
+        </div>`;
+}
+
+function updateTask(compKey, index, field, value) {
+    const t = companyData[compKey].tasks[index];
+    if (field === 'name') t.name = value;
+    else if (field === 'shifts') t.shifts = value;
+    else {
+        t.perShift[field] = value;
+        t[field] = value * t.shifts;
+    }
+    saveTasksToStorage();
+    showToast('משימה עודכנה');
+}
+
+function addTask(compKey) {
+    companyData[compKey].tasks.push({
+        name: 'משימה חדשה', soldiers: 3, commanders: 0, officers: 0, shifts: 3,
+        perShift: { soldiers: 1, commanders: 0, officers: 0 }
+    });
+    saveTasksToStorage();
+    renderTaskEditor();
+}
+
+function deleteTask(compKey, index) {
+    if (!confirm('למחוק משימה?')) return;
+    companyData[compKey].tasks.splice(index, 1);
+    saveTasksToStorage();
+    renderTaskEditor();
+}
+
+function saveTasksToStorage() {
+    const tasksData = {};
+    ALL_COMPANIES.forEach(k => { tasksData[k] = companyData[k].tasks; });
+    localStorage.setItem('battalionTasks', JSON.stringify(tasksData));
+}
+
+function loadTasksFromStorage() {
+    const saved = localStorage.getItem('battalionTasks');
+    if (saved) {
+        const tasksData = JSON.parse(saved);
+        ALL_COMPANIES.forEach(k => {
+            if (tasksData[k]) companyData[k].tasks = tasksData[k];
+        });
+    }
+}
+
+function updatePreset(key, field, value) {
+    settings.shiftPresets[key][field] = value;
+    saveSettings();
+    showToast('שעות עודכנו');
+}
+
+function exportAllData() {
+    const data = { state, settings, tasks: {} };
+    ALL_COMPANIES.forEach(k => { data.tasks[k] = companyData[k].tasks; });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `battalion_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    showToast('נתונים יוצאו בהצלחה');
+}
+
+function importAllData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (data.state) { state = data.state; saveState(); }
+            if (data.settings) { settings = { ...settings, ...data.settings }; saveSettings(); }
+            if (data.tasks) {
+                ALL_COMPANIES.forEach(k => { if (data.tasks[k]) companyData[k].tasks = data.tasks[k]; });
+                saveTasksToStorage();
+            }
+            renderAll();
+            renderSettingsTab();
+            showToast('נתונים יובאו בהצלחה');
+        } catch (err) {
+            showToast('שגיאה בקריאת הקובץ', 'error');
+        }
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+function resetAllData() {
+    if (!confirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
+    if (!confirm('אישור סופי - למחוק הכל?')) return;
+    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [] };
+    saveState();
+    localStorage.removeItem('battalionTasks');
+    localStorage.removeItem('battalionDataVersion');
+    syncFromGoogleSheets(false);
+    renderAll();
+    renderSettingsTab();
+    showToast('כל הנתונים אופסו');
 }
 
 function exportCompanyData(compKey) {
