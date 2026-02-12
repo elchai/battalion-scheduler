@@ -1258,7 +1258,14 @@ function saveState() {
 // ==================== INIT ====================
 // Google Sheets config
 const SHEET_ID = '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE';
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+const SHEET_URLS = {
+    support: BASE_URL,
+    a: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה א'),
+    b: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה ב'),
+    c: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה ג'),
+    d: BASE_URL + '&sheet=' + encodeURIComponent('פלוגה ד')
+};
 const ALL_COMPANIES = ['a','b','c','d','hq','palsam'];
 
 const deptToCompany = {
@@ -1274,8 +1281,13 @@ const deptToCompany = {
 
 function init() {
     loadState();
-    // Auto-load soldiers from Google Sheets on first visit
-    if (state.soldiers.length === 0) {
+    // Force re-sync if data version changed (multi-sheet support)
+    const dataVersion = 'v3_multisheet';
+    if (localStorage.getItem('battalionDataVersion') !== dataVersion) {
+        state.soldiers = state.soldiers.filter(s => !s.fromSheets);
+        localStorage.setItem('battalionDataVersion', dataVersion);
+        syncFromGoogleSheets(true);
+    } else if (state.soldiers.length === 0) {
         syncFromGoogleSheets(true);
     }
     renderAll();
@@ -1299,63 +1311,96 @@ function renderAll() {
 // ==================== GOOGLE SHEETS SYNC ====================
 function syncFromGoogleSheets(silent) {
     if (!silent) showToast('מסנכרן מגוגל שיטס...', 'success');
-    fetch(SHEET_URL)
-        .then(r => r.text())
-        .then(csv => {
-            const soldiers = parseCSV(csv);
-            if (soldiers.length > 0) {
-                // Keep existing manually added soldiers (those not from sheets)
-                const manualSoldiers = state.soldiers.filter(s => !s.fromSheets);
-                // Build new list from sheets
-                const sheetSoldiers = soldiers.filter(row => row.name && row.name.trim()).map(row => {
-                    const dept = row.dept || '';
-                    const company = deptToCompany[dept] || 'palsam';
-                    // Check if already exists
-                    const existing = state.soldiers.find(s => s.personalId === row.id && s.fromSheets);
-                    return {
-                        id: existing ? existing.id : 'sol_' + row.id + '_' + Math.random().toString(36).substr(2,4),
-                        name: row.name.trim(),
-                        personalId: row.id,
-                        phone: row.phone ? '0' + row.phone : '',
-                        company: company,
-                        unit: dept,
-                        role: row.role || 'לוחם',
-                        rank: '',
-                        fromSheets: true,
-                        arrival: row.arrival || ''
-                    };
-                });
-                state.soldiers = [...manualSoldiers, ...sheetSoldiers];
-                // Update totals
-                updateCompanyTotals();
-                saveState();
-                renderAll();
-                if (!silent) showToast(`סונכרנו ${sheetSoldiers.length} חיילים מגוגל שיטס`, 'success');
+
+    const fetches = Object.entries(SHEET_URLS).map(([key, url]) =>
+        fetch(url).then(r => r.text()).then(csv => ({ key, csv }))
+    );
+
+    Promise.all(fetches).then(results => {
+        const manualSoldiers = state.soldiers.filter(s => !s.fromSheets);
+        let sheetSoldiers = [];
+
+        results.forEach(({ key, csv }) => {
+            if (key === 'support') {
+                sheetSoldiers.push(...parseSupportSheet(csv));
+            } else {
+                sheetSoldiers.push(...parseCombatSheet(csv, key));
             }
-        })
-        .catch(err => {
-            console.error('Sync error:', err);
-            if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
         });
+
+        state.soldiers = [...manualSoldiers, ...sheetSoldiers];
+        updateCompanyTotals();
+        saveState();
+        renderAll();
+        if (!silent) showToast(`סונכרנו ${sheetSoldiers.length} חיילים מגוגל שיטס`, 'success');
+    }).catch(err => {
+        console.error('Sync error:', err);
+        if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
+    });
 }
 
-function parseCSV(csv) {
+// Parse support sheet (פלס"ם + חפ"ק) - columns: מספר אישי, שם, טלפון, מחלקה, תפקיד, ארוחה, וידוא הגעה
+function parseSupportSheet(csv) {
     const lines = csv.split('\n');
-    const results = [];
+    const soldiers = [];
     for (let i = 1; i < lines.length; i++) {
-        const fields = parseCSVLine(lines[i]);
-        if (fields.length >= 5 && fields[1] && fields[1].trim()) {
-            results.push({
-                id: fields[0].replace(/"/g, '').trim(),
-                name: fields[1].replace(/"/g, '').trim(),
-                phone: fields[2].replace(/"/g, '').trim(),
-                dept: fields[3].replace(/"/g, '').trim(),
-                role: fields[4].replace(/"/g, '').trim(),
-                arrival: (fields[6] || '').replace(/"/g, '').trim()
-            });
-        }
+        const f = parseCSVLine(lines[i]);
+        if (f.length < 5) continue;
+        const id = f[0].trim();
+        const name = f[1].trim();
+        if (!name || !id) continue;
+        const dept = f[3].trim();
+        if (!dept) continue;
+        const company = deptToCompany[dept] || 'palsam';
+        const existing = state.soldiers.find(s => s.personalId === id && s.fromSheets);
+        soldiers.push({
+            id: existing ? existing.id : 'sol_' + id + '_' + Math.random().toString(36).substr(2,4),
+            name, personalId: id,
+            phone: f[2] ? '0' + f[2].trim() : '',
+            company, unit: dept,
+            role: f[4].trim() || 'לוחם',
+            rank: '', fromSheets: true,
+            arrival: (f[6] || '').trim()
+        });
     }
-    return results;
+    return soldiers;
+}
+
+// Parse combat company sheet - columns: מספר אישי, שם, טלפון, ארוחה, צו, מחלקה, סגל/מתאמן, תפקיד, הסמכה, וידוא הגעה
+function parseCombatSheet(csv, companyKey) {
+    const lines = csv.split('\n');
+    const soldiers = [];
+    const compNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד' };
+    for (let i = 1; i < lines.length; i++) {
+        const f = parseCSVLine(lines[i]);
+        if (f.length < 8) continue;
+        const id = f[0].trim();
+        const name = f[1].trim();
+        if (!name || !id) continue;
+        if (/^\d+$/.test(name)) continue;
+
+        const order = f[4].trim();
+        const arrival = (f[9] || '').trim();
+        if (order !== 'יצא' && arrival !== 'מגיע') continue;
+
+        const section = f[5].trim();
+        const staffType = f[6].trim();
+        const role = f[7].trim();
+        const cert = f[8].trim();
+
+        const unitLabel = section ? `מחלקה ${section}` : (staffType === 'סגל' ? 'סגל' : compNames[companyKey]);
+        const existing = state.soldiers.find(s => s.personalId === id && s.fromSheets);
+        soldiers.push({
+            id: existing ? existing.id : 'sol_' + id + '_' + Math.random().toString(36).substr(2,4),
+            name, personalId: id,
+            phone: f[2] ? '0' + f[2].trim() : '',
+            company: companyKey, unit: unitLabel,
+            role: role || (staffType === 'סגל' ? 'מפקד' : 'לוחם'),
+            rank: staffType || '', fromSheets: true,
+            arrival, certification: cert || ''
+        });
+    }
+    return soldiers;
 }
 
 function parseCSVLine(line) {
@@ -1391,9 +1436,17 @@ function parseCSVLine(line) {
 }
 
 function updateCompanyTotals() {
-    ['hq', 'palsam'].forEach(key => {
-        const count = state.soldiers.filter(s => s.company === key).length;
-        companyData[key].totals = { soldiers: count, commanders: 0, officers: 0 };
+    ALL_COMPANIES.forEach(key => {
+        const soldiers = state.soldiers.filter(s => s.company === key);
+        if (key === 'hq' || key === 'palsam') {
+            companyData[key].totals = { soldiers: soldiers.length, commanders: 0, officers: 0 };
+        } else {
+            const officerRoles = ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'];
+            const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ'];
+            const officers = soldiers.filter(s => officerRoles.some(r => s.role.includes(r))).length;
+            const commanders = soldiers.filter(s => cmdRoles.some(r => s.role.includes(r))).length;
+            companyData[key].totals = { soldiers: soldiers.length - officers - commanders, commanders, officers };
+        }
     });
 }
 
@@ -1829,22 +1882,22 @@ function updateShiftOptions() {
             taskSel.appendChild(opt);
         });
     }
-    // Soldiers: grouped by מחלקה, same company first
+    // Soldiers: only from selected company, grouped by מחלקה
     const solSel = document.getElementById('shiftSoldiers');
     solSel.innerHTML = '';
 
-    // First: soldiers from the selected company
     const companySoldiers = state.soldiers.filter(s => s.company === company);
     if (companySoldiers.length > 0) {
         const groups = {};
         companySoldiers.forEach(s => {
-            const unit = s.unit || companyData[s.company]?.name || 'אחר';
+            const unit = s.unit || 'כללי';
             if (!groups[unit]) groups[unit] = [];
             groups[unit].push(s);
         });
         Object.entries(groups).forEach(([unit, soldiers]) => {
             const grp = document.createElement('optgroup');
             grp.label = unit;
+            soldiers.sort((a,b) => a.name.localeCompare(b.name, 'he'));
             soldiers.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.id;
@@ -1853,28 +1906,11 @@ function updateShiftOptions() {
             });
             solSel.appendChild(grp);
         });
-    }
-
-    // Then: soldiers from other companies
-    const otherSoldiers = state.soldiers.filter(s => s.company !== company);
-    if (otherSoldiers.length > 0) {
-        const otherGroups = {};
-        otherSoldiers.forEach(s => {
-            const label = s.unit || companyData[s.company]?.name || 'אחר';
-            if (!otherGroups[label]) otherGroups[label] = [];
-            otherGroups[label].push(s);
-        });
-        Object.entries(otherGroups).forEach(([label, soldiers]) => {
-            const grp = document.createElement('optgroup');
-            grp.label = `[${label}]`;
-            soldiers.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = `${s.name} (${s.role})`;
-                grp.appendChild(opt);
-            });
-            solSel.appendChild(grp);
-        });
+    } else {
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.textContent = 'אין חיילים רשומים - הוסף חיילים ידנית';
+        solSel.appendChild(opt);
     }
 }
 
@@ -2034,7 +2070,7 @@ function updateGlobalStats() {
     const isGdudi = unit === 'gdudi';
 
     // Filter data by user's unit
-    const filterCompanies = isGdudi ? ['a','b','c','d'] : [unit];
+    const filterCompanies = isGdudi ? ALL_COMPANIES : [unit];
 
     let totalSol = 0, totalCmd = 0, totalOff = 0;
     filterCompanies.forEach(k => {
