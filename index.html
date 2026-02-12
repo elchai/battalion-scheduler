@@ -168,6 +168,8 @@
         .company-b .company-card-header { background: linear-gradient(135deg, #2E7D32, #66BB6A); }
         .company-c .company-card-header { background: linear-gradient(135deg, #E65100, #FFA726); }
         .company-d .company-card-header { background: linear-gradient(135deg, #6A1B9A, #AB47BC); }
+        .company-hq .company-card-header { background: linear-gradient(135deg, #37474F, #78909C); }
+        .company-palsam .company-card-header { background: linear-gradient(135deg, #4E342E, #8D6E63); }
         .company-card-body { padding: 14px 18px; }
         .force-summary {
             display: grid;
@@ -691,6 +693,8 @@
                 <option value="b">פלוגה ב - 443</option>
                 <option value="c">פלוגה ג - חשמונאים</option>
                 <option value="d">פלוגה ד - עתודה</option>
+                <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                <option value="palsam">פלס"ם</option>
                 <option value="gdudi">גדודי</option>
             </select>
         </div>
@@ -751,6 +755,8 @@
         <button class="nav-tab tab-b" onclick="switchTab('b')">פלוגה ב - 443 <span class="tab-count">52</span></button>
         <button class="nav-tab tab-c" onclick="switchTab('c')">פלוגה ג - חשמונאים <span class="tab-count">50</span></button>
         <button class="nav-tab tab-d" onclick="switchTab('d')">פלוגה ד - עתודה <span class="tab-count">55</span></button>
+        <button class="nav-tab tab-hq" style="border-top:3px solid #607D8B;" onclick="switchTab('hq')">חפ"ק מג"ד</button>
+        <button class="nav-tab tab-palsam" style="border-top:3px solid #795548;" onclick="switchTab('palsam')">פלס"ם</button>
         <button class="nav-tab tab-rotation" onclick="switchTab('rotation')">&#128260; רוטציה 10/4</button>
     </div>
 </div>
@@ -775,9 +781,12 @@
             <div class="quick-stat"><div class="value" id="statAvailable">0</div><div class="label">זמינים</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--pluga-d);"><div class="value" id="statReinforcement">12</div><div class="label">תגבור פלוגה ד</div></div>
         </div>
-        <div class="section-title">
-            <div class="icon" style="background:#e3f2fd;color:var(--primary);">&#9733;</div>
-            סקירת פלוגות
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="section-title" style="margin-bottom:0">
+                <div class="icon" style="background:#e3f2fd;color:var(--primary);">&#9733;</div>
+                סקירת פלוגות
+            </div>
+            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">&#128260; סנכרון מגוגל שיטס</button>
         </div>
         <div class="companies-grid" id="companiesGrid"></div>
     </div>
@@ -788,6 +797,8 @@
 <div class="tab-content" id="tab-b"><div class="main-content" id="content-b"></div></div>
 <div class="tab-content" id="tab-c"><div class="main-content" id="content-c"></div></div>
 <div class="tab-content" id="tab-d"><div class="main-content" id="content-d"></div></div>
+<div class="tab-content" id="tab-hq"><div class="main-content" id="content-hq"></div></div>
+<div class="tab-content" id="tab-palsam"><div class="main-content" id="content-palsam"></div></div>
 
 <!-- ====== TAB: ROTATION ====== -->
 <div class="tab-content" id="tab-rotation">
@@ -868,6 +879,8 @@
                         <option value="b">פלוגה ב - 443</option>
                         <option value="c">פלוגה ג - חשמונאים</option>
                         <option value="d">פלוגה ד - עתודה</option>
+                        <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                        <option value="palsam">פלס"ם</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -909,6 +922,8 @@
                     <option value="b">פלוגה ב - 443</option>
                     <option value="c">פלוגה ג - חשמונאים</option>
                     <option value="d">פלוגה ד - עתודה</option>
+                    <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                    <option value="palsam">פלס"ם</option>
                 </select>
             </div>
             <div class="form-group">
@@ -962,6 +977,8 @@
                     <option value="b">פלוגה ב</option>
                     <option value="c">פלוגה ג</option>
                     <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
                 </select>
             </div>
             <div class="form-group">
@@ -1019,6 +1036,8 @@
                     <option value="b">פלוגה ב</option>
                     <option value="c">פלוגה ג</option>
                     <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
                     <option value="all">כל הפלוגות</option>
                 </select>
             </div>
@@ -1102,7 +1121,7 @@ function activateApp() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').style.display = '';
 
-    const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', gdudi:'גדודי'};
+    const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם', gdudi:'גדודי'};
     document.getElementById('userBadge').textContent = currentUser.name + ' | ' + unitMap[currentUser.unit];
 
     applyUnitFilter();
@@ -1126,6 +1145,8 @@ function applyUnitFilter() {
     document.querySelector('.tab-b').style.display = (isGdudi || unit === 'b') ? '' : 'none';
     document.querySelector('.tab-c').style.display = (isGdudi || unit === 'c') ? '' : 'none';
     document.querySelector('.tab-d').style.display = (isGdudi || unit === 'd') ? '' : 'none';
+    document.querySelector('.tab-hq').style.display = (isGdudi || unit === 'hq') ? '' : 'none';
+    document.querySelector('.tab-palsam').style.display = (isGdudi || unit === 'palsam') ? '' : 'none';
     document.querySelector('.tab-rotation').style.display = isGdudi ? '' : 'none';
 }
 
@@ -1208,6 +1229,16 @@ const companyData = {
             { name: 'צוות יזומות', soldiers: 20, commanders: 2, officers: 2, shifts: 1, perShift: { soldiers: 20, commanders: 2, officers: 2 } }
         ],
         totals: { soldiers: 48, commanders: 3, officers: 4 }
+    },
+    hq: {
+        name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: '#607D8B', colorClass: 'company-hq',
+        tasks: [],
+        totals: { soldiers: 0, commanders: 0, officers: 0 }
+    },
+    palsam: {
+        name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', color: '#795548', colorClass: 'company-palsam',
+        tasks: [],
+        totals: { soldiers: 0, commanders: 0, officers: 0 }
     }
 };
 
@@ -1225,12 +1256,29 @@ function saveState() {
 }
 
 // ==================== INIT ====================
+// Google Sheets config
+const SHEET_ID = '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+const ALL_COMPANIES = ['a','b','c','d','hq','palsam'];
+
+const deptToCompany = {
+    'חפ"ק מג"ד': 'hq',
+    'לשכה': 'hq',
+    'מחלקת משא"ן': 'palsam',
+    'מפקדת הפלס"ם': 'palsam',
+    'פלגת הספקה': 'palsam',
+    'פלגת הפינוי': 'palsam',
+    'פלגת טנ"א': 'palsam',
+    'פלגת רפואה': 'palsam'
+};
+
 function init() {
     loadState();
-    renderOverview();
-    ['a','b','c','d'].forEach(renderCompanyTab);
-    renderRotationTab();
-    updateGlobalStats();
+    // Auto-load soldiers from Google Sheets on first visit
+    if (state.soldiers.length === 0) {
+        syncFromGoogleSheets(true);
+    }
+    renderAll();
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('shiftDate').value = today;
     document.getElementById('leaveStart').value = today;
@@ -1238,8 +1286,115 @@ function init() {
     const d4 = new Date(); d4.setDate(d4.getDate() + 4);
     document.getElementById('leaveEnd').value = d4.toISOString().split('T')[0];
     updateShiftOptions();
-    // Check for existing login session
     checkSession();
+}
+
+function renderAll() {
+    renderOverview();
+    ALL_COMPANIES.forEach(renderCompanyTab);
+    renderRotationTab();
+    updateGlobalStats();
+}
+
+// ==================== GOOGLE SHEETS SYNC ====================
+function syncFromGoogleSheets(silent) {
+    if (!silent) showToast('מסנכרן מגוגל שיטס...', 'success');
+    fetch(SHEET_URL)
+        .then(r => r.text())
+        .then(csv => {
+            const soldiers = parseCSV(csv);
+            if (soldiers.length > 0) {
+                // Keep existing manually added soldiers (those not from sheets)
+                const manualSoldiers = state.soldiers.filter(s => !s.fromSheets);
+                // Build new list from sheets
+                const sheetSoldiers = soldiers.filter(row => row.name && row.name.trim()).map(row => {
+                    const dept = row.dept || '';
+                    const company = deptToCompany[dept] || 'palsam';
+                    // Check if already exists
+                    const existing = state.soldiers.find(s => s.personalId === row.id && s.fromSheets);
+                    return {
+                        id: existing ? existing.id : 'sol_' + row.id + '_' + Math.random().toString(36).substr(2,4),
+                        name: row.name.trim(),
+                        personalId: row.id,
+                        phone: row.phone ? '0' + row.phone : '',
+                        company: company,
+                        unit: dept,
+                        role: row.role || 'לוחם',
+                        rank: '',
+                        fromSheets: true,
+                        arrival: row.arrival || ''
+                    };
+                });
+                state.soldiers = [...manualSoldiers, ...sheetSoldiers];
+                // Update totals
+                updateCompanyTotals();
+                saveState();
+                renderAll();
+                if (!silent) showToast(`סונכרנו ${sheetSoldiers.length} חיילים מגוגל שיטס`, 'success');
+            }
+        })
+        .catch(err => {
+            console.error('Sync error:', err);
+            if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
+        });
+}
+
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const results = [];
+    for (let i = 1; i < lines.length; i++) {
+        const fields = parseCSVLine(lines[i]);
+        if (fields.length >= 5 && fields[1] && fields[1].trim()) {
+            results.push({
+                id: fields[0].replace(/"/g, '').trim(),
+                name: fields[1].replace(/"/g, '').trim(),
+                phone: fields[2].replace(/"/g, '').trim(),
+                dept: fields[3].replace(/"/g, '').trim(),
+                role: fields[4].replace(/"/g, '').trim(),
+                arrival: (fields[6] || '').replace(/"/g, '').trim()
+            });
+        }
+    }
+    return results;
+}
+
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+            if (ch === '"') {
+                if (i + 1 < line.length && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                current += ch;
+            }
+        } else {
+            if (ch === '"') {
+                inQuotes = true;
+            } else if (ch === ',') {
+                result.push(current);
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+    }
+    result.push(current);
+    return result;
+}
+
+function updateCompanyTotals() {
+    ['hq', 'palsam'].forEach(key => {
+        const count = state.soldiers.filter(s => s.company === key).length;
+        companyData[key].totals = { soldiers: count, commanders: 0, officers: 0 };
+    });
 }
 
 // ==================== OVERVIEW ====================
@@ -1248,7 +1403,7 @@ function renderOverview() {
     grid.innerHTML = '';
     Object.entries(companyData).forEach(([key, comp]) => {
         const regCount = state.soldiers.filter(s => s.company === key).length;
-        const total = comp.totals.soldiers + comp.totals.commanders + comp.totals.officers;
+        const total = (key === 'hq' || key === 'palsam') ? regCount : comp.totals.soldiers + comp.totals.commanders + comp.totals.officers;
         const onLeave = state.leaves.filter(l => l.company === key && isCurrentlyOnLeave(l)).length;
         const card = document.createElement('div');
         card.className = `company-card ${comp.colorClass}`;
@@ -1375,7 +1530,7 @@ function renderCompanyTab(compKey) {
                         return `<div class="person-card ${cls}">
                             <div class="person-info">
                                 <h4>${s.name}</h4>
-                                <div class="meta">${s.rank} | ${s.role}${s.personalId ? ' | '+s.personalId : ''}</div>
+                                <div class="meta">${s.role}${s.unit ? ' | '+s.unit : ''}${s.personalId ? ' | '+s.personalId : ''}</div>
                                 ${s.phone ? `<div class="meta">${s.phone}</div>` : ''}
                                 ${rotInfo}
                             </div>
@@ -1662,31 +1817,64 @@ function updateShiftOptions() {
     const company = document.getElementById('shiftCompany').value;
     const taskSel = document.getElementById('shiftTask');
     taskSel.innerHTML = '';
-    companyData[company].tasks.forEach(t => {
+    const tasks = companyData[company].tasks;
+    if (tasks.length === 0) {
         const opt = document.createElement('option');
-        opt.value = t.name; opt.textContent = t.name;
+        opt.value = 'כללי'; opt.textContent = 'כללי';
         taskSel.appendChild(opt);
-    });
+    } else {
+        tasks.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.name; opt.textContent = t.name;
+            taskSel.appendChild(opt);
+        });
+    }
+    // Soldiers: grouped by מחלקה, same company first
     const solSel = document.getElementById('shiftSoldiers');
     solSel.innerHTML = '';
-    state.soldiers.filter(s => s.company === company).forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id; opt.textContent = `${s.name} (${s.rank} - ${s.role})`;
-        solSel.appendChild(opt);
-    });
-    // Also add reinforcements from company D if not already the same company
-    if (company !== 'd') {
-        const dSoldiers = state.soldiers.filter(s => s.company === 'd');
-        if (dSoldiers.length > 0) {
-            const optGroup = document.createElement('optgroup');
-            optGroup.label = 'תגבור מפלוגה ד';
-            dSoldiers.forEach(s => {
+
+    // First: soldiers from the selected company
+    const companySoldiers = state.soldiers.filter(s => s.company === company);
+    if (companySoldiers.length > 0) {
+        const groups = {};
+        companySoldiers.forEach(s => {
+            const unit = s.unit || companyData[s.company]?.name || 'אחר';
+            if (!groups[unit]) groups[unit] = [];
+            groups[unit].push(s);
+        });
+        Object.entries(groups).forEach(([unit, soldiers]) => {
+            const grp = document.createElement('optgroup');
+            grp.label = unit;
+            soldiers.forEach(s => {
                 const opt = document.createElement('option');
-                opt.value = s.id; opt.textContent = `[תגבור] ${s.name} (${s.rank})`;
-                optGroup.appendChild(opt);
+                opt.value = s.id;
+                opt.textContent = `${s.name} (${s.role})`;
+                grp.appendChild(opt);
             });
-            solSel.appendChild(optGroup);
-        }
+            solSel.appendChild(grp);
+        });
+    }
+
+    // Then: soldiers from other companies
+    const otherSoldiers = state.soldiers.filter(s => s.company !== company);
+    if (otherSoldiers.length > 0) {
+        const otherGroups = {};
+        otherSoldiers.forEach(s => {
+            const label = s.unit || companyData[s.company]?.name || 'אחר';
+            if (!otherGroups[label]) otherGroups[label] = [];
+            otherGroups[label].push(s);
+        });
+        Object.entries(otherGroups).forEach(([label, soldiers]) => {
+            const grp = document.createElement('optgroup');
+            grp.label = `[${label}]`;
+            soldiers.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.name} (${s.role})`;
+                grp.appendChild(opt);
+            });
+            solSel.appendChild(grp);
+        });
     }
 }
 
