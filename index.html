@@ -5,793 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מערכת שיבוץ גדודית | תעסוקה מבצעית</title>
     <link rel="icon" href="logo.png" type="image/png">
-    <style>
-        :root {
-            --primary: #1a3a5c;
-            --primary-light: #2a5a8c;
-            --primary-dark: #0d2240;
-            --accent: #e8a838;
-            --accent-light: #f0c060;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --info: #3498db;
-            --bg: #f0f2f5;
-            --card: #ffffff;
-            --text: #2c3e50;
-            --text-light: #7f8c8d;
-            --border: #dfe6e9;
-            --shadow: 0 2px 12px rgba(0,0,0,0.08);
-            --radius: 12px;
-            --pluga-a: #2196F3;
-            --pluga-b: #4CAF50;
-            --pluga-c: #FF9800;
-            --pluga-d: #9C27B0;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            direction: rtl;
-            min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
-            color: white;
-            padding: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 30px;
-        }
-        .header-title {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .header-title h1 { font-size: 1.5em; font-weight: 700; }
-        .header-title .badge {
-            background: var(--accent);
-            color: var(--primary-dark);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75em;
-            font-weight: 700;
-        }
-        .header-stats {
-            display: flex;
-            gap: 15px;
-            font-size: 0.85em;
-        }
-        .header-stat {
-            text-align: center;
-            background: rgba(255,255,255,0.1);
-            padding: 6px 14px;
-            border-radius: 8px;
-        }
-        .header-stat .num { font-size: 1.3em; font-weight: 700; color: var(--accent); }
-        .header-stat .label { font-size: 0.75em; opacity: 0.8; }
-        .nav-tabs {
-            display: flex;
-            padding: 0 20px;
-            gap: 2px;
-            background: rgba(0,0,0,0.15);
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-        .nav-tabs::-webkit-scrollbar { display: none; }
-        .nav-tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.7);
-            font-size: 0.9em;
-            font-weight: 600;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            font-family: inherit;
-            white-space: nowrap;
-        }
-        .nav-tab:hover { color: white; background: rgba(255,255,255,0.05); }
-        .nav-tab.active { color: white; border-bottom-color: var(--accent); background: rgba(255,255,255,0.1); }
-        .nav-tab .tab-count {
-            background: rgba(255,255,255,0.2);
-            padding: 2px 7px;
-            border-radius: 10px;
-            font-size: 0.8em;
-            margin-right: 5px;
-        }
-        .nav-tab.active .tab-count { background: var(--accent); color: var(--primary-dark); }
-        .nav-tab.tab-all { border-top: 3px solid var(--accent); }
-        .nav-tab.tab-a { border-top: 3px solid var(--pluga-a); }
-        .nav-tab.tab-b { border-top: 3px solid var(--pluga-b); }
-        .nav-tab.tab-c { border-top: 3px solid var(--pluga-c); }
-        .nav-tab.tab-d { border-top: 3px solid var(--pluga-d); }
-        .main-content { padding: 20px 25px; max-width: 1600px; margin: 0 auto; }
-        .section-title {
-            font-size: 1.15em;
-            font-weight: 700;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section-title .icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1em;
-        }
-        .companies-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
-            margin-bottom: 25px;
-        }
-        .company-card {
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-        }
-        .company-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-        }
-        .company-card-header {
-            padding: 14px 18px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .company-card-header h3 { font-size: 1.1em; }
-        .company-card-header .location {
-            font-size: 0.8em;
-            opacity: 0.9;
-            background: rgba(255,255,255,0.2);
-            padding: 3px 10px;
-            border-radius: 12px;
-        }
-        .company-a .company-card-header { background: linear-gradient(135deg, #1565C0, #42A5F5); }
-        .company-b .company-card-header { background: linear-gradient(135deg, #2E7D32, #66BB6A); }
-        .company-c .company-card-header { background: linear-gradient(135deg, #E65100, #FFA726); }
-        .company-d .company-card-header { background: linear-gradient(135deg, #6A1B9A, #AB47BC); }
-        .company-hq .company-card-header { background: linear-gradient(135deg, #37474F, #78909C); }
-        .company-palsam .company-card-header { background: linear-gradient(135deg, #4E342E, #8D6E63); }
-        .company-card-body { padding: 14px 18px; }
-        .force-summary {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .force-item {
-            text-align: center;
-            padding: 8px;
-            background: var(--bg);
-            border-radius: 8px;
-        }
-        .force-item .num { font-size: 1.4em; font-weight: 700; color: var(--primary); }
-        .force-item .label { font-size: 0.75em; color: var(--text-light); }
-        .task-table-wrapper {
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-        .table-scroll { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        thead th {
-            background: var(--primary-dark);
-            color: white;
-            padding: 10px 14px;
-            font-weight: 600;
-            font-size: 0.83em;
-            text-align: center;
-            white-space: nowrap;
-        }
-        tbody td {
-            padding: 9px 14px;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.88em;
-        }
-        tbody tr:hover { background: #f8f9ff; }
-        .task-name { text-align: right !important; font-weight: 600; color: var(--primary); }
-        .total-row { background: var(--bg) !important; font-weight: 700; }
-        .total-row td { border-top: 2px solid var(--primary); }
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.88em;
-            font-family: inherit;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-light); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #219a52; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #c0392b; }
-        .btn-sm { padding: 5px 12px; font-size: 0.8em; }
-        .btn-icon { width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
-        .shifts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 14px;
-        }
-        .shift-card {
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            border-right: 4px solid var(--primary);
-        }
-        .shift-card-header {
-            padding: 10px 14px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .shift-card-header h4 { font-size: 0.95em; }
-        .shift-time {
-            font-size: 0.8em;
-            background: rgba(255,255,255,0.2);
-            padding: 3px 10px;
-            border-radius: 12px;
-        }
-        .shift-card-body { padding: 10px 14px; }
-        .shift-soldiers { list-style: none; }
-        .shift-soldier {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            border-bottom: 1px solid var(--border);
-            border-radius: 6px;
-            margin-bottom: 3px;
-            font-size: 0.9em;
-        }
-        .shift-soldier:hover { background: var(--bg); }
-        .shift-soldier:last-child { border-bottom: none; }
-        .personnel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-            gap: 10px;
-        }
-        .person-card {
-            background: var(--card);
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s;
-            border-right: 4px solid var(--border);
-        }
-        .person-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
-        .person-card.on-leave { border-right-color: var(--warning); background: #fffdf0; }
-        .person-card.on-duty { border-right-color: var(--success); }
-        .person-card.unassigned { border-right-color: var(--danger); }
-        .person-card.reinforcement { border-right-color: var(--pluga-d); background: #f3e5f5; }
-        .person-info h4 { font-size: 0.9em; margin-bottom: 3px; }
-        .person-info .meta { font-size: 0.78em; color: var(--text-light); }
-        .person-status {
-            font-size: 0.73em;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-weight: 600;
-        }
-        .status-on-duty { background: #e8f5e9; color: var(--success); }
-        .status-on-leave { background: #fff8e1; color: #e65100; }
-        .status-available { background: #e3f2fd; color: var(--info); }
-        .status-reinforcement { background: #f3e5f5; color: var(--pluga-d); }
-        .leave-table-wrapper {
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow-x: auto;
-        }
-        .leave-row-home { background: #fff8e1 !important; }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 200;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--card);
-            border-radius: var(--radius);
-            width: 92%;
-            max-width: 620px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .modal-header {
-            padding: 16px 20px;
-            background: var(--primary);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-        .modal-header h3 { font-size: 1.05em; }
-        .modal-close {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 28px; height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-body { padding: 20px; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.88em; }
-        .form-group input, .form-group select { width: 100%; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .modal-footer {
-            padding: 14px 20px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            gap: 10px;
-        }
-        input[type="date"], input[type="time"], input[type="text"], input[type="number"], select {
-            padding: 8px 12px;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.88em;
-            font-family: inherit;
-            direction: rtl;
-            transition: border-color 0.3s;
-        }
-        input:focus, select:focus { outline: none; border-color: var(--primary-light); }
-        .toast-container {
-            position: fixed;
-            top: 80px;
-            left: 30px;
-            z-index: 300;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .toast {
-            background: var(--primary-dark);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 0.88em;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            animation: slideIn 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .sub-section { margin-bottom: 25px; }
-        .sub-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .action-bar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-            padding: 14px 18px;
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-        }
-        .quick-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .quick-stat {
-            background: var(--card);
-            border-radius: 10px;
-            padding: 14px;
-            text-align: center;
-            box-shadow: var(--shadow);
-        }
-        .quick-stat .value { font-size: 1.8em; font-weight: 700; color: var(--primary); }
-        .quick-stat .label { font-size: 0.78em; color: var(--text-light); margin-top: 3px; }
-        .timeline-bar {
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border);
-            position: relative;
-            margin: 6px 0;
-        }
-        .timeline-fill { height: 100%; border-radius: 3px; background: var(--success); }
-        .empty-state { text-align: center; padding: 30px 20px; color: var(--text-light); }
-        .empty-state .icon { font-size: 2.5em; margin-bottom: 10px; }
-
-        /* Rotation Calendar */
-        .rotation-calendar {
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-        .rotation-header {
-            padding: 14px 18px;
-            background: linear-gradient(135deg, #5C6BC0, #7986CB);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .rotation-body { padding: 16px; }
-        .rotation-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-        .rotation-label {
-            min-width: 120px;
-            padding: 10px 14px;
-            font-weight: 600;
-            font-size: 0.85em;
-            background: var(--bg);
-            border-left: 1px solid var(--border);
-        }
-        .rotation-days {
-            display: flex;
-            flex: 1;
-            overflow-x: auto;
-        }
-        .rotation-day {
-            min-width: 36px;
-            height: 38px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7em;
-            border-left: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .rotation-day.in-base { background: #e8f5e9; color: var(--success); }
-        .rotation-day.at-home { background: #fff8e1; color: #e65100; }
-        .rotation-day.today { border: 2px solid var(--danger); font-weight: 700; }
-        .rotation-day .day-num { font-weight: 600; font-size: 1.1em; }
-        .rotation-day .day-name { font-size: 0.85em; opacity: 0.7; }
-
-        /* Rotation Groups */
-        .rotation-groups {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 14px;
-        }
-        .rotation-group-card {
-            background: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-        .rotation-group-header {
-            padding: 12px 16px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .rotation-group-header.in-base { background: linear-gradient(135deg, #2E7D32, #4CAF50); }
-        .rotation-group-header.at-home { background: linear-gradient(135deg, #E65100, #FF9800); }
-        .rotation-group-body { padding: 12px 16px; }
-        .rotation-group-body ul { list-style: none; }
-        .rotation-group-body li {
-            padding: 6px 8px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.88em;
-        }
-        .rotation-group-body li:last-child { border-bottom: none; }
-
-        /* Info box */
-        .info-box {
-            background: #e3f2fd;
-            border: 1px solid #90CAF9;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin-bottom: 18px;
-            font-size: 0.9em;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-        }
-        .info-box .info-icon { font-size: 1.2em; }
-
-        @media print {
-            .header { position: static; }
-            .nav-tabs, .btn, .action-bar, .modal-overlay { display: none !important; }
-            body { background: white; }
-        }
-        @media (max-width: 768px) {
-            /* Compact header */
-            .header { position: sticky; }
-            .header-top { flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
-            .header-title { gap: 8px; }
-            .header-title h1 { font-size: 1em; }
-            .header-title img { width: 30px !important; height: 30px !important; }
-            .header-title .badge { font-size: 0.6em; padding: 2px 8px; }
-            .header-stats { gap: 4px; font-size: 0.75em; width: 100%; justify-content: space-between; }
-            .header-stat { padding: 4px 6px; border-radius: 6px; flex: 1; min-width: 0; }
-            .header-stat .num { font-size: 1.1em; }
-            .header-stat .label { font-size: 0.65em; }
-            .user-badge { font-size: 0.75em !important; padding: 3px 8px !important; }
-
-            /* Tabs: scrollable, compact */
-            .nav-tabs { padding: 0 6px; gap: 1px; -webkit-overflow-scrolling: touch; }
-            .nav-tab { padding: 7px 12px; font-size: 0.78em; }
-            .nav-tab .tab-count { font-size: 0.7em; padding: 1px 5px; margin-right: 3px; }
-
-            /* Content */
-            .main-content { padding: 10px 8px; }
-            .companies-grid { grid-template-columns: 1fr; }
-
-            /* Action bar: 2x2 grid */
-            .action-bar { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px; }
-            .action-bar .btn { font-size: 0.78em; padding: 8px 6px; justify-content: center; width: 100%; }
-
-            /* Tables: scrollable */
-            .sub-section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            table { font-size: 0.82em; min-width: 500px; }
-
-            /* Personnel grid: single column */
-            .personnel-grid { grid-template-columns: 1fr; gap: 6px; }
-            .person-card { padding: 8px 10px; }
-            .person-info h4 { font-size: 0.83em; }
-            .person-info .meta { font-size: 0.72em; }
-            .person-status { font-size: 0.68em; padding: 3px 7px; }
-
-            /* Shift cards: single column */
-            .shifts-grid { grid-template-columns: 1fr; gap: 8px; }
-            .shift-card-header h4 { font-size: 0.85em; }
-            .shift-time { font-size: 0.72em; padding: 2px 7px; }
-
-            /* Section titles */
-            .section-title { font-size: 1em; }
-            .section-title .icon { width: 28px; height: 28px; font-size: 0.85em; }
-            .sub-section { margin-bottom: 16px; }
-
-            /* Forms */
-            .form-row { grid-template-columns: 1fr; }
-            .modal-body { padding: 14px; }
-            .modal-footer { padding: 10px 14px; }
-
-            /* Modals */
-            .modal { max-height: 90vh; }
-
-            /* Settings */
-            .settings-grid { grid-template-columns: 1fr; }
-            .settings-card { padding: 14px; }
-            .task-edit-row { grid-template-columns: 1fr 45px 45px 45px 45px auto; gap: 4px; font-size: 0.78em; }
-
-            /* Login */
-            .login-box { width: 92% !important; min-width: auto !important; }
-            .login-logo img { width: 60px !important; height: 60px !important; }
-            .login-box h2 { font-size: 1.2em; }
-
-            /* Toast position */
-            .toast-container { top: auto; bottom: 20px; left: 10px; right: 10px; }
-            .toast { font-size: 0.82em; }
-
-            /* Rotation */
-            .rotation-label { min-width: 80px; font-size: 0.75em; }
-
-            /* Quick stats in overview */
-            .quick-stat { padding: 8px 6px; }
-            .quick-stat .value { font-size: 1.3em; }
-            .quick-stat .label { font-size: 0.7em; }
-
-            /* Info box */
-            .info-box { font-size: 0.82em; padding: 10px 12px; }
-        }
-        @media (max-width: 400px) {
-            .header-title h1 { font-size: 0.9em; }
-            .header-title .badge { display: none; }
-            .header-stat .num { font-size: 1em; }
-            .nav-tab { padding: 6px 10px; font-size: 0.72em; }
-            .action-bar .btn { font-size: 0.72em; padding: 7px 4px; }
-            .person-card { padding: 6px 8px; }
-        }
-
-        /* Shift soldier status in dropdown */
-        select option.option-assigned { background: #FFF3E0; color: #E65100; }
-        select option.option-on-leave { background: #FFEBEE; color: #C62828; }
-        /* Shift preset buttons */
-        .shift-presets { display: flex; gap: 6px; margin-bottom: 10px; }
-        .shift-preset-btn {
-            flex: 1; padding: 6px 10px; border: 2px solid var(--border); border-radius: 8px;
-            background: var(--bg); cursor: pointer; font-family: inherit; font-size: 0.85em;
-            font-weight: 600; transition: all 0.2s; text-align: center;
-        }
-        .shift-preset-btn:hover { border-color: var(--primary); background: #e3f2fd; }
-        .shift-preset-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
-        /* Settings page */
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; }
-        .settings-card {
-            background: white; border-radius: var(--radius); box-shadow: var(--shadow);
-            padding: 20px; border-top: 4px solid var(--primary);
-        }
-        .settings-card h3 { font-size: 1.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-        .settings-field { margin-bottom: 12px; }
-        .settings-field label { display: block; font-size: 0.85em; font-weight: 600; margin-bottom: 4px; color: var(--text-light); }
-        .settings-field input, .settings-field select {
-            width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
-            font-family: inherit; font-size: 0.9em;
-        }
-        .settings-field input:focus, .settings-field select:focus { border-color: var(--primary); outline: none; }
-        .settings-row { display: flex; gap: 12px; }
-        .settings-row .settings-field { flex: 1; }
-        .settings-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-        .task-edit-row {
-            display: grid; grid-template-columns: 1fr 60px 60px 60px 60px auto; gap: 6px;
-            align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85em;
-        }
-        .task-edit-row input { padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85em; text-align: center; }
-        .task-edit-row input:first-child { text-align: right; }
-        .task-edit-header { font-weight: 700; color: var(--text-light); font-size: 0.8em; border-bottom: 2px solid var(--border); }
-
-        /* Login Screen */
-        .login-screen {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #0d2240 0%, #1a3a5c 40%, #2a5a8c 100%);
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        .login-screen.hidden { display: none; }
-        .login-box {
-            background: white;
-            border-radius: 16px;
-            padding: 40px 36px;
-            min-width: 400px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            text-align: center;
-        }
-        .login-logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.2em;
-        }
-        .login-box h2 {
-            color: var(--primary-dark);
-            margin-bottom: 6px;
-            font-size: 1.4em;
-        }
-        .login-box .subtitle {
-            color: var(--text-light);
-            font-size: 0.9em;
-            margin-bottom: 28px;
-        }
-        .login-field {
-            margin-bottom: 18px;
-            text-align: right;
-        }
-        .login-field label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.9em;
-            margin-bottom: 6px;
-            color: var(--text);
-        }
-        .login-field input, .login-field select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            font-size: 1em;
-            font-family: inherit;
-            direction: rtl;
-            transition: border-color 0.3s;
-        }
-        .login-field input:focus, .login-field select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(26,58,92,0.1);
-        }
-        .login-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.05em;
-            font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 8px;
-        }
-        .login-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(26,58,92,0.3);
-        }
-        .login-error {
-            color: var(--danger);
-            font-size: 0.85em;
-            margin-top: 10px;
-            display: none;
-        }
-        .login-error.show { display: block; }
-        .login-footer {
-            margin-top: 20px;
-            font-size: 0.78em;
-            color: rgba(255,255,255,0.5);
-        }
-        .user-badge {
-            background: rgba(255,255,255,0.15);
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.8em;
-            cursor: pointer;
-        }
-        .user-badge:hover {
-            background: rgba(255,255,255,0.25);
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -878,6 +92,7 @@
         <button class="nav-tab tab-hq" style="border-top:3px solid #607D8B;" onclick="switchTab('hq')">חפ"ק מג"ד</button>
         <button class="nav-tab tab-palsam" style="border-top:3px solid #795548;" onclick="switchTab('palsam')">פלס"ם</button>
         <button class="nav-tab tab-rotation" onclick="switchTab('rotation')">&#128260; רוטציה 10/4</button>
+        <button class="nav-tab tab-equipment" style="border-top:3px solid #FF5722;" onclick="switchTab('equipment')">&#9876;&#65039; צל"מ</button>
         <button class="nav-tab tab-settings" style="border-top:3px solid #F44336; margin-right:auto;" onclick="switchTab('settings')">&#9881; הגדרות</button>
     </div>
 </div>
@@ -958,16 +173,69 @@
     </div>
 </div>
 
+<!-- ====== TAB: EQUIPMENT (צל"מ) ====== -->
+<div class="tab-content" id="tab-equipment">
+    <div class="main-content">
+        <div class="info-box">
+            <span class="info-icon">&#9876;&#65039;</span>
+            <div>
+                <strong>ניהול צל"מ - ציוד לחימה מבוקר:</strong> חתימה דיגיטלית על ציוד עם מספר סידורי.
+                כל חתימה כוללת זיהוי חייל, חתימה ויזואלית, ושמירה כ-PDF.
+            </div>
+        </div>
+        <div class="action-bar">
+            <button class="btn btn-primary" onclick="openAddEquipment()">+ הוספת פריט ציוד</button>
+            <button class="btn btn-success" onclick="openSignEquipment()">&#9998; חתימה על ציוד</button>
+            <button class="btn btn-warning" onclick="openReturnEquipment()">&#8634; זיכוי / החזרת ציוד</button>
+            <button class="btn" style="background:var(--bg)" onclick="exportEquipmentCSV()">&#128196; ייצוא CSV</button>
+        </div>
+
+        <!-- Equipment Stats -->
+        <div class="quick-stats" id="equipmentStats"></div>
+
+        <!-- Equipment Search -->
+        <div class="search-bar">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="equipmentSearch" placeholder="חיפוש לפי שם פריט, מספר סידורי, חייל..." oninput="renderEquipmentTab()">
+        </div>
+        <div class="filter-buttons" style="margin-bottom:14px;">
+            <button class="filter-btn active" onclick="setEquipmentFilter('all',this)">הכל</button>
+            <button class="filter-btn" onclick="setEquipmentFilter('assigned',this)">מוחזק</button>
+            <button class="filter-btn" onclick="setEquipmentFilter('available',this)">פנוי</button>
+            <button class="filter-btn" onclick="setEquipmentFilter('faulty',this)">תקול</button>
+        </div>
+
+        <!-- Equipment Table -->
+        <div class="sub-section">
+            <div class="section-title">
+                <div class="icon" style="background:#FBE9E7;color:#FF5722;">&#9876;&#65039;</div>
+                רשימת ציוד (<span id="equipmentCount">0</span> פריטים)
+            </div>
+            <div id="equipmentTableContainer"></div>
+        </div>
+
+        <!-- Signature History -->
+        <div class="sub-section">
+            <div class="section-title">
+                <div class="icon" style="background:#E8EAF6;color:#3F51B5;">&#128221;</div>
+                היסטוריית חתימות (<span id="signatureHistoryCount">0</span>)
+            </div>
+            <div id="signatureHistoryContainer"></div>
+        </div>
+    </div>
+</div>
+
 <!-- ====== MODALS ====== -->
 
-<!-- Add Soldier Modal -->
+<!-- Add/Edit Soldier Modal -->
 <div class="modal-overlay" id="addSoldierModal">
     <div class="modal">
         <div class="modal-header">
-            <h3>הוספת חייל</h3>
+            <h3 id="soldierModalTitle">הוספת חייל</h3>
             <button class="modal-close" onclick="closeModal('addSoldierModal')">&times;</button>
         </div>
         <div class="modal-body">
+            <input type="hidden" id="soldierEditId" value="">
             <div class="form-group">
                 <label>שם מלא</label>
                 <input type="text" id="soldierName" placeholder="שם פרטי ושם משפחה">
@@ -1028,14 +296,15 @@
     </div>
 </div>
 
-<!-- Add Shift Modal -->
+<!-- Add/Edit Shift Modal -->
 <div class="modal-overlay" id="addShiftModal">
     <div class="modal">
         <div class="modal-header">
-            <h3>שיבוץ למשמרת</h3>
+            <h3 id="shiftModalTitle">שיבוץ למשמרת</h3>
             <button class="modal-close" onclick="closeModal('addShiftModal')">&times;</button>
         </div>
         <div class="modal-body">
+            <input type="hidden" id="shiftEditId" value="">
             <div class="form-group">
                 <label>פלוגה</label>
                 <select id="shiftCompany" onchange="updateShiftOptions()">
@@ -1091,14 +360,15 @@
     </div>
 </div>
 
-<!-- Add Leave Modal -->
+<!-- Add/Edit Leave Modal -->
 <div class="modal-overlay" id="addLeaveModal">
     <div class="modal">
         <div class="modal-header">
-            <h3>יציאה הביתה</h3>
+            <h3 id="leaveModalTitle">יציאה הביתה</h3>
             <button class="modal-close" onclick="closeModal('addLeaveModal')">&times;</button>
         </div>
         <div class="modal-body">
+            <input type="hidden" id="leaveEditId" value="">
             <div class="form-group">
                 <label>פלוגה</label>
                 <select id="leaveCompany" onchange="updateLeaveSoldiers()">
@@ -1110,9 +380,13 @@
                     <option value="palsam">פלס"ם</option>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="leaveSoldierGroup">
                 <label>חייל (ניתן לבחור מספר חיילים)</label>
                 <select id="leaveSoldier" multiple style="height:100px"></select>
+            </div>
+            <div class="form-group" id="leaveSoldierDisplay" style="display:none;">
+                <label>חייל</label>
+                <div id="leaveSoldierName" style="padding:8px 12px;background:var(--bg);border-radius:8px;font-weight:600;"></div>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -1195,6 +469,7 @@
         </div>
     </div>
 </div>
+
 <!-- ====== TAB: SETTINGS ====== -->
 <div class="tab-content" id="tab-settings">
     <div class="main-content">
@@ -1203,6 +478,158 @@
             <div><strong>הגדרות מערכת</strong> - שינויים נשמרים אוטומטית. רק מנהל המערכת יכול לגשת לדף זה.</div>
         </div>
         <div class="settings-grid" id="settingsContent"></div>
+    </div>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal-overlay" id="addEquipmentModal">
+    <div class="modal">
+        <div class="modal-header" style="background:#FF5722;">
+            <h3 id="equipmentModalTitle">הוספת פריט ציוד</h3>
+            <button class="modal-close" onclick="closeModal('addEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="equipEditId" value="">
+            <div class="form-group">
+                <label>סוג ציוד</label>
+                <select id="equipType">
+                    <option value="נשק">נשק</option>
+                    <option value="משקפת">משקפת</option>
+                    <option value="אמר&quot;ל">אמר"ל</option>
+                    <option value="מצפן">מצפן</option>
+                    <option value="מכ&quot;מ">מכ"מ</option>
+                    <option value="קשר">מכשיר קשר</option>
+                    <option value="מגן בליסטי">מגן בליסטי</option>
+                    <option value="קסדה">קסדה</option>
+                    <option value="אפוד">אפוד קרבי</option>
+                    <option value="אחר">אחר</option>
+                </select>
+            </div>
+            <div class="form-group" id="equipCustomTypeGroup" style="display:none;">
+                <label>שם הציוד</label>
+                <input type="text" id="equipCustomType" placeholder="הזן שם ציוד">
+            </div>
+            <div class="form-group">
+                <label>מספר סידורי</label>
+                <input type="text" id="equipSerial" placeholder="מספר סידורי / קטלוגי">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="equipCompany">
+                        <option value="a">פלוגה א</option>
+                        <option value="b">פלוגה ב</option>
+                        <option value="c">פלוגה ג</option>
+                        <option value="d">פלוגה ד</option>
+                        <option value="hq">חפ"ק מג"ד</option>
+                        <option value="palsam">פלס"ם</option>
+                        <option value="gdudi">גדודי</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מצב</label>
+                    <select id="equipCondition">
+                        <option value="תקין">תקין</option>
+                        <option value="תקול">תקול</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <input type="text" id="equipNotes" placeholder="הערות נוספות">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveEquipment()">שמור פריט</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('addEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sign Equipment Modal -->
+<div class="modal-overlay" id="signEquipmentModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#4CAF50;">
+            <h3 id="signModalTitle">חתימה על ציוד</h3>
+            <button class="modal-close" onclick="closeModal('signEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="signEquipId" value="">
+            <div class="form-group" id="signEquipSelectGroup">
+                <label>בחר פריט ציוד</label>
+                <select id="signEquipSelect" onchange="onSignEquipSelect()">
+                    <option value="">-- בחר פריט --</option>
+                </select>
+            </div>
+            <div id="signEquipInfo" style="display:none;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;">
+            </div>
+            <div class="form-group">
+                <label>סנן לפי פלוגה</label>
+                <select id="signCompany" onchange="updateSignSoldiers()">
+                    <option value="all">כל הפלוגות</option>
+                    <option value="a">פלוגה א - מבוא חורון</option>
+                    <option value="b">פלוגה ב - 443</option>
+                    <option value="c">פלוגה ג - חשמונאים</option>
+                    <option value="d">פלוגה ד - עתודה</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>חייל</label>
+                <select id="signSoldier" onchange="onSignSoldierSelect()">
+                    <option value="">-- בחר חייל --</option>
+                </select>
+            </div>
+            <div id="signSoldierInfo" style="display:none;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;">
+            </div>
+            <div class="form-group">
+                <label>חתימה דיגיטלית (חתום עם האצבע או העכבר)</label>
+                <div class="signature-container">
+                    <canvas id="signatureCanvas" width="600" height="200"></canvas>
+                    <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearSignatureCanvas()">&#128465; נקה חתימה</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-success" onclick="confirmSignEquipment()">&#9998; אשר חתימה ושמור PDF</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('signEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Return Equipment Modal -->
+<div class="modal-overlay" id="returnEquipmentModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#FF9800;">
+            <h3>זיכוי / החזרת ציוד</h3>
+            <button class="modal-close" onclick="closeModal('returnEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>בחר פריט מוחזק להחזרה</label>
+                <select id="returnEquipSelect" onchange="onReturnEquipSelect()">
+                    <option value="">-- בחר פריט --</option>
+                </select>
+            </div>
+            <div id="returnEquipInfo" style="display:none;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;">
+            </div>
+            <div class="form-group">
+                <label>חתימת מחזיר (חתום עם האצבע או העכבר)</label>
+                <div class="signature-container">
+                    <canvas id="returnSignatureCanvas" width="600" height="200"></canvas>
+                    <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearReturnSignatureCanvas()">&#128465; נקה חתימה</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <input type="text" id="returnNotes" placeholder="מצב הציוד בהחזרה">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-warning" onclick="confirmReturnEquipment()">&#8634; אשר זיכוי ושמור PDF</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('returnEquipmentModal')">ביטול</button>
+        </div>
     </div>
 </div>
 
@@ -1215,1468 +642,6 @@
 </div>
 </div><!-- end mainApp -->
 
-<script>
-// ==================== SETTINGS ====================
-const DEFAULT_SETTINGS = {
-    adminName: 'אלחי פיין',
-    password: '1875',
-    shiftPresets: {
-        morning:   { name: 'בוקר',    start: '06:00', end: '14:00' },
-        afternoon: { name: 'צהריים',  start: '14:00', end: '22:00' },
-        night:     { name: 'לילה',    start: '22:00', end: '06:00' }
-    },
-    rotationDaysIn: 10,
-    rotationDaysOut: 4,
-    sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE'
-};
-
-let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-
-function loadSettings() {
-    const saved = localStorage.getItem('battalionSettings');
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        settings = { ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...parsed };
-        if (parsed.shiftPresets) settings.shiftPresets = { ...DEFAULT_SETTINGS.shiftPresets, ...parsed.shiftPresets };
-    }
-}
-
-function saveSettings() {
-    localStorage.setItem('battalionSettings', JSON.stringify(settings));
-}
-
-function isAdmin() {
-    return currentUser && currentUser.name === settings.adminName;
-}
-
-// ==================== LOGIN ====================
-let currentUser = null;
-
-function doLogin() {
-    const name = document.getElementById('loginName').value.trim();
-    const unit = document.getElementById('loginUnit').value;
-    const password = document.getElementById('loginPassword').value;
-
-    if (!name) {
-        document.getElementById('loginError').textContent = 'יש להזין שם';
-        document.getElementById('loginError').classList.add('show');
-        return;
-    }
-    if (!unit) {
-        document.getElementById('loginError').textContent = 'יש לבחור מסגרת';
-        document.getElementById('loginError').classList.add('show');
-        return;
-    }
-    if (password !== settings.password) {
-        document.getElementById('loginError').textContent = 'סיסמה שגויה, נסה שוב';
-        document.getElementById('loginError').classList.add('show');
-        return;
-    }
-
-    currentUser = { name, unit };
-    sessionStorage.setItem('battalionUser', JSON.stringify(currentUser));
-    document.getElementById('loginError').classList.remove('show');
-    activateApp();
-}
-
-function doLogout() {
-    sessionStorage.removeItem('battalionUser');
-    currentUser = null;
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('mainApp').style.display = 'none';
-    document.getElementById('loginName').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginUnit').value = '';
-}
-
-function activateApp() {
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('mainApp').style.display = '';
-
-    const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם', gdudi:'גדודי'};
-    document.getElementById('userBadge').textContent = currentUser.name + ' | ' + unitMap[currentUser.unit];
-
-    applyUnitFilter();
-
-    // Auto-switch to the relevant tab
-    if (currentUser.unit !== 'gdudi') {
-        switchTab(currentUser.unit);
-    } else {
-        switchTab('all');
-    }
-}
-
-function applyUnitFilter() {
-    const unit = currentUser.unit;
-    const allTabs = document.querySelectorAll('.nav-tab');
-    const isGdudi = unit === 'gdudi';
-
-    // Show/hide tabs based on access level
-    document.querySelector('.tab-all').style.display = isGdudi ? '' : 'none';
-    document.querySelector('.tab-a').style.display = (isGdudi || unit === 'a') ? '' : 'none';
-    document.querySelector('.tab-b').style.display = (isGdudi || unit === 'b') ? '' : 'none';
-    document.querySelector('.tab-c').style.display = (isGdudi || unit === 'c') ? '' : 'none';
-    document.querySelector('.tab-d').style.display = (isGdudi || unit === 'd') ? '' : 'none';
-    document.querySelector('.tab-hq').style.display = (isGdudi || unit === 'hq') ? '' : 'none';
-    document.querySelector('.tab-palsam').style.display = (isGdudi || unit === 'palsam') ? '' : 'none';
-    document.querySelector('.tab-rotation').style.display = isGdudi ? '' : 'none';
-    document.querySelector('.tab-settings').style.display = isAdmin() ? '' : 'none';
-}
-
-// Check for existing session
-function checkSession() {
-    const saved = sessionStorage.getItem('battalionUser');
-    if (saved) {
-        currentUser = JSON.parse(saved);
-        activateApp();
-        return true;
-    }
-    return false;
-}
-
-// Enter key support on login
-document.getElementById('loginPassword').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doLogin();
-});
-document.getElementById('loginName').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('loginUnit').focus();
-});
-
-// ==================== DATA ====================
-const companyData = {
-    a: {
-        name: 'פלוגה א', location: 'מבוא חורון', color: 'var(--pluga-a)', colorClass: 'company-a',
-        tasks: [
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } },
-            { name: 'ש"ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } }
-        ],
-        totals: { soldiers: 35, commanders: 4, officers: 2 }
-    },
-    b: {
-        name: 'פלוגה ב', location: '443', color: 'var(--pluga-b)', colorClass: 'company-b',
-        tasks: [
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'מחסום בל', soldiers: 12, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'מחסום מכבים', soldiers: 13, commanders: 2, officers: 2, shifts: 2, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } }
-        ],
-        totals: { soldiers: 42, commanders: 6, officers: 4 }
-    },
-    c: {
-        name: 'פלוגה ג', location: 'חשמונאים', color: 'var(--pluga-c)', colorClass: 'company-c',
-        tasks: [
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'סיור דרום', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'סיור צפון', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 6, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
-            { name: 'של"ז', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } },
-            { name: 'ש"ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'פטרול רגלי 24:00-06:00', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } }
-        ],
-        totals: { soldiers: 41, commanders: 7, officers: 2 }
-    },
-    d: {
-        name: 'פלוגה ד', location: 'עתודה', color: 'var(--pluga-d)', colorClass: 'company-d',
-        tasks: [
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'מחסום מכבים', soldiers: 7, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
-            { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 2, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'בונקר', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 20, commanders: 2, officers: 2, shifts: 1, perShift: { soldiers: 20, commanders: 2, officers: 2 } }
-        ],
-        totals: { soldiers: 48, commanders: 3, officers: 4 }
-    },
-    hq: {
-        name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: '#607D8B', colorClass: 'company-hq',
-        tasks: [],
-        totals: { soldiers: 0, commanders: 0, officers: 0 }
-    },
-    palsam: {
-        name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', color: '#795548', colorClass: 'company-palsam',
-        tasks: [],
-        totals: { soldiers: 0, commanders: 0, officers: 0 }
-    }
-};
-
-// State
-let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [] };
-
-function loadState() {
-    const saved = localStorage.getItem('battalionState_v2');
-    if (saved) state = JSON.parse(saved);
-    if (!state.rotationGroups) state.rotationGroups = [];
-}
-
-function saveState() {
-    localStorage.setItem('battalionState_v2', JSON.stringify(state));
-}
-
-// ==================== INIT ====================
-// Google Sheets config
-function getSheetUrls() {
-    const base = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:csv`;
-    return {
-        support: base,
-        a: base + '&sheet=' + encodeURIComponent('פלוגה א'),
-        b: base + '&sheet=' + encodeURIComponent('פלוגה ב'),
-        c: base + '&sheet=' + encodeURIComponent('פלוגה ג'),
-        d: base + '&sheet=' + encodeURIComponent('פלוגה ד')
-    };
-}
-const ALL_COMPANIES = ['a','b','c','d','hq','palsam'];
-
-const deptToCompany = {
-    'חפ"ק מג"ד': 'hq',
-    'לשכה': 'hq',
-    'מחלקת משא"ן': 'palsam',
-    'מפקדת הפלס"ם': 'palsam',
-    'פלגת הספקה': 'palsam',
-    'פלגת הפינוי': 'palsam',
-    'פלגת טנ"א': 'palsam',
-    'פלגת רפואה': 'palsam'
-};
-
-function init() {
-    loadSettings();
-    loadState();
-    loadTasksFromStorage();
-    // Force re-sync if data version changed (multi-sheet support)
-    const dataVersion = 'v4_allsheets_fix';
-    if (localStorage.getItem('battalionDataVersion') !== dataVersion) {
-        state.soldiers = state.soldiers.filter(s => !s.fromSheets);
-        localStorage.setItem('battalionDataVersion', dataVersion);
-        syncFromGoogleSheets(true);
-    } else if (state.soldiers.length === 0) {
-        syncFromGoogleSheets(true);
-    }
-    renderAll();
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('shiftDate').value = today;
-    document.getElementById('leaveStart').value = today;
-    document.getElementById('rotGroupStartDate').value = today;
-    const d4 = new Date(); d4.setDate(d4.getDate() + 4);
-    document.getElementById('leaveEnd').value = d4.toISOString().split('T')[0];
-    updateShiftOptions();
-    checkSession();
-}
-
-function renderAll() {
-    renderOverview();
-    ALL_COMPANIES.forEach(renderCompanyTab);
-    renderRotationTab();
-    updateGlobalStats();
-}
-
-// ==================== GOOGLE SHEETS SYNC ====================
-function syncFromGoogleSheets(silent) {
-    if (!silent) showToast('מסנכרן מגוגל שיטס...', 'success');
-
-    const fetches = Object.entries(getSheetUrls()).map(([key, url]) =>
-        fetch(url).then(r => r.text()).then(csv => ({ key, csv }))
-    );
-
-    Promise.all(fetches).then(results => {
-        const manualSoldiers = state.soldiers.filter(s => !s.fromSheets);
-        let sheetSoldiers = [];
-
-        results.forEach(({ key, csv }) => {
-            if (key === 'support') {
-                const parsed = parseSupportSheet(csv);
-                console.log(`Sheet support: ${parsed.length} soldiers`);
-                sheetSoldiers.push(...parsed);
-            } else {
-                const parsed = parseCombatSheet(csv, key);
-                console.log(`Sheet ${key}: ${parsed.length} soldiers`);
-                sheetSoldiers.push(...parsed);
-            }
-        });
-
-        state.soldiers = [...manualSoldiers, ...sheetSoldiers];
-        // Log per-company counts
-        const counts = {};
-        ALL_COMPANIES.forEach(k => { counts[k] = state.soldiers.filter(s => s.company === k).length; });
-        console.log('Soldiers per company:', counts);
-        updateCompanyTotals();
-        saveState();
-        renderAll();
-        if (!silent) showToast(`סונכרנו ${sheetSoldiers.length} חיילים מגוגל שיטס`, 'success');
-    }).catch(err => {
-        console.error('Sync error:', err);
-        if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
-    });
-}
-
-// Parse support sheet (פלס"ם + חפ"ק) - columns: מספר אישי, שם, טלפון, מחלקה, תפקיד, ארוחה, וידוא הגעה
-function parseSupportSheet(csv) {
-    const lines = csv.split('\n');
-    const soldiers = [];
-    for (let i = 1; i < lines.length; i++) {
-        const f = parseCSVLine(lines[i]);
-        if (f.length < 5) continue;
-        const id = f[0].trim();
-        const name = f[1].trim();
-        if (!name || !id) continue;
-        const dept = f[3].trim();
-        if (!dept) continue;
-        const company = deptToCompany[dept] || 'palsam';
-        const existing = state.soldiers.find(s => s.personalId === id && s.fromSheets);
-        soldiers.push({
-            id: existing ? existing.id : 'sol_' + id + '_' + Math.random().toString(36).substr(2,4),
-            name, personalId: id,
-            phone: f[2] ? '0' + f[2].trim() : '',
-            company, unit: dept,
-            role: f[4].trim() || 'לוחם',
-            rank: '', fromSheets: true,
-            arrival: (f[6] || '').trim()
-        });
-    }
-    return soldiers;
-}
-
-// Parse combat company sheet - columns: מספר אישי, שם, טלפון, ארוחה, צו, מחלקה, סגל/מתאמן, תפקיד, הסמכה, וידוא הגעה
-function parseCombatSheet(csv, companyKey) {
-    const lines = csv.split('\n');
-    const soldiers = [];
-    const compNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד' };
-    for (let i = 1; i < lines.length; i++) {
-        const f = parseCSVLine(lines[i]);
-        if (f.length < 8) continue;
-        const id = f[0].trim();
-        const name = f[1].trim();
-        if (!name || !id) continue;
-        if (/^\d+$/.test(name)) continue;
-
-        const order = f[4].trim();
-        const arrival = (f[9] || '').trim();
-        if (order !== 'יצא' && arrival !== 'מגיע') continue;
-
-        const section = f[5].trim();
-        const staffType = f[6].trim();
-        const role = f[7].trim();
-        const cert = f[8].trim();
-
-        const unitLabel = section ? `מחלקה ${section}` : (staffType === 'סגל' ? 'סגל' : compNames[companyKey]);
-        const existing = state.soldiers.find(s => s.personalId === id && s.fromSheets);
-        soldiers.push({
-            id: existing ? existing.id : 'sol_' + id + '_' + Math.random().toString(36).substr(2,4),
-            name, personalId: id,
-            phone: f[2] ? '0' + f[2].trim() : '',
-            company: companyKey, unit: unitLabel,
-            role: role || (staffType === 'סגל' ? 'מפקד' : 'לוחם'),
-            rank: staffType || '', fromSheets: true,
-            arrival, certification: cert || ''
-        });
-    }
-    return soldiers;
-}
-
-function parseCSVLine(line) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (inQuotes) {
-            if (ch === '"') {
-                if (i + 1 < line.length && line[i + 1] === '"') {
-                    current += '"';
-                    i++;
-                } else {
-                    inQuotes = false;
-                }
-            } else {
-                current += ch;
-            }
-        } else {
-            if (ch === '"') {
-                inQuotes = true;
-            } else if (ch === ',') {
-                result.push(current);
-                current = '';
-            } else {
-                current += ch;
-            }
-        }
-    }
-    result.push(current);
-    return result;
-}
-
-function updateCompanyTotals() {
-    ALL_COMPANIES.forEach(key => {
-        const soldiers = state.soldiers.filter(s => s.company === key);
-        if (key === 'hq' || key === 'palsam') {
-            companyData[key].totals = { soldiers: soldiers.length, commanders: 0, officers: 0 };
-        } else {
-            const officerRoles = ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'];
-            const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ'];
-            const officers = soldiers.filter(s => officerRoles.some(r => s.role.includes(r))).length;
-            const commanders = soldiers.filter(s => cmdRoles.some(r => s.role.includes(r))).length;
-            companyData[key].totals = { soldiers: soldiers.length - officers - commanders, commanders, officers };
-        }
-    });
-}
-
-// ==================== OVERVIEW ====================
-function renderOverview() {
-    const grid = document.getElementById('companiesGrid');
-    grid.innerHTML = '';
-    Object.entries(companyData).forEach(([key, comp]) => {
-        const regCount = state.soldiers.filter(s => s.company === key).length;
-        const total = (key === 'hq' || key === 'palsam') ? regCount : comp.totals.soldiers + comp.totals.commanders + comp.totals.officers;
-        const onLeave = state.leaves.filter(l => l.company === key && isCurrentlyOnLeave(l)).length;
-        const card = document.createElement('div');
-        card.className = `company-card ${comp.colorClass}`;
-        card.onclick = () => switchTab(key);
-        card.innerHTML = `
-            <div class="company-card-header">
-                <h3>${comp.name}</h3>
-                <span class="location">${comp.location}</span>
-            </div>
-            <div class="company-card-body">
-                <div class="force-summary">
-                    <div class="force-item"><div class="num">${comp.totals.soldiers}</div><div class="label">חיילים</div></div>
-                    <div class="force-item"><div class="num">${comp.totals.commanders}</div><div class="label">מפקדים</div></div>
-                    <div class="force-item"><div class="num">${comp.totals.officers}</div><div class="label">קצינים</div></div>
-                </div>
-                <div style="margin-bottom:8px;">
-                    <div style="display:flex;justify-content:space-between;font-size:0.83em;margin-bottom:3px;">
-                        <span>רישום כוח אדם</span><span>${regCount} / ${total}</span>
-                    </div>
-                    <div class="timeline-bar"><div class="timeline-fill" style="width:${total>0?(regCount/total*100):0}%"></div></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:0.82em;color:var(--text-light);">
-                    <span>${comp.tasks.length} משימות</span>
-                    <span>${onLeave > 0 ? onLeave + ' בבית' : 'כולם בבסיס'}</span>
-                </div>
-            </div>`;
-        grid.appendChild(card);
-    });
-}
-
-// ==================== COMPANY TAB ====================
-function renderCompanyTab(compKey) {
-    const comp = companyData[compKey];
-    const container = document.getElementById(`content-${compKey}`);
-    const soldiers = state.soldiers.filter(s => s.company === compKey);
-    const shifts = state.shifts.filter(s => s.company === compKey);
-    const leaves = state.leaves.filter(l => l.company === compKey);
-    const reinforcements = compKey !== 'd' ? state.soldiers.filter(s => s.company === 'd' && s.reinforcementTo === compKey) : [];
-
-    container.innerHTML = `
-        <div class="action-bar">
-            <button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
-            <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
-            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')">+ יציאה הביתה</button>
-            <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">&#128196; ייצוא CSV</button>
-        </div>
-
-        <!-- Force Table -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#e8f5e9;color:var(--success);">&#9776;</div>
-                טבלת כוחות ומשימות - ${comp.name} (${comp.location})
-            </div>
-            <div class="task-table-wrapper"><div class="table-scroll">
-                <table>
-                    <thead><tr>
-                        <th>משימה / פעילות</th>
-                        <th>חיילים למשמרת</th>
-                        <th>מפקדים למשמרת</th>
-                        <th>קצינים למשמרת</th>
-                        <th>כמות משמרות</th>
-                        <th>סה"כ חיילים</th>
-                        <th>סה"כ מפקדים</th>
-                        <th>סה"כ קצינים</th>
-                        <th>משובצים</th>
-                    </tr></thead>
-                    <tbody>
-                        ${comp.tasks.map(t => {
-                            const assigned = shifts.filter(s => s.task === t.name).reduce((sum, s) => sum + s.soldiers.length, 0);
-                            const needed = t.soldiers + t.commanders + t.officers;
-                            const pct = needed > 0 ? Math.min(100, Math.round(assigned/needed*100)) : 0;
-                            return `<tr>
-                                <td class="task-name">${t.name}</td>
-                                <td>${t.perShift.soldiers}</td>
-                                <td>${t.perShift.commanders}</td>
-                                <td>${t.perShift.officers}</td>
-                                <td>${t.shifts || '-'}</td>
-                                <td><strong>${t.soldiers}</strong></td>
-                                <td><strong>${t.commanders}</strong></td>
-                                <td><strong>${t.officers}</strong></td>
-                                <td><div style="display:flex;align-items:center;justify-content:center;gap:5px;">
-                                    <span>${assigned}/${needed}</span>
-                                    <div style="width:35px;height:5px;background:var(--border);border-radius:3px;">
-                                        <div style="width:${pct}%;height:100%;background:${pct>=100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)'};border-radius:3px;"></div>
-                                    </div>
-                                </div></td>
-                            </tr>`;
-                        }).join('')}
-                        <tr class="total-row">
-                            <td class="task-name">סה"כ</td><td>-</td><td>-</td><td>-</td><td>-</td>
-                            <td><strong>${comp.totals.soldiers}</strong></td>
-                            <td><strong>${comp.totals.commanders}</strong></td>
-                            <td><strong>${comp.totals.officers}</strong></td>
-                            <td>-</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div></div>
-        </div>
-
-        <!-- Soldiers -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#e3f2fd;color:var(--info);">&#9823;</div>
-                כוח אדם (${soldiers.length} רשומים)
-            </div>
-            ${soldiers.length === 0 ? `
-                <div class="empty-state"><div class="icon">&#128100;</div><p>טרם נרשמו חיילים</p><p style="font-size:0.83em">לחץ "הוספת חייל" להתחיל</p></div>
-            ` : `
-                <div class="personnel-grid">
-                    ${soldiers.map(s => {
-                        const onLeave = leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
-                        const rotGroup = getRotationGroupForSoldier(s.id);
-                        const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
-                        const isHome = onLeave || (rotStatus && !rotStatus.inBase);
-                        const isAssigned = shifts.some(sh => sh.soldiers.includes(s.id));
-                        const cls = isHome ? 'on-leave' : isAssigned ? 'on-duty' : 'unassigned';
-                        const txt = isHome ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
-                        const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
-                        let rotInfo = '';
-                        if (rotGroup && rotStatus) {
-                            rotInfo = `<div class="meta">רוטציה: ${rotGroup.name} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/10 בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/4 בבית'}</div>`;
-                        }
-                        return `<div class="person-card ${cls}">
-                            <div class="person-info">
-                                <h4>${s.name}</h4>
-                                <div class="meta">${s.role}${s.unit ? ' | '+s.unit : ''}${s.personalId ? ' | '+s.personalId : ''}</div>
-                                ${s.phone ? `<div class="meta">${s.phone}</div>` : ''}
-                                ${rotInfo}
-                            </div>
-                            <div style="display:flex;align-items:center;gap:6px;">
-                                <span class="person-status ${badge}">${txt}</span>
-                                <button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>
-                            </div>
-                        </div>`;
-                    }).join('')}
-                </div>
-            `}
-        </div>
-
-        <!-- Shifts -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#fff3e0;color:var(--warning);">&#9200;</div>
-                משמרות ושיבוצים (${shifts.length})
-            </div>
-            ${shifts.length === 0 ? `
-                <div class="empty-state"><div class="icon">&#128197;</div><p>טרם נוצרו משמרות</p></div>
-            ` : `
-                <div class="shifts-grid">
-                    ${shifts.sort((a,b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map(sh => {
-                        const names = sh.soldiers.map(sid => {
-                            const sol = state.soldiers.find(s => s.id === sid);
-                            return sol ? sol.name : '?';
-                        });
-                        const taskData = comp.tasks.find(t => t.name === sh.task);
-                        const needed = taskData ? taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers : 0;
-                        return `<div class="shift-card">
-                            <div class="shift-card-header">
-                                <h4>${sh.task}${sh.shiftName ? ' - '+sh.shiftName : ''}</h4>
-                                <span class="shift-time">${sh.startTime} - ${sh.endTime}</span>
-                            </div>
-                            <div class="shift-card-body">
-                                <div style="font-size:0.83em;color:var(--text-light);margin-bottom:6px;">
-                                    &#128197; ${formatDate(sh.date)} | ${names.length}/${needed} משובצים
-                                </div>
-                                ${names.length > 0 ? `<ul class="shift-soldiers">${names.map(n => `<li class="shift-soldier"><span>${n}</span></li>`).join('')}</ul>` : '<div style="text-align:center;padding:8px;color:var(--danger);font-size:0.83em;">לא שובצו חיילים</div>'}
-                                <div style="margin-top:6px;text-align:left;">
-                                    <button class="btn btn-danger btn-sm" onclick="deleteShift('${sh.id}')">&#10005; מחק</button>
-                                </div>
-                            </div>
-                        </div>`;
-                    }).join('')}
-                </div>
-            `}
-        </div>
-
-        <!-- Leaves -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#fce4ec;color:var(--danger);">&#127968;</div>
-                יציאות הביתה (${leaves.length})
-            </div>
-            ${leaves.length === 0 ? `
-                <div class="empty-state"><div class="icon">&#127968;</div><p>אין יציאות מתוכננות</p></div>
-            ` : `
-                <div class="leave-table-wrapper"><div class="table-scroll">
-                    <table>
-                        <thead><tr>
-                            <th>חייל</th><th>דרגה</th><th>תאריך יציאה</th><th>שעת יציאה</th>
-                            <th>תאריך חזרה</th><th>שעת חזרה</th><th>סטטוס</th><th>הערות</th><th>פעולות</th>
-                        </tr></thead>
-                        <tbody>
-                            ${leaves.sort((a,b) => a.startDate.localeCompare(b.startDate)).map(l => {
-                                const sol = state.soldiers.find(s => s.id === l.soldierId);
-                                const active = isCurrentlyOnLeave(l);
-                                return `<tr class="${active?'leave-row-home':''}">
-                                    <td><strong>${sol ? sol.name : '?'}</strong></td>
-                                    <td>${sol ? sol.rank : ''}</td>
-                                    <td>${formatDate(l.startDate)}</td><td>${l.startTime}</td>
-                                    <td>${formatDate(l.endDate)}</td><td>${l.endTime}</td>
-                                    <td><span class="person-status ${active?'status-on-leave':'status-on-duty'}">${active?'בבית':'חזר'}</span></td>
-                                    <td style="font-size:0.83em">${l.notes||'-'}</td>
-                                    <td><button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">&#10005;</button></td>
-                                </tr>`;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div></div>
-            `}
-        </div>
-    `;
-}
-
-// ==================== ROTATION TAB ====================
-function renderRotationTab() {
-    renderRotationCalendar();
-    renderRotationGroups();
-}
-
-function renderRotationCalendar() {
-    const container = document.getElementById('rotationCalendar');
-    if (state.rotationGroups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">&#128260;</div><p>צור קבוצות רוטציה כדי לראות את לוח הזמנים</p></div>';
-        return;
-    }
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const days = [];
-    const dayNames = ['א','ב','ג','ד','ה','ו','ש'];
-
-    for (let i = 0; i < 21; i++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() + i);
-        days.push(d);
-    }
-
-    let html = '';
-    // Header row with dates
-    html += '<div class="rotation-row">';
-    html += '<div class="rotation-label" style="font-weight:700;">קבוצה / תאריך</div>';
-    html += '<div class="rotation-days">';
-    days.forEach((d, i) => {
-        const isToday = i === 0;
-        html += `<div class="rotation-day ${isToday ? 'today' : ''}" style="background:#f5f5f5;">
-            <div class="day-name">${dayNames[d.getDay()]}'</div>
-            <div class="day-num">${d.getDate()}</div>
-            <div style="font-size:0.7em;opacity:0.5;">${d.getMonth()+1}</div>
-        </div>`;
-    });
-    html += '</div></div>';
-
-    // One row per rotation group
-    state.rotationGroups.forEach(group => {
-        html += '<div class="rotation-row">';
-        html += `<div class="rotation-label">${group.name}<br><small style="color:var(--text-light)">${group.soldiers.length} חיילים</small></div>`;
-        html += '<div class="rotation-days">';
-        days.forEach((d, i) => {
-            const status = getRotationStatus(group, d);
-            const isToday = i === 0;
-            const cls = status.inBase ? 'in-base' : 'at-home';
-            html += `<div class="rotation-day ${cls} ${isToday ? 'today' : ''}" title="${status.inBase ? 'בבסיס - יום '+status.dayInCycle : 'בבית - יום '+(status.dayInCycle - group.daysIn)}">
-                <div style="font-size:1em;">${status.inBase ? '&#9989;' : '&#127968;'}</div>
-                <div style="font-size:0.75em;">${status.inBase ? 'יום ' + status.dayInCycle : 'בבית'}</div>
-            </div>`;
-        });
-        html += '</div></div>';
-    });
-
-    container.innerHTML = html;
-}
-
-function renderRotationGroups() {
-    const container = document.getElementById('rotationGroupsContainer');
-    if (state.rotationGroups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><p>לחץ "קבוצת רוטציה חדשה" ליצור קבוצה</p></div>';
-        return;
-    }
-
-    const now = new Date();
-    container.innerHTML = state.rotationGroups.map(group => {
-        const status = getRotationStatus(group, now);
-        const headerClass = status.inBase ? 'in-base' : 'at-home';
-        const statusText = status.inBase ?
-            `בבסיס - יום ${status.dayInCycle}/${group.daysIn}` :
-            `בבית - יום ${status.dayInCycle - group.daysIn}/${group.daysOut}`;
-
-        const nextChange = getNextRotationChange(group, now);
-
-        const soldierNames = group.soldiers.map(sid => {
-            const sol = state.soldiers.find(s => s.id === sid);
-            return sol ? sol.name : '?';
-        });
-
-        return `<div class="rotation-group-card">
-            <div class="rotation-group-header ${headerClass}">
-                <div>
-                    <h4>${group.name}</h4>
-                    <div style="font-size:0.8em;opacity:0.9;">${statusText}</div>
-                </div>
-                <div style="text-align:left;">
-                    <div style="font-size:0.75em;">שינוי הבא:</div>
-                    <div style="font-size:0.85em;font-weight:700;">${formatDate(nextChange.toISOString().split('T')[0])}</div>
-                </div>
-            </div>
-            <div class="rotation-group-body">
-                <div style="font-size:0.83em;color:var(--text-light);margin-bottom:6px;">
-                    מחזור: ${group.daysIn} בבסיס / ${group.daysOut} בבית | ${soldierNames.length} חיילים
-                </div>
-                <ul>${soldierNames.map(n => `<li>${n}</li>`).join('')}</ul>
-                <div style="margin-top:8px;text-align:left;">
-                    <button class="btn btn-danger btn-sm" onclick="deleteRotGroup('${group.id}')">&#10005; מחק קבוצה</button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function getRotationStatus(group, date) {
-    const start = new Date(group.startDate);
-    start.setHours(0,0,0,0);
-    const check = new Date(date);
-    check.setHours(0,0,0,0);
-    const diffDays = Math.floor((check - start) / (1000*60*60*24));
-    const cycleLength = group.daysIn + group.daysOut;
-    let dayInCycle = ((diffDays % cycleLength) + cycleLength) % cycleLength + 1;
-    const inBase = dayInCycle <= group.daysIn;
-    return { inBase, dayInCycle };
-}
-
-function getNextRotationChange(group, date) {
-    const status = getRotationStatus(group, date);
-    const daysLeft = status.inBase ?
-        (group.daysIn - status.dayInCycle + 1) :
-        (group.daysIn + group.daysOut - status.dayInCycle + 1);
-    const next = new Date(date);
-    next.setDate(next.getDate() + daysLeft);
-    return next;
-}
-
-function getRotationGroupForSoldier(soldierId) {
-    return state.rotationGroups.find(g => g.soldiers.includes(soldierId));
-}
-
-// ==================== TAB NAVIGATION ====================
-function switchTab(tab) {
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    const tabBtn = document.querySelector(`.tab-${tab}`);
-    if (tabBtn) tabBtn.classList.add('active');
-    const tabContent = document.getElementById(`tab-${tab}`);
-    if (tabContent) tabContent.classList.add('active');
-    if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
-    if (tab === 'rotation') renderRotationTab();
-    if (tab === 'settings') renderSettingsTab();
-}
-
-// ==================== SOLDIER ====================
-function openAddSoldier(company) {
-    document.getElementById('soldierCompany').value = company || 'a';
-    document.getElementById('soldierName').value = '';
-    document.getElementById('soldierId').value = '';
-    document.getElementById('soldierPhone').value = '';
-    openModal('addSoldierModal');
-    setTimeout(() => document.getElementById('soldierName').focus(), 100);
-}
-
-function saveSoldier() {
-    const name = document.getElementById('soldierName').value.trim();
-    if (!name) { showToast('יש להזין שם', 'error'); return; }
-    const soldier = {
-        id: 'sol_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-        name,
-        personalId: document.getElementById('soldierId').value.trim(),
-        rank: document.getElementById('soldierRank').value,
-        company: document.getElementById('soldierCompany').value,
-        role: document.getElementById('soldierRole').value,
-        phone: document.getElementById('soldierPhone').value.trim()
-    };
-    state.soldiers.push(soldier);
-    saveState();
-    closeModal('addSoldierModal');
-    renderCompanyTab(soldier.company);
-    renderOverview();
-    updateGlobalStats();
-    showToast(`${name} נוסף בהצלחה`);
-}
-
-function deleteSoldier(id) {
-    if (!confirm('למחוק חייל זה?')) return;
-    const sol = state.soldiers.find(s => s.id === id);
-    state.soldiers = state.soldiers.filter(s => s.id !== id);
-    state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
-    state.leaves = state.leaves.filter(l => l.soldierId !== id);
-    state.rotationGroups.forEach(g => { g.soldiers = g.soldiers.filter(sid => sid !== id); });
-    saveState();
-    if (sol) renderCompanyTab(sol.company);
-    renderOverview();
-    updateGlobalStats();
-    showToast('חייל נמחק');
-}
-
-// ==================== SHIFT ====================
-function openAddShift(company) {
-    document.getElementById('shiftCompany').value = company || 'a';
-    // Reset preset buttons
-    document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
-    updateShiftOptions();
-    openModal('addShiftModal');
-}
-
-function applyShiftPreset(preset, btn) {
-    const p = settings.shiftPresets[preset];
-    if (!p) return;
-    document.getElementById('shiftName').value = p.name;
-    document.getElementById('shiftStart').value = p.start;
-    document.getElementById('shiftEnd').value = p.end;
-    document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    updateShiftOptions();
-}
-
-function updateShiftOptions() {
-    const company = document.getElementById('shiftCompany').value;
-    const date = document.getElementById('shiftDate').value;
-    const startTime = document.getElementById('shiftStart').value;
-    const endTime = document.getElementById('shiftEnd').value;
-
-    // Tasks dropdown with capacity info
-    const taskSel = document.getElementById('shiftTask');
-    taskSel.innerHTML = '';
-    const tasks = companyData[company].tasks;
-    if (tasks.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = 'כללי'; opt.textContent = 'כללי';
-        taskSel.appendChild(opt);
-    } else {
-        tasks.forEach(t => {
-            const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers;
-            const assigned = state.shifts.filter(sh => sh.company === company && sh.task === t.name && sh.date === date &&
-                sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + sh.soldiers.length, 0);
-            const opt = document.createElement('option');
-            opt.value = t.name;
-            opt.textContent = needed > 0 ? `${t.name} (${assigned}/${needed})` : t.name;
-            if (needed > 0 && assigned >= needed) opt.style.color = '#C62828';
-            taskSel.appendChild(opt);
-        });
-    }
-
-    // Soldiers: only from selected company, with status indicators
-    const solSel = document.getElementById('shiftSoldiers');
-    solSel.innerHTML = '';
-
-    const companySoldiers = state.soldiers.filter(s => s.company === company);
-    if (companySoldiers.length > 0) {
-        const groups = {};
-        companySoldiers.forEach(s => {
-            const unit = s.unit || 'כללי';
-            if (!groups[unit]) groups[unit] = [];
-            groups[unit].push(s);
-        });
-        Object.entries(groups).forEach(([unit, soldiers]) => {
-            const grp = document.createElement('optgroup');
-            grp.label = unit;
-            soldiers.sort((a,b) => {
-                const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime);
-                const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime);
-                if (aStatus.available !== bStatus.available) return aStatus.available ? -1 : 1;
-                return a.name.localeCompare(b.name, 'he');
-            });
-            soldiers.forEach(s => {
-                const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                if (status.onLeave) {
-                    opt.textContent = `${s.name} - (בבית)`;
-                    opt.className = 'option-on-leave';
-                } else if (status.assignedTo) {
-                    opt.textContent = `${s.name} - (${status.assignedTo})`;
-                    opt.className = 'option-assigned';
-                } else {
-                    opt.textContent = `${s.name} (${s.role})`;
-                }
-                grp.appendChild(opt);
-            });
-            solSel.appendChild(grp);
-        });
-    } else {
-        const opt = document.createElement('option');
-        opt.disabled = true;
-        opt.textContent = 'אין חיילים רשומים - הוסף חיילים ידנית';
-        solSel.appendChild(opt);
-    }
-}
-
-// Check soldier status for a specific date/time
-function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
-    // Check if on leave
-    const onLeave = state.leaves.some(l => l.soldierId === soldierId && isOnLeaveForDate(l, date));
-    if (onLeave) return { available: false, onLeave: true, assignedTo: null };
-
-    // Check rotation
-    const rotGroup = getRotationGroupForSoldier(soldierId);
-    if (rotGroup) {
-        const checkDate = date ? new Date(date + 'T12:00:00') : new Date();
-        const rotStatus = getRotationStatus(rotGroup, checkDate);
-        if (!rotStatus.inBase) return { available: false, onLeave: true, assignedTo: null };
-    }
-
-    // Check overlapping shifts
-    const overlap = state.shifts.find(sh =>
-        sh.date === date && sh.soldiers.includes(soldierId) &&
-        sh.startTime < endTime && sh.endTime > startTime
-    );
-    if (overlap) {
-        const taskName = overlap.task + (overlap.shiftName ? ' ' + overlap.shiftName : '');
-        return { available: false, onLeave: false, assignedTo: `${taskName} ${overlap.startTime}-${overlap.endTime}` };
-    }
-
-    return { available: true, onLeave: false, assignedTo: null };
-}
-
-function isOnLeaveForDate(leave, date) {
-    if (!date) return false;
-    const checkDate = new Date(date + 'T12:00:00');
-    const start = new Date(`${leave.startDate}T${leave.startTime || '00:00'}`);
-    const end = new Date(`${leave.endDate}T${leave.endTime || '23:59'}`);
-    return checkDate >= start && checkDate <= end;
-}
-
-function hasTimeOverlap(soldierId, date, startTime, endTime) {
-    return state.shifts.find(sh =>
-        sh.date === date && sh.soldiers.includes(soldierId) &&
-        sh.startTime < endTime && sh.endTime > startTime
-    );
-}
-
-function saveShift() {
-    const company = document.getElementById('shiftCompany').value;
-    const taskRaw = document.getElementById('shiftTask').value;
-    const task = taskRaw.replace(/\s*\(\d+\/\d+\)$/, ''); // strip capacity indicator
-    const date = document.getElementById('shiftDate').value;
-    const shiftName = document.getElementById('shiftName').value.trim();
-    const startTime = document.getElementById('shiftStart').value;
-    const endTime = document.getElementById('shiftEnd').value;
-    const soldiers = Array.from(document.getElementById('shiftSoldiers').selectedOptions).map(o => o.value);
-    if (!task || !date || !startTime || !endTime) { showToast('יש למלא את כל השדות', 'error'); return; }
-    if (soldiers.length === 0) { showToast('יש לבחור חיילים לשיבוץ', 'error'); return; }
-
-    // Validate: check for double-booking
-    const conflicts = [];
-    soldiers.forEach(sid => {
-        const overlap = hasTimeOverlap(sid, date, startTime, endTime);
-        if (overlap) {
-            const sol = state.soldiers.find(s => s.id === sid);
-            conflicts.push(`${sol ? sol.name : '?'} כבר משובץ ל${overlap.task} (${overlap.startTime}-${overlap.endTime})`);
-        }
-    });
-    if (conflicts.length > 0) {
-        showToast('שיבוץ כפול: ' + conflicts.join(', '), 'error');
-        return;
-    }
-
-    // Validate: check shift capacity
-    const taskData = companyData[company].tasks.find(t => t.name === task);
-    if (taskData) {
-        const needed = taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers;
-        const alreadyAssigned = state.shifts.filter(sh =>
-            sh.company === company && sh.task === task && sh.date === date &&
-            sh.startTime < endTime && sh.endTime > startTime
-        ).reduce((sum, sh) => sum + sh.soldiers.length, 0);
-        if (needed > 0 && alreadyAssigned + soldiers.length > needed) {
-            showToast(`המשמרת מלאה! (${alreadyAssigned}/${needed} משובצים, ניסיון להוסיף ${soldiers.length})`, 'error');
-            return;
-        }
-    }
-
-    // Validate: warn if multiple commanders in same shift
-    const cmdRoles = ['מ"כ', 'מ"מ', 'סמל'];
-    const selectedCmds = soldiers.filter(sid => {
-        const sol = state.soldiers.find(s => s.id === sid);
-        return sol && cmdRoles.some(r => sol.role.includes(r));
-    });
-    if (selectedCmds.length > 1) {
-        const cmdNames = selectedCmds.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
-        if (!confirm(`שים לב! שיבצת ${selectedCmds.length} מפקדים למשמרת:\n${cmdNames}\n\nהאם אתה בטוח?`)) return;
-    }
-
-    state.shifts.push({
-        id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-        company, task, date, shiftName, startTime, endTime, soldiers
-    });
-    saveState();
-    closeModal('addShiftModal');
-    renderCompanyTab(company);
-    updateGlobalStats();
-    showToast(`משמרת ${task} נוצרה עם ${soldiers.length} חיילים`);
-}
-
-function deleteShift(id) {
-    if (!confirm('למחוק משמרת?')) return;
-    const sh = state.shifts.find(s => s.id === id);
-    state.shifts = state.shifts.filter(s => s.id !== id);
-    saveState();
-    if (sh) renderCompanyTab(sh.company);
-    updateGlobalStats();
-    showToast('משמרת נמחקה');
-}
-
-// ==================== LEAVE ====================
-function openAddLeave(company) {
-    document.getElementById('leaveCompany').value = company || 'a';
-    updateLeaveSoldiers();
-    openModal('addLeaveModal');
-}
-
-function updateLeaveSoldiers() {
-    const company = document.getElementById('leaveCompany').value;
-    const sel = document.getElementById('leaveSoldier');
-    sel.innerHTML = '';
-    state.soldiers.filter(s => s.company === company).forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id; opt.textContent = `${s.name} (${s.rank})`;
-        sel.appendChild(opt);
-    });
-}
-
-function saveLeave() {
-    const company = document.getElementById('leaveCompany').value;
-    const selectedSoldiers = Array.from(document.getElementById('leaveSoldier').selectedOptions).map(o => o.value);
-    const startDate = document.getElementById('leaveStart').value;
-    const startTime = document.getElementById('leaveStartTime').value;
-    const endDate = document.getElementById('leaveEnd').value;
-    const endTime = document.getElementById('leaveEndTime').value;
-    const notes = document.getElementById('leaveNotes').value.trim();
-    if (selectedSoldiers.length === 0 || !startDate || !endDate) { showToast('יש למלא את כל השדות', 'error'); return; }
-
-    selectedSoldiers.forEach(soldierId => {
-        state.leaves.push({
-            id: 'leave_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-            company, soldierId, startDate, startTime, endDate, endTime, notes
-        });
-    });
-    saveState();
-    closeModal('addLeaveModal');
-    renderCompanyTab(company);
-    updateGlobalStats();
-    showToast(`${selectedSoldiers.length} יציאות נרשמו`);
-}
-
-function deleteLeave(id) {
-    if (!confirm('למחוק יציאה?')) return;
-    const l = state.leaves.find(x => x.id === id);
-    state.leaves = state.leaves.filter(x => x.id !== id);
-    saveState();
-    if (l) renderCompanyTab(l.company);
-    updateGlobalStats();
-    showToast('יציאה נמחקה');
-}
-
-// ==================== ROTATION GROUPS ====================
-function updateRotGroupSoldiers() {
-    const company = document.getElementById('rotGroupCompany').value;
-    const sel = document.getElementById('rotGroupSoldiers');
-    sel.innerHTML = '';
-    const soldiers = company === 'all' ? state.soldiers : state.soldiers.filter(s => s.company === company);
-    soldiers.forEach(s => {
-        const compName = companyData[s.company] ? companyData[s.company].name : '';
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = company === 'all' ? `[${compName}] ${s.name} (${s.rank})` : `${s.name} (${s.rank} - ${s.role})`;
-        sel.appendChild(opt);
-    });
-}
-
-function saveRotationGroup() {
-    const name = document.getElementById('rotGroupName').value.trim();
-    const startDate = document.getElementById('rotGroupStartDate').value;
-    const daysIn = parseInt(document.getElementById('rotGroupDaysIn').value) || 10;
-    const daysOut = parseInt(document.getElementById('rotGroupDaysOut').value) || 4;
-    const soldiers = Array.from(document.getElementById('rotGroupSoldiers').selectedOptions).map(o => o.value);
-    if (!name || !startDate) { showToast('יש למלא שם ותאריך', 'error'); return; }
-    if (soldiers.length === 0) { showToast('יש לבחור חיילים', 'error'); return; }
-
-    state.rotationGroups.push({
-        id: 'rot_' + Date.now(),
-        name, startDate, daysIn, daysOut, soldiers
-    });
-    saveState();
-    closeModal('addRotationGroupModal');
-    renderRotationTab();
-    ['a','b','c','d'].forEach(renderCompanyTab);
-    updateGlobalStats();
-    showToast(`קבוצת רוטציה "${name}" נוצרה`);
-}
-
-function deleteRotGroup(id) {
-    if (!confirm('למחוק קבוצת רוטציה?')) return;
-    state.rotationGroups = state.rotationGroups.filter(g => g.id !== id);
-    saveState();
-    renderRotationTab();
-    showToast('קבוצה נמחקה');
-}
-
-// ==================== HELPERS ====================
-function isCurrentlyOnLeave(leave) {
-    const now = new Date();
-    const start = new Date(`${leave.startDate}T${leave.startTime}`);
-    const end = new Date(`${leave.endDate}T${leave.endTime}`);
-    return now >= start && now <= end;
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-function showToast(msg, type='success') {
-    const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.innerHTML = `${type==='success'?'&#10003;':'&#10007;'} ${msg}`;
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
-}
-
-function updateGlobalStats() {
-    const unit = currentUser ? currentUser.unit : 'gdudi';
-    const isGdudi = unit === 'gdudi';
-
-    // Filter data by user's unit
-    const filterCompanies = isGdudi ? ALL_COMPANIES : [unit];
-
-    let totalSol = 0, totalCmd = 0, totalOff = 0;
-    filterCompanies.forEach(k => {
-        const c = companyData[k];
-        totalSol += c.totals.soldiers;
-        totalCmd += c.totals.commanders;
-        totalOff += c.totals.officers;
-    });
-
-    document.getElementById('totalSoldiers').textContent = totalSol;
-    document.getElementById('totalCommanders').textContent = totalCmd;
-    document.getElementById('totalOfficers').textContent = totalOff;
-    const totalEl = document.getElementById('statTotalPersonnel');
-    if (totalEl) totalEl.textContent = totalSol + totalCmd + totalOff;
-
-    const relevantShifts = state.shifts.filter(sh => filterCompanies.includes(sh.company));
-    const assignedIds = new Set();
-    relevantShifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
-
-    const relevantLeaves = state.leaves.filter(l => filterCompanies.includes(l.company));
-    const manualLeaveCount = relevantLeaves.filter(l => isCurrentlyOnLeave(l)).length;
-
-    let rotLeaveCount = 0;
-    state.rotationGroups.forEach(g => {
-        const status = getRotationStatus(g, new Date());
-        if (!status.inBase) {
-            const groupInUnit = g.soldiers.filter(sid => {
-                const sol = state.soldiers.find(s => s.id === sid);
-                return sol && filterCompanies.includes(sol.company);
-            });
-            rotLeaveCount += groupInUnit.length;
-        }
-    });
-
-    const totalLeave = manualLeaveCount + rotLeaveCount;
-
-    document.getElementById('totalOnDuty').textContent = assignedIds.size;
-    document.getElementById('totalOnLeave').textContent = totalLeave;
-
-    const statAssigned = document.getElementById('statAssigned');
-    const statHome = document.getElementById('statHome');
-    const statAvailable = document.getElementById('statAvailable');
-    if (statAssigned) statAssigned.textContent = assignedIds.size;
-    if (statHome) statHome.textContent = totalLeave;
-    if (statAvailable) {
-        const regSoldiers = state.soldiers.filter(s => filterCompanies.includes(s.company)).length;
-        statAvailable.textContent = Math.max(0, regSoldiers - assignedIds.size - totalLeave);
-    }
-}
-
-// ==================== SETTINGS PAGE ====================
-function renderSettingsTab() {
-    const container = document.getElementById('settingsContent');
-    if (!container) return;
-    const companyNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד', hq: 'חפ"ק מג"ד', palsam: 'פלס"ם' };
-
-    container.innerHTML = `
-    <!-- Shift Presets -->
-    <div class="settings-card">
-        <h3>&#9200; שעות משמרות</h3>
-        <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">הגדר שעות ברירת מחדל לכפתורי בוקר/צהריים/לילה</p>
-        ${['morning','afternoon','night'].map(key => {
-            const p = settings.shiftPresets[key];
-            const labels = { morning: 'בוקר', afternoon: 'צהריים', night: 'לילה' };
-            return `<div class="settings-row" style="margin-bottom:8px;">
-                <div class="settings-field"><label>${labels[key]}</label></div>
-                <div class="settings-field"><label>התחלה</label><input type="time" value="${p.start}" onchange="updatePreset('${key}','start',this.value)"></div>
-                <div class="settings-field"><label>סיום</label><input type="time" value="${p.end}" onchange="updatePreset('${key}','end',this.value)"></div>
-            </div>`;
-        }).join('')}
-    </div>
-
-    <!-- Rotation -->
-    <div class="settings-card">
-        <h3>&#128260; רוטציה</h3>
-        <div class="settings-row">
-            <div class="settings-field">
-                <label>ימים בבסיס</label>
-                <input type="number" min="1" max="30" value="${settings.rotationDaysIn}" onchange="settings.rotationDaysIn=parseInt(this.value);saveSettings();">
-            </div>
-            <div class="settings-field">
-                <label>ימים בבית</label>
-                <input type="number" min="1" max="14" value="${settings.rotationDaysOut}" onchange="settings.rotationDaysOut=parseInt(this.value);saveSettings();">
-            </div>
-        </div>
-    </div>
-
-    <!-- Security -->
-    <div class="settings-card">
-        <h3>&#128274; אבטחה</h3>
-        <div class="settings-field">
-            <label>סיסמת כניסה</label>
-            <input type="text" value="${settings.password}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
-        </div>
-        <div class="settings-field">
-            <label>שם מנהל מערכת (אדמין)</label>
-            <input type="text" value="${settings.adminName}" onchange="settings.adminName=this.value.trim();saveSettings();showToast('שם אדמין עודכן');">
-        </div>
-    </div>
-
-    <!-- Google Sheets -->
-    <div class="settings-card">
-        <h3>&#128196; קישור גוגל שיטס</h3>
-        <div class="settings-field">
-            <label>מזהה הגיליון (Sheet ID)</label>
-            <input type="text" value="${settings.sheetId}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
-        </div>
-        <div class="settings-actions">
-            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">&#128260; סנכרון מחדש</button>
-        </div>
-    </div>
-
-    <!-- Data Management -->
-    <div class="settings-card">
-        <h3>&#128451; ניהול נתונים</h3>
-        <div class="settings-actions">
-            <button class="btn btn-primary" onclick="exportAllData()">&#128190; ייצוא נתונים (JSON)</button>
-            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">&#128194; ייבוא נתונים (JSON)</button>
-            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(this)">
-            <button class="btn btn-danger" onclick="resetAllData()">&#9888; איפוס כל הנתונים</button>
-        </div>
-        <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
-            סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
-        </div>
-    </div>
-
-    <!-- Task Management -->
-    <div class="settings-card" style="grid-column: 1 / -1;">
-        <h3>&#128203; ניהול משימות לפי פלוגה</h3>
-        <div class="form-group" style="margin-bottom:14px;">
-            <select id="settingsTaskCompany" onchange="renderTaskEditor()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
-                ${ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || ['a','b','c','d'].includes(k)).map(k =>
-                    `<option value="${k}">${companyNames[k]}</option>`
-                ).join('')}
-            </select>
-        </div>
-        <div id="taskEditorContainer"></div>
-    </div>`;
-
-    renderTaskEditor();
-}
-
-function renderTaskEditor() {
-    const compKey = document.getElementById('settingsTaskCompany')?.value || 'a';
-    const container = document.getElementById('taskEditorContainer');
-    if (!container) return;
-    const tasks = companyData[compKey].tasks;
-
-    container.innerHTML = `
-        <div class="task-edit-row task-edit-header">
-            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>משמרות</span><span></span>
-        </div>
-        ${tasks.map((t, i) => `
-            <div class="task-edit-row">
-                <input value="${t.name}" onchange="updateTask('${compKey}',${i},'name',this.value)">
-                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
-                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
-            </div>
-        `).join('')}
-        <div style="margin-top:10px;">
-            <button class="btn btn-success btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
-        </div>`;
-}
-
-function updateTask(compKey, index, field, value) {
-    const t = companyData[compKey].tasks[index];
-    if (field === 'name') t.name = value;
-    else if (field === 'shifts') t.shifts = value;
-    else {
-        t.perShift[field] = value;
-        t[field] = value * t.shifts;
-    }
-    saveTasksToStorage();
-    showToast('משימה עודכנה');
-}
-
-function addTask(compKey) {
-    companyData[compKey].tasks.push({
-        name: 'משימה חדשה', soldiers: 3, commanders: 0, officers: 0, shifts: 3,
-        perShift: { soldiers: 1, commanders: 0, officers: 0 }
-    });
-    saveTasksToStorage();
-    renderTaskEditor();
-}
-
-function deleteTask(compKey, index) {
-    if (!confirm('למחוק משימה?')) return;
-    companyData[compKey].tasks.splice(index, 1);
-    saveTasksToStorage();
-    renderTaskEditor();
-}
-
-function saveTasksToStorage() {
-    const tasksData = {};
-    ALL_COMPANIES.forEach(k => { tasksData[k] = companyData[k].tasks; });
-    localStorage.setItem('battalionTasks', JSON.stringify(tasksData));
-}
-
-function loadTasksFromStorage() {
-    const saved = localStorage.getItem('battalionTasks');
-    if (saved) {
-        const tasksData = JSON.parse(saved);
-        ALL_COMPANIES.forEach(k => {
-            if (tasksData[k]) companyData[k].tasks = tasksData[k];
-        });
-    }
-}
-
-function updatePreset(key, field, value) {
-    settings.shiftPresets[key][field] = value;
-    saveSettings();
-    showToast('שעות עודכנו');
-}
-
-function exportAllData() {
-    const data = { state, settings, tasks: {} };
-    ALL_COMPANIES.forEach(k => { data.tasks[k] = companyData[k].tasks; });
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `battalion_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    showToast('נתונים יוצאו בהצלחה');
-}
-
-function importAllData(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            if (data.state) { state = data.state; saveState(); }
-            if (data.settings) { settings = { ...settings, ...data.settings }; saveSettings(); }
-            if (data.tasks) {
-                ALL_COMPANIES.forEach(k => { if (data.tasks[k]) companyData[k].tasks = data.tasks[k]; });
-                saveTasksToStorage();
-            }
-            renderAll();
-            renderSettingsTab();
-            showToast('נתונים יובאו בהצלחה');
-        } catch (err) {
-            showToast('שגיאה בקריאת הקובץ', 'error');
-        }
-    };
-    reader.readAsText(file);
-    input.value = '';
-}
-
-function resetAllData() {
-    if (!confirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
-    if (!confirm('אישור סופי - למחוק הכל?')) return;
-    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [] };
-    saveState();
-    localStorage.removeItem('battalionTasks');
-    localStorage.removeItem('battalionDataVersion');
-    syncFromGoogleSheets(false);
-    renderAll();
-    renderSettingsTab();
-    showToast('כל הנתונים אופסו');
-}
-
-function exportCompanyData(compKey) {
-    const comp = companyData[compKey];
-    const soldiers = state.soldiers.filter(s => s.company === compKey);
-    const shifts = state.shifts.filter(s => s.company === compKey);
-    const leaves = state.leaves.filter(l => l.company === compKey);
-    let csv = '\uFEFF' + `${comp.name} - ${comp.location}\n\n`;
-    csv += 'שם,דרגה,תפקיד,מספר אישי,טלפון\n';
-    soldiers.forEach(s => csv += `${s.name},${s.rank},${s.role},${s.personalId},${s.phone}\n`);
-    csv += '\nמשמרות\nמשימה,תאריך,התחלה,סיום,חיילים\n';
-    shifts.forEach(sh => {
-        const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : ''; }).join(' | ');
-        csv += `${sh.task},${sh.date},${sh.startTime},${sh.endTime},${names}\n`;
-    });
-    csv += '\nיציאות\nחייל,יציאה,שעה,חזרה,שעה,הערות\n';
-    leaves.forEach(l => {
-        const s = state.soldiers.find(x => x.id === l.soldierId);
-        csv += `${s?s.name:''},${l.startDate},${l.startTime},${l.endDate},${l.endTime},${l.notes}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-}
-
-// Close modals
-document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); });
-});
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
-});
-
-init();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
