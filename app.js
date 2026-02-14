@@ -2103,7 +2103,7 @@ function renderSettingsTab() {
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> אבטחה</h3>
         <div class="settings-field">
             <label>סיסמת כניסה</label>
-            <input type="text" value="${settings.password}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
+            <input type="password" value="${settings.password}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
         </div>
         <div class="settings-field">
             <label>שם מנהל מערכת (אדמין)</label>
@@ -2266,7 +2266,7 @@ function importAllData(input) {
 function resetAllData() {
     if (!confirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
     if (!confirm('אישור סופי - למחוק הכל?')) return;
-    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [] };
+    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [] };
     saveState();
     localStorage.removeItem('battalionTasks');
     localStorage.removeItem('battalionDataVersion');
@@ -3707,6 +3707,8 @@ async function generateWeaponsPDF(soldierId) {
                 dt(ctx, w, h, rec.phone2, 0.62, r2);
                 dt(ctx, w, h, rec.address, 0.44, r2);
                 dt(ctx, w, h, rec.city, 0.31, r2);
+                dt(ctx, w, h, rec.rank, 0.2, r2);
+                dt(ctx, w, h, rec.role, 0.08, r2);
                 dt(ctx, w, h, rec.firstName + ' ' + rec.lastName, 0.65, 0.1);
                 dt(ctx, w, h, dateStr, 0.38, 0.1);
                 await drawSig(ctx, w, h, rec.waiverSig, 0.04, 0.08, 200, 80);
@@ -3756,10 +3758,10 @@ async function generateWeaponsPDF(soldierId) {
 
 // Close modals
 document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); });
+    o.addEventListener('click', e => { if (e.target === o) { o.classList.remove('active'); document.body.classList.remove('modal-open'); } });
 });
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+    if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); document.body.classList.remove('modal-open'); }
 });
 
 init();
