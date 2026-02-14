@@ -3591,218 +3591,151 @@ function reverseHebrew(str) {
 async function generateWeaponsPDF(soldierId) {
     if (!soldierId) soldierId = document.getElementById('weaponsSoldierId').value;
     let rec = state.weaponsData.find(r => r.soldierId === soldierId);
-
-    // If form is open, collect current data
     if (document.getElementById('weaponsFormModal').classList.contains('active')) {
         rec = collectWeaponsFormData();
     }
+    if (!rec || !rec.firstName) { showToast('יש למלא את הטופס לפני הפקת תמונות', 'error'); return; }
 
-    if (!rec || !rec.firstName) {
-        showToast('יש למלא את הטופס לפני הפקת PDF', 'error');
-        return;
-    }
-
-    showToast('מפיק PDF... אנא המתן', 'success');
+    showToast('מפיק תמונות... אנא המתן', 'success');
 
     try {
-        // Load the original PDF template
-        const pdfBytes = await fetch('weapons-form.pdf').then(r => r.arrayBuffer());
-        const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-        pdfDoc.registerFontkit(fontkit);
-
-        // Embed Hebrew font (static TTF, not variable font)
-        const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/rubik/static/Rubik-Regular.ttf';
-        const fontBytes = await fetch(fontUrl).then(r => r.arrayBuffer());
-        const hebrewFont = await pdfDoc.embedFont(fontBytes);
-
-        const pages = pdfDoc.getPages();
-        const { rgb } = PDFLib;
-        const blue = rgb(0.05, 0.1, 0.5);
-        const black = rgb(0, 0, 0);
-
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf = await pdfjsLib.getDocument('weapons-form.pdf').promise;
+        const scale = 2;
         const dateStr = formatDate(rec.date);
+        const blue = '#0d1a80';
+        const font = 'bold 22px Rubik, Arial, sans-serif';
+        const fontSm = 'bold 20px Rubik, Arial, sans-serif';
 
-        // ===== PAGE 1: Weapon Request Form (נספח א' מוסף 5) =====
-        if (pages[0]) {
-            const p = pages[0];
-            const { width: pw, height: ph } = p.getSize();
-            const sz = 11;
-
-            // Personal details table - Row 1
-            // Table is roughly at 68% from bottom (y = ph * 0.68)
-            const tableY = ph * 0.685;
-            const row2Y = tableY - 30;
-
-            // Columns from RIGHT to LEFT on the form:
-            p.drawText(reverseHebrew(rec.firstName), { x: pw * 0.78, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.lastName), { x: pw * 0.62, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.idNumber, { x: pw * 0.44, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.personalNum, { x: pw * 0.31, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.birthYear, { x: pw * 0.2, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.fatherName), { x: pw * 0.08, y: tableY, size: sz, font: hebrewFont, color: blue });
-
-            // Row 2: phones
-            p.drawText(rec.phone, { x: pw * 0.08, y: row2Y, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.phone2, { x: pw * 0.2, y: row2Y, size: sz, font: hebrewFont, color: blue });
-
-            // Weapon type and serial in declaration item 4 area
-            p.drawText(rec.weaponType, { x: pw * 0.32, y: ph * 0.388, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.weaponSerial, { x: pw * 0.08, y: ph * 0.375, size: sz, font: hebrewFont, color: blue });
-
-            // Bottom signature block
-            p.drawText(reverseHebrew(rec.firstName + ' ' + rec.lastName), { x: pw * 0.65, y: ph * 0.075, size: sz, font: hebrewFont, color: blue });
-            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.075, size: sz, font: hebrewFont, color: blue });
-
-            // Draw signature image if available
-            if (rec.requestSig) {
-                const sigImg = await pdfDoc.embedPng(rec.requestSig);
-                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.055, width: 100, height: 40 });
-            }
+        // Helper: draw text at PDF-coordinate percentages (origin bottom-left) onto canvas (origin top-left)
+        function dt(ctx, w, h, text, xPct, yPdfPct, sz, color) {
+            if (!text) return;
+            ctx.fillStyle = color || blue;
+            ctx.font = sz || font;
+            ctx.textAlign = 'start';
+            ctx.direction = 'rtl';
+            ctx.fillText(text, w * xPct, h * (1 - yPdfPct));
         }
 
-        // ===== PAGE 2: Recommendation Letter (נספח א' מוסף 3) =====
-        if (pages[1]) {
-            const p = pages[1];
-            const { width: pw, height: ph } = p.getSize();
-            const sz = 11;
-
-            // Same personal details table
-            const tableY = ph * 0.72;
-            const row2Y = tableY - 30;
-
-            p.drawText(reverseHebrew(rec.firstName), { x: pw * 0.78, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.lastName), { x: pw * 0.62, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.idNumber, { x: pw * 0.44, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.personalNum, { x: pw * 0.31, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.birthYear, { x: pw * 0.2, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.fatherName), { x: pw * 0.08, y: tableY, size: sz, font: hebrewFont, color: blue });
-
-            p.drawText(rec.phone, { x: pw * 0.08, y: row2Y, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.phone2, { x: pw * 0.2, y: row2Y, size: sz, font: hebrewFont, color: blue });
-
-            // Commander details table (lower)
-            const cmdY = ph * 0.34;
-            p.drawText(reverseHebrew(rec.cmdName ? rec.cmdName.split(' ')[0] : ''), { x: pw * 0.78, y: cmdY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.cmdName ? rec.cmdName.split(' ').slice(1).join(' ') : ''), { x: pw * 0.62, y: cmdY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.cmdRank), { x: pw * 0.44, y: cmdY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.cmdId, { x: pw * 0.31, y: cmdY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.cmdRole), { x: pw * 0.12, y: cmdY, size: sz, font: hebrewFont, color: blue });
-
-            // Commander signature
-            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.17, size: sz, font: hebrewFont, color: blue });
-            if (rec.cmdSig) {
-                const sigImg = await pdfDoc.embedPng(rec.cmdSig);
-                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.14, width: 100, height: 40 });
-            }
-        }
-
-        // ===== PAGE 3: Medical Confidentiality Waiver (נספח א' מוסף 2) =====
-        if (pages[2]) {
-            const p = pages[2];
-            const { width: pw, height: ph } = p.getSize();
-            const sz = 11;
-
-            // Personal details table
-            const tableY = ph * 0.77;
-            const row2Y = tableY - 30;
-
-            p.drawText(reverseHebrew(rec.firstName), { x: pw * 0.78, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.lastName), { x: pw * 0.62, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.idNumber, { x: pw * 0.44, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.personalNum, { x: pw * 0.31, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(rec.birthYear, { x: pw * 0.2, y: tableY, size: sz, font: hebrewFont, color: blue });
-            p.drawText(reverseHebrew(rec.fatherName), { x: pw * 0.08, y: tableY, size: sz, font: hebrewFont, color: blue });
-
-            p.drawText(rec.phone, { x: pw * 0.08, y: row2Y, size: sz, font: hebrewFont, color: blue });
-
-            // Bottom signature
-            p.drawText(reverseHebrew(rec.firstName + ' ' + rec.lastName), { x: pw * 0.65, y: ph * 0.1, size: sz, font: hebrewFont, color: blue });
-            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.1, size: sz, font: hebrewFont, color: blue });
-
-            if (rec.waiverSig) {
-                const sigImg = await pdfDoc.embedPng(rec.waiverSig);
-                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.08, width: 100, height: 40 });
-            }
-        }
-
-        // ===== PAGE 4: Health Declaration =====
-        if (pages[3]) {
-            const p = pages[3];
-            const { width: pw, height: ph } = p.getSize();
-
-            // Health checkboxes - draw X marks for yes/no answers
-            // The form has two columns of checkboxes
-            // We'll draw small checkmarks/X at approximate positions
-            const startY = ph * 0.82;
-            const rowH = ph * 0.033;
-            const yesX_right = pw * 0.52;  // "כן" column right side
-            const noX_right = pw * 0.47;   // "לא" column right side
-            const yesX_left = pw * 0.95;   // "כן" column left side
-            const noX_left = pw * 0.9;     // "לא" column left side
-
-            HEALTH_QUESTIONS.forEach((q, i) => {
-                const answer = rec.healthAnswers[q.id];
-                if (!answer) return;
-                const y = startY - (i * rowH);
-                const isLeft = i < 10;
-                const xYes = isLeft ? yesX_left : yesX_right;
-                const xNo = isLeft ? noX_left : noX_right;
-
-                if (answer === 'yes') {
-                    p.drawText('X', { x: xYes, y, size: 12, font: hebrewFont, color: blue });
-                } else {
-                    p.drawText('X', { x: xNo, y, size: 12, font: hebrewFont, color: blue });
-                }
+        // Helper: draw signature/image from dataURL
+        async function drawSig(ctx, w, h, dataUrl, xPct, yPdfPct, imgW, imgH) {
+            if (!dataUrl) return;
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => { ctx.drawImage(img, w * xPct, h * (1 - yPdfPct) - imgH, imgW, imgH); resolve(); };
+                img.onerror = resolve;
+                img.src = dataUrl;
             });
-
-            // Signature at bottom
-            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.15, size: 10, font: hebrewFont, color: blue });
-            if (rec.healthSig) {
-                const sigImg = await pdfDoc.embedPng(rec.healthSig);
-                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.12, width: 100, height: 40 });
-            }
         }
 
-        // ===== PAGE 5: ID Photo =====
-        if (pages[4] && rec.idPhoto && rec.idPhoto.startsWith('data:image')) {
-            const p = pages[4];
-            const { width: pw, height: ph } = p.getSize();
+        const pageNames = ['בקשת_נשק', 'המלצת_מפקד', 'ויתור_סודיות', 'הצהרת_בריאות', 'צילום_תז'];
 
-            try {
-                let idImg;
-                if (rec.idPhoto.includes('image/png')) {
-                    idImg = await pdfDoc.embedPng(rec.idPhoto);
-                } else {
-                    idImg = await pdfDoc.embedJpg(rec.idPhoto);
-                }
-                // Center the ID photo on the page
-                const imgW = pw * 0.7;
-                const imgH = imgW * 0.63; // ID card aspect ratio
-                p.drawImage(idImg, {
-                    x: (pw - imgW) / 2,
-                    y: ph * 0.35,
-                    width: imgW,
-                    height: imgH
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const w = canvas.width, h = canvas.height;
+            const row2Off = 30 * scale / (841.92); // ~row offset as fraction of height
+
+            // PAGE 1: Weapon Request
+            if (i === 1) {
+                const ty = 0.685, r2 = ty - row2Off;
+                dt(ctx, w, h, rec.firstName, 0.78, ty);
+                dt(ctx, w, h, rec.lastName, 0.62, ty);
+                dt(ctx, w, h, rec.idNumber, 0.44, ty);
+                dt(ctx, w, h, rec.personalNum, 0.31, ty);
+                dt(ctx, w, h, rec.birthYear, 0.2, ty);
+                dt(ctx, w, h, rec.fatherName, 0.08, ty);
+                dt(ctx, w, h, rec.phone, 0.08, r2);
+                dt(ctx, w, h, rec.phone2, 0.2, r2);
+                dt(ctx, w, h, rec.weaponType, 0.32, 0.388);
+                dt(ctx, w, h, rec.weaponSerial, 0.08, 0.375);
+                dt(ctx, w, h, rec.firstName + ' ' + rec.lastName, 0.65, 0.075);
+                dt(ctx, w, h, dateStr, 0.38, 0.075);
+                await drawSig(ctx, w, h, rec.requestSig, 0.04, 0.055, 200, 80);
+            }
+
+            // PAGE 2: Commander Recommendation
+            if (i === 2) {
+                const ty = 0.72, r2 = ty - row2Off;
+                dt(ctx, w, h, rec.firstName, 0.78, ty);
+                dt(ctx, w, h, rec.lastName, 0.62, ty);
+                dt(ctx, w, h, rec.idNumber, 0.44, ty);
+                dt(ctx, w, h, rec.personalNum, 0.31, ty);
+                dt(ctx, w, h, rec.birthYear, 0.2, ty);
+                dt(ctx, w, h, rec.fatherName, 0.08, ty);
+                dt(ctx, w, h, rec.phone, 0.08, r2);
+                dt(ctx, w, h, rec.phone2, 0.2, r2);
+                const cmdY = 0.34;
+                dt(ctx, w, h, rec.cmdName ? rec.cmdName.split(' ')[0] : '', 0.78, cmdY);
+                dt(ctx, w, h, rec.cmdName ? rec.cmdName.split(' ').slice(1).join(' ') : '', 0.62, cmdY);
+                dt(ctx, w, h, rec.cmdRank, 0.44, cmdY);
+                dt(ctx, w, h, rec.cmdId, 0.31, cmdY);
+                dt(ctx, w, h, rec.cmdRole, 0.12, cmdY);
+                dt(ctx, w, h, dateStr, 0.38, 0.17);
+                await drawSig(ctx, w, h, rec.cmdSig, 0.04, 0.14, 200, 80);
+            }
+
+            // PAGE 3: Medical Waiver
+            if (i === 3) {
+                const ty = 0.77, r2 = ty - row2Off;
+                dt(ctx, w, h, rec.firstName, 0.78, ty);
+                dt(ctx, w, h, rec.lastName, 0.62, ty);
+                dt(ctx, w, h, rec.idNumber, 0.44, ty);
+                dt(ctx, w, h, rec.personalNum, 0.31, ty);
+                dt(ctx, w, h, rec.birthYear, 0.2, ty);
+                dt(ctx, w, h, rec.fatherName, 0.08, ty);
+                dt(ctx, w, h, rec.phone, 0.08, r2);
+                dt(ctx, w, h, rec.firstName + ' ' + rec.lastName, 0.65, 0.1);
+                dt(ctx, w, h, dateStr, 0.38, 0.1);
+                await drawSig(ctx, w, h, rec.waiverSig, 0.04, 0.08, 200, 80);
+            }
+
+            // PAGE 4: Health Declaration
+            if (i === 4) {
+                const startY = 0.82, rowH = 0.033;
+                HEALTH_QUESTIONS.forEach((q, idx) => {
+                    const answer = rec.healthAnswers[q.id];
+                    if (!answer) return;
+                    const y = startY - (idx * rowH);
+                    const isLeft = idx < 10;
+                    const xYes = isLeft ? 0.95 : 0.52;
+                    const xNo = isLeft ? 0.9 : 0.47;
+                    dt(ctx, w, h, 'X', answer === 'yes' ? xYes : xNo, y, 'bold 24px Arial');
                 });
-            } catch (e) {
-                console.warn('Could not embed ID photo:', e);
+                dt(ctx, w, h, dateStr, 0.38, 0.15, fontSm);
+                await drawSig(ctx, w, h, rec.healthSig, 0.04, 0.12, 200, 80);
             }
+
+            // PAGE 5: ID Photo
+            if (i === 5 && rec.idPhoto && rec.idPhoto.startsWith('data:image')) {
+                const imgW = w * 0.7, imgH = imgW * 0.63;
+                await drawSig(ctx, w, h, rec.idPhoto, 0.15, 0.65, imgW, imgH);
+            }
+
+            // Download as PNG
+            canvas.toBlob(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${pageNames[i-1]}_${rec.firstName}_${rec.lastName}.png`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+            }, 'image/png');
+
+            // Small delay between downloads
+            await new Promise(r => setTimeout(r, 500));
         }
 
-        // Save and download
-        const filledPdf = await pdfDoc.save();
-        const blob = new Blob([filledPdf], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `טופס_נשק_${rec.firstName}_${rec.lastName}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
-
-        showToast('PDF הופק בהצלחה!');
+        showToast('5 תמונות הורדו בהצלחה!');
     } catch (err) {
-        console.error('PDF generation error:', err);
-        showToast('שגיאה בהפקת PDF: ' + err.message, 'error');
+        console.error('Image generation error:', err);
+        showToast('שגיאה בהפקת תמונות: ' + err.message, 'error');
     }
 }
 
