@@ -637,25 +637,6 @@ function renderCompanyTab(compKey) {
             </div></div>
         </div>
 
-        <!-- Soldiers with Search -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#e3f2fd;color:var(--info);">&#9823;</div>
-                כוח אדם (${soldiers.length} רשומים)
-            </div>
-            <div class="search-bar">
-                <span class="search-icon">&#128269;</span>
-                <input type="text" id="search-${compKey}" placeholder="חיפוש לפי שם, תפקיד, מספר אישי..." value="${ss.query}" oninput="onSearchInput('${compKey}')">
-            </div>
-            <div class="filter-buttons">
-                <button class="filter-btn ${ss.filter==='all'?'active':''}" onclick="setFilter('${compKey}','all',this)">הכל</button>
-                <button class="filter-btn ${ss.filter==='available'?'active':''}" onclick="setFilter('${compKey}','available',this)">זמינים</button>
-                <button class="filter-btn ${ss.filter==='assigned'?'active':''}" onclick="setFilter('${compKey}','assigned',this)">בשיבוץ</button>
-                <button class="filter-btn ${ss.filter==='home'?'active':''}" onclick="setFilter('${compKey}','home',this)">בבית</button>
-            </div>
-            <div id="soldiers-grid-${compKey}"></div>
-        </div>
-
         <!-- Shifts -->
         <div class="sub-section">
             <div class="section-title">
@@ -730,6 +711,25 @@ function renderCompanyTab(compKey) {
                     </table>
                 </div></div>
             `}
+        </div>
+
+        <!-- Soldiers with Search -->
+        <div class="sub-section">
+            <div class="section-title">
+                <div class="icon" style="background:#e3f2fd;color:var(--info);">&#9823;</div>
+                כוח אדם (${soldiers.length} רשומים)
+            </div>
+            <div class="search-bar">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="search-${compKey}" placeholder="חיפוש לפי שם, תפקיד, מספר אישי..." value="${ss.query}" oninput="onSearchInput('${compKey}')">
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn ${ss.filter==='all'?'active':''}" onclick="setFilter('${compKey}','all',this)">הכל</button>
+                <button class="filter-btn ${ss.filter==='available'?'active':''}" onclick="setFilter('${compKey}','available',this)">זמינים</button>
+                <button class="filter-btn ${ss.filter==='assigned'?'active':''}" onclick="setFilter('${compKey}','assigned',this)">בשיבוץ</button>
+                <button class="filter-btn ${ss.filter==='home'?'active':''}" onclick="setFilter('${compKey}','home',this)">בבית</button>
+            </div>
+            <div id="soldiers-grid-${compKey}"></div>
         </div>
     `;
 
