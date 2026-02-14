@@ -3645,33 +3645,45 @@ async function generateWeaponsPDF(soldierId) {
 
             // PAGE 1: Weapon Request
             if (i === 1) {
-                const ty = 0.685, r2 = ty - row2Off;
+                const ty = 0.715, r2 = ty - 0.035;
+                // Row 1: שם פרטי, שם משפחה, ת.ז, מ.א, שנת לידה, שם האב
                 dt(ctx, w, h, rec.firstName, 0.78, ty);
                 dt(ctx, w, h, rec.lastName, 0.62, ty);
                 dt(ctx, w, h, rec.idNumber, 0.44, ty);
                 dt(ctx, w, h, rec.personalNum, 0.31, ty);
                 dt(ctx, w, h, rec.birthYear, 0.2, ty);
                 dt(ctx, w, h, rec.fatherName, 0.08, ty);
-                dt(ctx, w, h, rec.phone, 0.08, r2);
-                dt(ctx, w, h, rec.phone2, 0.2, r2);
-                dt(ctx, w, h, rec.weaponType, 0.32, 0.388);
-                dt(ctx, w, h, rec.weaponSerial, 0.08, 0.375);
-                dt(ctx, w, h, rec.firstName + ' ' + rec.lastName, 0.65, 0.075);
-                dt(ctx, w, h, dateStr, 0.38, 0.075);
-                await drawSig(ctx, w, h, rec.requestSig, 0.04, 0.055, 200, 80);
+                // Row 2: טלפון, טלפון נוסף, כתובת, יישוב, דרגה, תפקיד
+                dt(ctx, w, h, rec.phone, 0.78, r2);
+                dt(ctx, w, h, rec.phone2, 0.62, r2);
+                dt(ctx, w, h, rec.address, 0.44, r2);
+                dt(ctx, w, h, rec.city, 0.31, r2);
+                dt(ctx, w, h, rec.rank, 0.2, r2);
+                dt(ctx, w, h, rec.role, 0.08, r2);
+                // Weapon info
+                dt(ctx, w, h, rec.weaponType, 0.32, 0.265);
+                dt(ctx, w, h, rec.weaponSerial, 0.08, 0.265);
+                // Bottom: name, date, signature
+                dt(ctx, w, h, rec.firstName + ' ' + rec.lastName, 0.65, 0.09);
+                dt(ctx, w, h, dateStr, 0.38, 0.09);
+                await drawSig(ctx, w, h, rec.requestSig, 0.04, 0.07, 200, 80);
             }
 
             // PAGE 2: Commander Recommendation
             if (i === 2) {
-                const ty = 0.72, r2 = ty - row2Off;
+                const ty = 0.75, r2 = ty - 0.035;
                 dt(ctx, w, h, rec.firstName, 0.78, ty);
                 dt(ctx, w, h, rec.lastName, 0.62, ty);
                 dt(ctx, w, h, rec.idNumber, 0.44, ty);
                 dt(ctx, w, h, rec.personalNum, 0.31, ty);
                 dt(ctx, w, h, rec.birthYear, 0.2, ty);
                 dt(ctx, w, h, rec.fatherName, 0.08, ty);
-                dt(ctx, w, h, rec.phone, 0.08, r2);
-                dt(ctx, w, h, rec.phone2, 0.2, r2);
+                dt(ctx, w, h, rec.phone, 0.78, r2);
+                dt(ctx, w, h, rec.phone2, 0.62, r2);
+                dt(ctx, w, h, rec.address, 0.44, r2);
+                dt(ctx, w, h, rec.city, 0.31, r2);
+                dt(ctx, w, h, rec.rank, 0.2, r2);
+                dt(ctx, w, h, rec.role, 0.08, r2);
                 const cmdY = 0.34;
                 dt(ctx, w, h, rec.cmdName ? rec.cmdName.split(' ')[0] : '', 0.78, cmdY);
                 dt(ctx, w, h, rec.cmdName ? rec.cmdName.split(' ').slice(1).join(' ') : '', 0.62, cmdY);
@@ -3684,14 +3696,17 @@ async function generateWeaponsPDF(soldierId) {
 
             // PAGE 3: Medical Waiver
             if (i === 3) {
-                const ty = 0.77, r2 = ty - row2Off;
+                const ty = 0.80, r2 = ty - 0.035;
                 dt(ctx, w, h, rec.firstName, 0.78, ty);
                 dt(ctx, w, h, rec.lastName, 0.62, ty);
                 dt(ctx, w, h, rec.idNumber, 0.44, ty);
                 dt(ctx, w, h, rec.personalNum, 0.31, ty);
                 dt(ctx, w, h, rec.birthYear, 0.2, ty);
                 dt(ctx, w, h, rec.fatherName, 0.08, ty);
-                dt(ctx, w, h, rec.phone, 0.08, r2);
+                dt(ctx, w, h, rec.phone, 0.78, r2);
+                dt(ctx, w, h, rec.phone2, 0.62, r2);
+                dt(ctx, w, h, rec.address, 0.44, r2);
+                dt(ctx, w, h, rec.city, 0.31, r2);
                 dt(ctx, w, h, rec.firstName + ' ' + rec.lastName, 0.65, 0.1);
                 dt(ctx, w, h, dateStr, 0.38, 0.1);
                 await drawSig(ctx, w, h, rec.waiverSig, 0.04, 0.08, 200, 80);
