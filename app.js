@@ -3606,6 +3606,7 @@ async function generateWeaponsPDF(soldierId) {
         // Load the original PDF template
         const pdfBytes = await fetch('weapons-form.pdf').then(r => r.arrayBuffer());
         const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+        pdfDoc.registerFontkit(fontkit);
 
         // Embed Hebrew font
         const fontUrl = 'https://fonts.gstatic.com/s/rubik/v28/iJWKBXyIfDnIV7nBrXyw023e.ttf';
