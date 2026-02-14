@@ -31,6 +31,19 @@ function isAdmin() {
     return currentUser && currentUser.name === settings.adminName;
 }
 
+function canEdit(compKey) {
+    if (!currentUser) return false;
+    if (isAdmin()) return true;
+    if (currentUser.unit === 'gdudi') return true;
+    return currentUser.unit === compKey;
+}
+
+function canView(compKey) {
+    if (!currentUser) return false;
+    if (currentUser.unit === 'gdudi') return true;
+    return currentUser.unit === compKey;
+}
+
 // ==================== LOGIN ====================
 let currentUser = null;
 
@@ -896,8 +909,8 @@ function renderSoldiersGrid(compKey) {
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
                 <span class="person-status ${badge}">${txt}</span>
-                <button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
-                <button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>
+                ${canEdit(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
+                <button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}
             </div>
         </div>`;
     }).join('') + '</div>';
@@ -913,11 +926,12 @@ function renderCompanyTab(compKey) {
 
     const ss = getSearchState(compKey);
 
+    const editable = canEdit(compKey);
     container.innerHTML = `
         <div class="action-bar">
-            <button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
+            ${editable ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
             <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
-            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')">+ יציאה הביתה</button>
+            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')">+ יציאה הביתה</button>` : ''}
             <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">&#128196; ייצוא CSV</button>
         </div>
 
@@ -1001,10 +1015,10 @@ function renderCompanyTab(compKey) {
                                     &#128197; ${formatDate(sh.date)} | ${names.length}/${needed} משובצים
                                 </div>
                                 ${names.length > 0 ? `<ul class="shift-soldiers">${names.map(n => `<li class="shift-soldier"><span>${n}</span></li>`).join('')}</ul>` : '<div style="text-align:center;padding:8px;color:var(--danger);font-size:0.83em;">לא שובצו חיילים</div>'}
-                                <div style="margin-top:6px;text-align:left;display:flex;gap:4px;">
+                                ${editable ? `<div style="margin-top:6px;text-align:left;display:flex;gap:4px;">
                                     <button class="btn btn-edit btn-sm" onclick="openEditShift('${sh.id}')">&#9998; עריכה</button>
                                     <button class="btn btn-danger btn-sm" onclick="deleteShift('${sh.id}')">&#10005; מחק</button>
-                                </div>
+                                </div>` : ''}
                             </div>
                         </div>`;
                     }).join('')}
@@ -1039,8 +1053,8 @@ function renderCompanyTab(compKey) {
                                     <td><span class="person-status ${active?'status-on-leave':'status-on-duty'}">${active?'בבית':'חזר'}</span></td>
                                     <td style="font-size:0.83em">${l.notes||'-'}</td>
                                     <td style="display:flex;gap:4px;">
-                                        <button class="btn btn-edit btn-sm" onclick="openEditLeave('${l.id}')">&#9998;</button>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">&#10005;</button>
+                                        ${editable ? `<button class="btn btn-edit btn-sm" onclick="openEditLeave('${l.id}')">&#9998;</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">&#10005;</button>` : '-'}
                                     </td>
                                 </tr>`;
                             }).join('')}
@@ -1400,6 +1414,7 @@ function saveSoldier() {
 
     const editId = document.getElementById('soldierEditId').value;
     const company = document.getElementById('soldierCompany').value;
+    if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
 
     if (editId) {
         // Edit existing soldier
@@ -1440,8 +1455,9 @@ function saveSoldier() {
 }
 
 function deleteSoldier(id) {
-    if (!confirm('למחוק חייל זה?')) return;
     const sol = state.soldiers.find(s => s.id === id);
+    if (sol && !canEdit(sol.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (!confirm('למחוק חייל זה?')) return;
     state.soldiers = state.soldiers.filter(s => s.id !== id);
     state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
     state.leaves = state.leaves.filter(l => l.soldierId !== id);
@@ -1616,6 +1632,7 @@ function hasTimeOverlap(soldierId, date, startTime, endTime, excludeShiftId) {
 
 function saveShift() {
     const company = document.getElementById('shiftCompany').value;
+    if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
     const taskRaw = document.getElementById('shiftTask').value;
     const task = taskRaw.replace(/\s*\(\d+\/\d+\)$/, ''); // strip capacity indicator
     const date = document.getElementById('shiftDate').value;
@@ -1700,8 +1717,9 @@ function saveShift() {
 }
 
 function deleteShift(id) {
-    if (!confirm('למחוק משמרת?')) return;
     const sh = state.shifts.find(s => s.id === id);
+    if (sh && !canEdit(sh.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (!confirm('למחוק משמרת?')) return;
     state.shifts = state.shifts.filter(s => s.id !== id);
     saveState();
     if (sh) renderCompanyTab(sh.company);
@@ -1761,6 +1779,7 @@ function updateLeaveSoldiers() {
 function saveLeave() {
     const editId = document.getElementById('leaveEditId').value;
     const company = document.getElementById('leaveCompany').value;
+    if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
     const startDate = document.getElementById('leaveStart').value;
     const startTime = document.getElementById('leaveStartTime').value;
     const endDate = document.getElementById('leaveEnd').value;
@@ -1804,8 +1823,9 @@ function saveLeave() {
 }
 
 function deleteLeave(id) {
-    if (!confirm('למחוק יציאה?')) return;
     const l = state.leaves.find(x => x.id === id);
+    if (l && !canEdit(l.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (!confirm('למחוק יציאה?')) return;
     state.leaves = state.leaves.filter(x => x.id !== id);
     saveState();
     if (l) renderCompanyTab(l.company);
