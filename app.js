@@ -1675,7 +1675,7 @@ function exportCompanyData(compKey) {
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const shifts = state.shifts.filter(s => s.company === compKey);
     const leaves = state.leaves.filter(l => l.company === compKey);
-    let csv = '\uFEFF' + `${comp.name} - ${comp.location}\n\n`;
+    let csv = '\uFEFF' + `${comp.name} (${comp.location})\n\n`;
     csv += 'שם,דרגה,תפקיד,מספר אישי,טלפון\n';
     soldiers.forEach(s => csv += `${s.name},${s.rank},${s.role},${s.personalId},${s.phone}\n`);
     csv += '\nמשמרות\nמשימה,תאריך,התחלה,סיום,חיילים\n';
