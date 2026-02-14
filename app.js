@@ -323,6 +323,7 @@ function renderAll() {
     ALL_COMPANIES.forEach(renderCompanyTab);
     renderRotationTab();
     updateGlobalStats();
+    updateNotifications();
 }
 
 // ==================== GOOGLE SHEETS SYNC ====================
@@ -661,6 +662,142 @@ function renderDashboard() {
     });
 
     if (alertsEl) alertsEl.innerHTML = alertsHtml;
+}
+
+// ==================== NOTIFICATIONS ====================
+function toggleNotifications() {
+    const panel = document.getElementById('notifPanel');
+    panel.classList.toggle('active');
+    if (panel.classList.contains('active')) {
+        updateNotifications();
+    }
+}
+
+// Close notifications on outside click
+document.addEventListener('click', function(e) {
+    const panel = document.getElementById('notifPanel');
+    const wrapper = e.target.closest('.notif-wrapper');
+    if (panel && panel.classList.contains('active') && !wrapper) {
+        panel.classList.remove('active');
+    }
+});
+
+function updateNotifications() {
+    const notifications = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    // 1. Rotation changes happening today/tomorrow
+    state.rotationGroups.forEach(g => {
+        const statusToday = getRotationStatus(g, today);
+        const statusTomorrow = getRotationStatus(g, tomorrow);
+        if (statusToday.inBase && !statusTomorrow.inBase) {
+            notifications.push({
+                type: 'warn',
+                title: `${g.name} - יוצאת מחר`,
+                desc: `קבוצת ${g.name} (${g.soldiers.length} חיילים) יוצאת מחר מהבסיס`,
+                icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>'
+            });
+        }
+        if (!statusToday.inBase && statusTomorrow.inBase) {
+            notifications.push({
+                type: 'success',
+                title: `${g.name} - חוזרת מחר`,
+                desc: `קבוצת ${g.name} (${g.soldiers.length} חיילים) חוזרת מחר לבסיס`,
+                icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>'
+            });
+        }
+    });
+
+    // 2. Leaves ending today/tomorrow
+    const returningToday = state.leaves.filter(l => l.endDate === todayStr);
+    const returningTomorrow = state.leaves.filter(l => l.endDate === tomorrowStr);
+    if (returningToday.length > 0) {
+        notifications.push({
+            type: 'info',
+            title: `${returningToday.length} חיילים חוזרים היום`,
+            desc: returningToday.map(l => {
+                const sol = state.soldiers.find(s => s.id === l.soldierId);
+                return sol ? sol.name : '?';
+            }).slice(0, 5).join(', ') + (returningToday.length > 5 ? '...' : ''),
+            icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg>'
+        });
+    }
+    if (returningTomorrow.length > 0) {
+        notifications.push({
+            type: 'info',
+            title: `${returningTomorrow.length} חיילים חוזרים מחר`,
+            desc: returningTomorrow.map(l => {
+                const sol = state.soldiers.find(s => s.id === l.soldierId);
+                return sol ? sol.name : '?';
+            }).slice(0, 5).join(', ') + (returningTomorrow.length > 5 ? '...' : ''),
+            icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg>'
+        });
+    }
+
+    // 3. Understaffed tasks (shifts needed today with low coverage)
+    const mainCompanies = ['a', 'b', 'c', 'd'];
+    mainCompanies.forEach(k => {
+        const comp = companyData[k];
+        comp.tasks.forEach(task => {
+            const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
+            if (needed <= 0) return;
+            const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name && sh.date === todayStr)
+                .reduce((sum, sh) => sum + sh.soldiers.length, 0);
+            if (assigned === 0 && needed > 0) {
+                notifications.push({
+                    type: 'danger',
+                    title: `${comp.name} - ${task.name} ללא שיבוץ`,
+                    desc: `נדרשים ${needed} משובצים להיום, 0 שובצו`,
+                    icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+                });
+            }
+        });
+    });
+
+    // 4. Many soldiers on leave from a single company
+    mainCompanies.forEach(k => {
+        const comp = companyData[k];
+        const regCount = state.soldiers.filter(s => s.company === k).length;
+        const onLeave = state.leaves.filter(l => l.company === k && l.startDate <= todayStr && l.endDate >= todayStr).length;
+        if (regCount > 0 && onLeave > regCount * 0.3) {
+            notifications.push({
+                type: 'warn',
+                title: `${comp.name} - כוח אדם נמוך`,
+                desc: `${onLeave} מתוך ${regCount} ביציאה (${Math.round(onLeave/regCount*100)}%)`,
+                icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+            });
+        }
+    });
+
+    // Render
+    const badge = document.getElementById('notifBadge');
+    const list = document.getElementById('notifList');
+
+    if (badge) {
+        badge.textContent = notifications.length;
+        badge.style.display = notifications.length > 0 ? 'flex' : 'none';
+    }
+
+    if (list) {
+        if (notifications.length === 0) {
+            list.innerHTML = '<div class="notif-empty"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:0.4;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><br>אין התראות חדשות</div>';
+        } else {
+            list.innerHTML = notifications.map(n => `
+                <div class="notif-item">
+                    <div class="notif-icon ${n.type}">${n.icon}</div>
+                    <div class="notif-body">
+                        <div class="notif-title">${n.title}</div>
+                        <div class="notif-desc">${n.desc}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
 }
 
 // ==================== SEARCH & FILTER ====================
