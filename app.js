@@ -307,6 +307,7 @@ function init() {
 
 function renderAll() {
     renderOverview();
+    renderDashboard();
     ALL_COMPANIES.forEach(renderCompanyTab);
     renderRotationTab();
     updateGlobalStats();
@@ -497,6 +498,157 @@ function renderOverview() {
             </div>`;
         grid.appendChild(card);
     });
+}
+
+// ==================== DASHBOARD ====================
+function renderDashboard() {
+    const grid = document.getElementById('dashboardGrid');
+    const alertsEl = document.getElementById('dashboardAlerts');
+    if (!grid) return;
+
+    // Calculate stats per company
+    const compStats = {};
+    let totalPersonnel = 0, totalAssigned = 0, totalHome = 0, totalAvailable = 0;
+
+    ALL_COMPANIES.forEach(k => {
+        const c = companyData[k];
+        const regCount = state.soldiers.filter(s => s.company === k).length;
+        const total = c.totals.soldiers + c.totals.commanders + c.totals.officers;
+        const onLeave = state.leaves.filter(l => l.company === k && isCurrentlyOnLeave(l)).length;
+
+        // Rotation leaves
+        let rotLeave = 0;
+        state.rotationGroups.forEach(g => {
+            const status = getRotationStatus(g, new Date());
+            if (!status.inBase) {
+                rotLeave += g.soldiers.filter(sid => {
+                    const sol = state.soldiers.find(s => s.id === sid);
+                    return sol && sol.company === k;
+                }).length;
+            }
+        });
+
+        const assignedIds = new Set();
+        state.shifts.filter(sh => sh.company === k).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
+
+        const home = onLeave + rotLeave;
+        const assigned = assignedIds.size;
+        const available = Math.max(0, regCount - assigned - home);
+
+        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available };
+        totalPersonnel += regCount;
+        totalAssigned += assigned;
+        totalHome += home;
+        totalAvailable += available;
+    });
+
+    // === DONUT CHART - Personnel Status ===
+    const donutData = [
+        { label: 'משובצים', value: totalAssigned, color: '#27ae60' },
+        { label: 'בבית', value: totalHome, color: '#e74c3c' },
+        { label: 'זמינים', value: totalAvailable, color: '#3498db' }
+    ];
+    const donutTotal = donutData.reduce((s, d) => s + d.value, 0) || 1;
+    let donutAngle = 0;
+    const gradStops = donutData.map(d => {
+        const start = donutAngle;
+        const size = (d.value / donutTotal) * 360;
+        donutAngle += size;
+        return `${d.color} ${start}deg ${start + size}deg`;
+    }).join(', ');
+
+    // === BAR CHART - Company manning ===
+    const mainCompanies = ['a', 'b', 'c', 'd'];
+    const maxReg = Math.max(...mainCompanies.map(k => compStats[k].regCount), 1);
+    const barsHtml = mainCompanies.map(k => {
+        const cs = compStats[k];
+        const pct = (cs.regCount / maxReg) * 100;
+        return `<div class="bar-row">
+            <div class="bar-label">${cs.name}</div>
+            <div class="bar-track">
+                <div class="bar-fill" style="width:${pct}%;background:${cs.color};">${cs.regCount}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // === Task Readiness ===
+    let taskAlerts = [];
+    mainCompanies.forEach(k => {
+        const comp = companyData[k];
+        comp.tasks.forEach(task => {
+            const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
+            if (needed <= 0) return;
+            const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name)
+                .reduce((sum, sh) => sum + sh.soldiers.length, 0);
+            const pct = Math.round((assigned / needed) * 100);
+            if (pct < 50) {
+                taskAlerts.push({ company: comp.name, task: task.name, pct, needed, assigned });
+            }
+        });
+    });
+
+    // === Render ===
+    grid.innerHTML = `
+        <div class="dash-card">
+            <div class="dash-card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+                פיזור כוח אדם
+            </div>
+            <div class="donut-wrap">
+                <div class="donut-chart" style="background: conic-gradient(${gradStops});">
+                    <div class="donut-center">
+                        <div class="num">${totalPersonnel}</div>
+                        <div class="lbl">סה"כ</div>
+                    </div>
+                </div>
+                <div class="donut-legend">
+                    ${donutData.map(d => `
+                        <div class="donut-legend-item">
+                            <span class="donut-legend-dot" style="background:${d.color}"></span>
+                            <span>${d.label}</span>
+                            <span class="val">${d.value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        <div class="dash-card">
+            <div class="dash-card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                איוש לפי פלוגה
+            </div>
+            <div class="bar-chart">${barsHtml}</div>
+        </div>
+    `;
+
+    // === Alerts ===
+    let alertsHtml = '';
+    if (taskAlerts.length > 0) {
+        const topAlerts = taskAlerts.sort((a, b) => a.pct - b.pct).slice(0, 4);
+        topAlerts.forEach(a => {
+            const cls = a.pct === 0 ? 'dash-alert-danger' : 'dash-alert-warn';
+            const icon = a.pct === 0
+                ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+            alertsHtml += `<div class="dash-alert ${cls}">
+                ${icon}
+                <span><strong>${a.company}</strong> - ${a.task}: ${a.assigned}/${a.needed} משובצים (${a.pct}%)</span>
+            </div>`;
+        });
+    }
+
+    // Check for companies with many soldiers at home
+    mainCompanies.forEach(k => {
+        const cs = compStats[k];
+        if (cs.regCount > 0 && cs.home > cs.regCount * 0.4) {
+            alertsHtml += `<div class="dash-alert dash-alert-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span><strong>${cs.name}</strong>: ${cs.home} חיילים בבית (${Math.round(cs.home/cs.regCount*100)}% מהכוח)</span>
+            </div>`;
+        }
+    });
+
+    if (alertsEl) alertsEl.innerHTML = alertsHtml;
 }
 
 // ==================== SEARCH & FILTER ====================
