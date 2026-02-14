@@ -329,6 +329,11 @@ function init() {
     document.getElementById('leaveEnd').value = d4.toISOString().split('T')[0];
     updateShiftOptions();
     checkSession();
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
 }
 
 function renderAll() {
