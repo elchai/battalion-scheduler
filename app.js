@@ -99,6 +99,7 @@ function activateApp() {
     if (window.innerWidth <= 768) {
         const sidebar = document.getElementById('sidebar');
         if (sidebar) sidebar.classList.remove('open');
+        document.body.classList.remove('sidebar-open');
     }
 }
 
@@ -138,6 +139,7 @@ function toggleSidebar() {
     if (window.innerWidth <= 768) {
         sidebar.classList.toggle('open');
         overlay.classList.toggle('active');
+        document.body.classList.toggle('sidebar-open', sidebar.classList.contains('open'));
     } else {
         sidebar.classList.toggle('collapsed');
         document.getElementById('topbar').classList.toggle('expanded');
@@ -1221,6 +1223,7 @@ function switchTab(tab) {
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('sidebarOverlay').classList.remove('active');
+        document.body.classList.remove('sidebar-open');
     }
 }
 
@@ -1729,8 +1732,17 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    document.body.classList.add('modal-open');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    // Only remove if no other modals are open
+    if (!document.querySelector('.modal-overlay.active')) {
+        document.body.classList.remove('modal-open');
+    }
+}
 
 function showToast(msg, type='success') {
     const c = document.getElementById('toastContainer');

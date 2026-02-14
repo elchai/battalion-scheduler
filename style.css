@@ -951,53 +951,71 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 
 /* Mobile: sidebar collapsible */
 @media (max-width: 768px) {
+    /* Sidebar */
     .sidebar { transform: translateX(260px); }
     .sidebar.open { transform: translateX(0); }
     .sidebar-close { display: flex; }
-    .topbar { margin-right: 0; padding: 8px 12px; }
-    .topbar-menu { display: flex; }
-    .topbar-logout { display: flex; }
+
+    /* Topbar */
+    .topbar { margin-right: 0; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
+    .topbar-menu { display: flex; min-width: 44px; min-height: 44px; }
+    .topbar-logout { display: flex; min-width: 44px; min-height: 44px; }
     .topbar-title { font-size: 0.95em; }
     .topbar-badge { font-size: 0.62em; padding: 2px 7px; }
     .topbar-stats { display: none; }
     .tab-content { margin-right: 0; }
 
     /* Content */
-    .main-content { padding: 10px 8px; }
+    .main-content { padding: 12px 10px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
     .companies-grid { grid-template-columns: 1fr; }
 
-    /* Action bar: 2x2 grid */
-    .action-bar { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .action-bar .btn { font-size: 0.78em; padding: 8px 6px; justify-content: center; width: 100%; }
+    /* Action bar: 2x2 grid with better touch targets */
+    .action-bar { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .action-bar .btn { font-size: 0.8em; padding: 12px 8px; justify-content: center; width: 100%; min-height: 44px; }
 
     /* Tables: scrollable */
     .sub-section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { font-size: 0.82em; min-width: 500px; }
+    table th, table td { padding: 8px 6px; }
 
     /* Personnel grid: single column */
-    .personnel-grid { grid-template-columns: 1fr; gap: 6px; }
-    .person-card { padding: 8px 10px; }
-    .person-info h4 { font-size: 0.83em; }
-    .person-info .meta { font-size: 0.72em; }
-    .person-status { font-size: 0.68em; padding: 3px 7px; }
+    .personnel-grid { grid-template-columns: 1fr; gap: 8px; }
+    .person-card { padding: 10px 12px; }
+    .person-info h4 { font-size: 0.88em; }
+    .person-info .meta { font-size: 0.75em; }
+    .person-status { font-size: 0.72em; padding: 4px 8px; }
+    .person-actions .btn-icon { width: 36px; height: 36px; }
 
     /* Shift cards: single column */
     .shifts-grid { grid-template-columns: 1fr; gap: 8px; }
-    .shift-card-header h4 { font-size: 0.85em; }
-    .shift-time { font-size: 0.72em; padding: 2px 7px; }
+    .shift-card-header h4 { font-size: 0.88em; }
+    .shift-time { font-size: 0.75em; padding: 3px 8px; }
 
     /* Section titles */
     .section-title { font-size: 1em; }
     .section-title .icon { width: 28px; height: 28px; font-size: 0.85em; }
     .sub-section { margin-bottom: 16px; }
 
-    /* Forms */
+    /* Forms - better mobile touch targets */
     .form-row { grid-template-columns: 1fr; }
-    .modal-body { padding: 14px; }
-    .modal-footer { padding: 10px 14px; }
+    .modal-body { padding: 16px; }
+    .modal-body input, .modal-body select, .modal-body textarea {
+        font-size: 16px !important; /* Prevents iOS zoom */
+        min-height: 44px;
+        padding: 10px 12px;
+    }
+    .modal-footer { padding: 12px 16px; }
+    .modal-footer .btn { min-height: 44px; padding: 10px 16px; }
 
-    /* Modals */
-    .modal { max-height: 90vh; }
+    /* Modals - bottom sheet style */
+    .modal-overlay { align-items: flex-end; }
+    .modal {
+        max-height: 92vh;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+        margin: 0;
+    }
+    .modal-header { border-radius: 16px 16px 0 0; }
 
     /* Settings */
     .settings-grid { grid-template-columns: 1fr; }
@@ -1005,30 +1023,54 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .task-edit-row { grid-template-columns: 1fr 45px 45px 45px 45px auto; gap: 4px; font-size: 0.78em; }
 
     /* Login */
-    .login-box { width: 92% !important; min-width: auto !important; }
-    .login-logo img { width: 60px !important; height: 60px !important; }
+    .login-box { width: 92% !important; min-width: auto !important; padding: 24px 16px !important; }
     .login-box h2 { font-size: 1.2em; }
+    .login-btn { min-height: 48px; font-size: 1em; }
 
-    /* Toast position */
-    .toast-container { top: auto; bottom: 20px; left: 10px; right: 10px; }
-    .toast { font-size: 0.82em; }
+    /* Toast position - bottom safe area */
+    .toast-container { top: auto; bottom: max(20px, env(safe-area-inset-bottom)); left: 10px; right: 10px; }
+    .toast { font-size: 0.84em; padding: 12px 14px; }
 
     /* Rotation */
     .rotation-label { min-width: 80px; font-size: 0.75em; }
 
-    /* Quick stats in overview */
-    .quick-stat { padding: 8px 6px; }
+    /* Quick stats - 3 column grid */
+    .quick-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .quick-stat { padding: 10px 6px; }
     .quick-stat .value { font-size: 1.3em; }
     .quick-stat .label { font-size: 0.7em; }
 
     /* Info box */
-    .info-box { font-size: 0.82em; padding: 10px 12px; }
+    .info-box { font-size: 0.84em; padding: 12px 14px; }
+
+    /* Search bar */
+    .search-bar input { min-height: 44px; font-size: 16px !important; }
+
+    /* Equipment table */
+    .equip-table { font-size: 0.82em; min-width: 400px; }
+
+    /* Scroll lock when sidebar/modal open */
+    body.sidebar-open, body.modal-open { overflow: hidden; }
 }
-@media (max-width: 400px) {
-    .topbar-title { font-size: 0.85em; }
+
+@media (max-width: 480px) {
+    .topbar-title { font-size: 0.88em; }
     .topbar-badge { display: none; }
-    .action-bar .btn { font-size: 0.72em; padding: 7px 4px; }
-    .person-card { padding: 6px 8px; }
+    .topbar-user { font-size: 0.75em; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+
+    .action-bar .btn { font-size: 0.74em; padding: 10px 4px; }
+    .person-card { padding: 8px 10px; }
+
+    /* Quick stats - 2 column on very small screens */
+    .quick-stats { grid-template-columns: repeat(2, 1fr); }
+
+    /* Calendar */
+    .cal-date { font-size: 0.78em; min-width: 50px; }
+    .cal-event { font-size: 0.6em; }
+
+    /* Modal full screen on tiny phones */
+    .modal { max-height: 100vh; border-radius: 0; }
+    .modal-header { border-radius: 0; }
 }
 
 /* Shift soldier status in dropdown */
