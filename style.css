@@ -245,6 +245,20 @@ body {
     font-weight: 500;
     white-space: nowrap;
 }
+.topbar-logout {
+    display: none;
+    background: rgba(231,76,60,0.2);
+    border: none;
+    color: #e74c3c;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.topbar-logout:hover { background: rgba(231,76,60,0.35); }
 
 /* ==================== Main Content with Sidebar ==================== */
 .tab-content { margin-right: 260px; transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -706,6 +720,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .sidebar-close { display: flex; }
     .topbar { margin-right: 0; padding: 8px 12px; }
     .topbar-menu { display: flex; }
+    .topbar-logout { display: flex; }
     .topbar-title { font-size: 0.95em; }
     .topbar-badge { font-size: 0.62em; padding: 2px 7px; }
     .topbar-stats { display: none; }
