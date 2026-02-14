@@ -77,6 +77,8 @@ function activateApp() {
 
     const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם', gdudi:'גדודי'};
     document.getElementById('userBadge').textContent = currentUser.name + ' | ' + unitMap[currentUser.unit];
+    const sidebarUser = document.getElementById('sidebarUser');
+    if (sidebarUser) sidebarUser.textContent = currentUser.name;
 
     applyUnitFilter();
 
@@ -86,23 +88,56 @@ function activateApp() {
     } else {
         switchTab('all');
     }
+
+    // Close sidebar on mobile after login
+    if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+    }
 }
 
 function applyUnitFilter() {
     const unit = currentUser.unit;
     const isGdudi = unit === 'gdudi';
 
-    // Show/hide tabs based on access level
-    document.querySelector('.tab-all').style.display = isGdudi ? '' : 'none';
-    document.querySelector('.tab-a').style.display = (isGdudi || unit === 'a') ? '' : 'none';
-    document.querySelector('.tab-b').style.display = (isGdudi || unit === 'b') ? '' : 'none';
-    document.querySelector('.tab-c').style.display = (isGdudi || unit === 'c') ? '' : 'none';
-    document.querySelector('.tab-d').style.display = (isGdudi || unit === 'd') ? '' : 'none';
-    document.querySelector('.tab-hq').style.display = (isGdudi || unit === 'hq') ? '' : 'none';
-    document.querySelector('.tab-palsam').style.display = (isGdudi || unit === 'palsam') ? '' : 'none';
-    document.querySelector('.tab-rotation').style.display = isGdudi ? '' : 'none';
-    document.querySelector('.tab-equipment').style.display = '';
-    document.querySelector('.tab-settings').style.display = isAdmin() ? '' : 'none';
+    // Show/hide sidebar items based on access level
+    document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = isGdudi ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-a').forEach(el => el.style.display = (isGdudi || unit === 'a') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-b').forEach(el => el.style.display = (isGdudi || unit === 'b') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-c').forEach(el => el.style.display = (isGdudi || unit === 'c') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-d').forEach(el => el.style.display = (isGdudi || unit === 'd') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-hq').forEach(el => el.style.display = (isGdudi || unit === 'hq') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-palsam').forEach(el => el.style.display = (isGdudi || unit === 'palsam') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = isGdudi ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
+
+    // Hide section labels if all items in section are hidden
+    document.querySelectorAll('.sidebar-section-label').forEach(label => {
+        let next = label.nextElementSibling;
+        let hasVisible = false;
+        while (next && !next.classList.contains('sidebar-section-label')) {
+            if (next.classList.contains('sidebar-item') && next.style.display !== 'none') hasVisible = true;
+            next = next.nextElementSibling;
+        }
+        label.style.display = hasVisible ? '' : 'none';
+    });
+}
+
+// Sidebar toggle
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+    } else {
+        sidebar.classList.toggle('collapsed');
+        document.getElementById('topbar').classList.toggle('expanded');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('expanded'));
+        const footer = document.querySelector('.app-footer');
+        if (footer) footer.style.marginRight = sidebar.classList.contains('collapsed') ? '0' : '260px';
+    }
 }
 
 // Check for existing session
@@ -530,9 +565,9 @@ function renderSoldiersGrid(compKey) {
     if (soldiers.length === 0) {
         const ss = getSearchState(compKey);
         if (ss.query || ss.filter !== 'all') {
-            gridEl.innerHTML = '<div class="empty-state"><div class="icon">&#128269;</div><p>לא נמצאו תוצאות</p></div>';
+            gridEl.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><p>לא נמצאו תוצאות</p></div>';
         } else {
-            gridEl.innerHTML = '<div class="empty-state"><div class="icon">&#128100;</div><p>טרם נרשמו חיילים</p><p style="font-size:0.83em">לחץ "הוספת חייל" להתחיל</p></div>';
+            gridEl.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg></div><p>טרם נרשמו חיילים</p><p style="font-size:0.83em">לחץ "הוספת חייל" להתחיל</p></div>';
         }
         return;
     }
@@ -587,7 +622,7 @@ function renderCompanyTab(compKey) {
         <!-- Force Table -->
         <div class="sub-section">
             <div class="section-title">
-                <div class="icon" style="background:#e8f5e9;color:var(--success);">&#9776;</div>
+                <div class="icon" style="background:#e8f5e9;color:var(--success);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg></div>
                 טבלת כוחות ומשימות - ${comp.name} (${comp.location})
             </div>
             <div class="task-table-wrapper"><div class="table-scroll">
@@ -640,11 +675,11 @@ function renderCompanyTab(compKey) {
         <!-- Shifts -->
         <div class="sub-section">
             <div class="section-title">
-                <div class="icon" style="background:#fff3e0;color:var(--warning);">&#9200;</div>
+                <div class="icon" style="background:#fff3e0;color:var(--warning);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
                 משמרות ושיבוצים (${shifts.length})
             </div>
             ${shifts.length === 0 ? `
-                <div class="empty-state"><div class="icon">&#128197;</div><p>טרם נוצרו משמרות</p></div>
+                <div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>טרם נוצרו משמרות</p></div>
             ` : `
                 <div class="shifts-grid">
                     ${shifts.sort((a,b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map(sh => {
@@ -678,11 +713,11 @@ function renderCompanyTab(compKey) {
         <!-- Leaves -->
         <div class="sub-section">
             <div class="section-title">
-                <div class="icon" style="background:#fce4ec;color:var(--danger);">&#127968;</div>
+                <div class="icon" style="background:#fce4ec;color:var(--danger);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
                 יציאות הביתה (${leaves.length})
             </div>
             ${leaves.length === 0 ? `
-                <div class="empty-state"><div class="icon">&#127968;</div><p>אין יציאות מתוכננות</p></div>
+                <div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div><p>אין יציאות מתוכננות</p></div>
             ` : `
                 <div class="leave-table-wrapper"><div class="table-scroll">
                     <table>
@@ -716,11 +751,11 @@ function renderCompanyTab(compKey) {
         <!-- Soldiers with Search -->
         <div class="sub-section">
             <div class="section-title">
-                <div class="icon" style="background:#e3f2fd;color:var(--info);">&#9823;</div>
+                <div class="icon" style="background:#e3f2fd;color:var(--info);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                 כוח אדם (${soldiers.length} רשומים)
             </div>
             <div class="search-bar">
-                <span class="search-icon">&#128269;</span>
+                <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
                 <input type="text" id="search-${compKey}" placeholder="חיפוש לפי שם, תפקיד, מספר אישי..." value="${ss.query}" oninput="onSearchInput('${compKey}')">
             </div>
             <div class="filter-buttons">
@@ -746,7 +781,7 @@ function renderRotationTab() {
 function renderRotationCalendar() {
     const container = document.getElementById('rotationCalendar');
     if (state.rotationGroups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">&#128260;</div><p>צור קבוצות רוטציה כדי לראות את לוח הזמנים</p></div>';
+        container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg></div><p>צור קבוצות רוטציה כדי לראות את לוח הזמנים</p></div>';
         return;
     }
 
@@ -799,7 +834,7 @@ function renderRotationCalendar() {
 function renderRotationGroups() {
     const container = document.getElementById('rotationGroupsContainer');
     if (state.rotationGroups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">&#128101;</div><p>לחץ "קבוצת רוטציה חדשה" ליצור קבוצה</p></div>';
+        container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><p>לחץ "קבוצת רוטציה חדשה" ליצור קבוצה</p></div>';
         return;
     }
 
@@ -870,16 +905,28 @@ function getRotationGroupForSoldier(soldierId) {
 
 // ==================== TAB NAVIGATION ====================
 function switchTab(tab) {
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    const tabBtn = document.querySelector(`.tab-${tab}`);
-    if (tabBtn) tabBtn.classList.add('active');
+    // Update sidebar active state
+    document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
+    const sidebarBtn = document.querySelector(`.sidebar-item.tab-${tab}`);
+    if (sidebarBtn) sidebarBtn.classList.add('active');
+
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(t => {
+        t.classList.remove('active');
+        // Preserve expanded class for sidebar state
+    });
     const tabContent = document.getElementById(`tab-${tab}`);
     if (tabContent) tabContent.classList.add('active');
     if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') renderEquipmentTab();
     if (tab === 'settings') renderSettingsTab();
+
+    // Close sidebar on mobile after tab switch
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+    }
 }
 
 // ==================== SOLDIER ====================
@@ -1464,7 +1511,7 @@ function renderSettingsTab() {
     container.innerHTML = `
     <!-- Shift Presets -->
     <div class="settings-card">
-        <h3>&#9200; שעות משמרות</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> שעות משמרות</h3>
         <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">הגדר שעות ברירת מחדל לכפתורי בוקר/צהריים/לילה</p>
         ${['morning','afternoon','night'].map(key => {
             const p = settings.shiftPresets[key];
@@ -1479,7 +1526,7 @@ function renderSettingsTab() {
 
     <!-- Rotation -->
     <div class="settings-card">
-        <h3>&#128260; רוטציה</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg> רוטציה</h3>
         <div class="settings-row">
             <div class="settings-field">
                 <label>ימים בבסיס</label>
@@ -1494,7 +1541,7 @@ function renderSettingsTab() {
 
     <!-- Security -->
     <div class="settings-card">
-        <h3>&#128274; אבטחה</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> אבטחה</h3>
         <div class="settings-field">
             <label>סיסמת כניסה</label>
             <input type="text" value="${settings.password}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
@@ -1507,7 +1554,7 @@ function renderSettingsTab() {
 
     <!-- Google Sheets -->
     <div class="settings-card">
-        <h3>&#128196; קישור גוגל שיטס</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> קישור גוגל שיטס</h3>
         <div class="settings-field">
             <label>מזהה הגיליון (Sheet ID)</label>
             <input type="text" value="${settings.sheetId}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
@@ -1519,7 +1566,7 @@ function renderSettingsTab() {
 
     <!-- Data Management -->
     <div class="settings-card">
-        <h3>&#128451; ניהול נתונים</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ניהול נתונים</h3>
         <div class="settings-actions">
             <button class="btn btn-primary" onclick="exportAllData()">&#128190; ייצוא נתונים (JSON)</button>
             <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">&#128194; ייבוא נתונים (JSON)</button>
@@ -1533,7 +1580,7 @@ function renderSettingsTab() {
 
     <!-- Task Management -->
     <div class="settings-card" style="grid-column: 1 / -1;">
-        <h3>&#128203; ניהול משימות לפי פלוגה</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> ניהול משימות לפי פלוגה</h3>
         <div class="form-group" style="margin-bottom:14px;">
             <select id="settingsTaskCompany" onchange="renderTaskEditor()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
                 ${ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || ['a','b','c','d'].includes(k)).map(k =>
@@ -2175,7 +2222,7 @@ function renderEquipmentTab() {
     const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
 
     if (items.length === 0) {
-        tableContainer.innerHTML = '<div class="empty-state"><div class="icon">&#128299;</div><p>אין פריטי ציוד</p></div>';
+        tableContainer.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><p>אין פריטי ציוד</p></div>';
     } else {
         tableContainer.innerHTML = `
             <div class="task-table-wrapper"><div class="table-scroll">
@@ -2222,7 +2269,7 @@ function renderSignatureHistory() {
     if (countEl) countEl.textContent = state.signatureLog.length;
 
     if (logs.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">&#128221;</div><p>אין היסטוריית חתימות</p></div>';
+        container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><p>אין היסטוריית חתימות</p></div>';
         return;
     }
 
