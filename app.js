@@ -279,6 +279,58 @@ function loadState() {
     if (!state.equipment) state.equipment = [];
     if (!state.signatureLog) state.signatureLog = [];
     if (!state.weaponsData) state.weaponsData = [];
+    seedTestSoldier();
+}
+
+function seedTestSoldier() {
+    const TEST_ID = 'sol_test_israel';
+    if (state.soldiers.find(s => s.id === TEST_ID)) return;
+    // Add ישראל ישראלי as a test soldier in חפ"ק
+    state.soldiers.push({
+        id: TEST_ID,
+        name: 'ישראל ישראלי',
+        personalId: '1234567',
+        phone: '0501234567',
+        company: 'hq',
+        unit: 'חפ"ק מג"ד',
+        role: 'לוחם',
+        rank: 'טוראי'
+    });
+    // Pre-fill weapons form data with all details from the example form
+    state.weaponsData.push({
+        soldierId: TEST_ID,
+        firstName: 'ישראל',
+        lastName: 'ישראלי',
+        idNumber: '123456789',
+        personalNum: '1234567',
+        birthYear: '1975',
+        fatherName: 'יעקב',
+        phone: '0501234567',
+        phone2: '0521234567',
+        address: 'הרצל 10',
+        city: 'חיפה',
+        rank: 'טוראי',
+        role: 'לוחם',
+        healthAnswers: {
+            q1: 'no', q2: 'no', q3: 'no', q4: 'no', q5: 'no',
+            q6: 'no', q7: 'no', q8: 'no', q9: 'no', q10: 'no',
+            q11: 'no', q12: 'no', q13: 'no', q14: 'no', q15: 'no',
+            q16: 'no', q17: 'no', q18: 'no', q19: 'no', q20: 'no'
+        },
+        healthSig: null,
+        waiverSig: null,
+        requestSig: null,
+        cmdSig: null,
+        cmdName: '',
+        cmdRank: '',
+        cmdId: '',
+        cmdRole: '',
+        weaponType: 'M-16',
+        weaponSerial: '',
+        idPhoto: null,
+        date: new Date().toISOString().split('T')[0]
+    });
+    saveState();
 }
 
 function saveState() {
