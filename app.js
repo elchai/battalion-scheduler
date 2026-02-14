@@ -116,6 +116,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-hq').forEach(el => el.style.display = (isGdudi || unit === 'hq') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-palsam').forEach(el => el.style.display = (isGdudi || unit === 'palsam') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-calendar').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
@@ -1352,6 +1353,7 @@ function switchTab(tab) {
     if (tabContent) tabContent.classList.add('active');
     if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
     if (tab === 'calendar') renderCalendar();
+    if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') renderEquipmentTab();
     if (tab === 'settings') renderSettingsTab();
@@ -2184,6 +2186,177 @@ function exportCompanyData(compKey) {
     link.href = URL.createObjectURL(blob);
     link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+}
+
+// ==================== REPORTS ====================
+function getReportDateStr() {
+    return new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function reportHeader(title) {
+    return `<div class="report-header">
+        <div>
+            <h2>${title}</h2>
+            <div class="report-date">${getReportDateStr()}</div>
+        </div>
+        <div class="report-actions">
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="window.print()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                הדפסה
+            </button>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="document.getElementById('reportOutput').innerHTML=''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                סגור
+            </button>
+        </div>
+    </div>`;
+}
+
+function generateDailyReport() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let html = reportHeader('דו"ח מצב יומי');
+    html += '<div class="report-body">';
+
+    // Summary stats
+    html += '<h3>סיכום כללי</h3>';
+    const totalSoldiers = state.soldiers.length;
+    const activeLeaves = state.leaves.filter(l => l.startDate <= todayStr && l.endDate >= todayStr);
+    const todayShifts = state.shifts.filter(sh => sh.date === todayStr);
+    const assignedToday = new Set();
+    todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedToday.add(sid)));
+
+    html += `<div class="stat-row"><span>סה"כ חיילים רשומים</span><strong>${totalSoldiers}</strong></div>`;
+    html += `<div class="stat-row"><span>ביציאה היום</span><strong>${activeLeaves.length}</strong></div>`;
+    html += `<div class="stat-row"><span>משובצים היום</span><strong>${assignedToday.size}</strong></div>`;
+    html += `<div class="stat-row"><span>משמרות פעילות</span><strong>${todayShifts.length}</strong></div>`;
+
+    // Rotation status
+    if (state.rotationGroups.length > 0) {
+        html += '<h3>מצב רוטציה</h3>';
+        html += '<table><tr><th>קבוצה</th><th>מצב</th><th>יום במחזור</th><th>חיילים</th></tr>';
+        state.rotationGroups.forEach(g => {
+            const status = getRotationStatus(g, new Date());
+            const statusText = status.inBase ? 'בבסיס' : 'בבית';
+            const statusColor = status.inBase ? '#27ae60' : '#e74c3c';
+            html += `<tr><td>${g.name}</td><td style="color:${statusColor};font-weight:600;">${statusText}</td><td>${status.dayInCycle}/${g.daysIn + g.daysOut}</td><td>${g.soldiers.length}</td></tr>`;
+        });
+        html += '</table>';
+    }
+
+    // Per company summary
+    html += '<h3>מצב לפי פלוגה</h3>';
+    html += '<table><tr><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>זמינים</th></tr>';
+    ALL_COMPANIES.forEach(k => {
+        const comp = companyData[k];
+        const reg = state.soldiers.filter(s => s.company === k).length;
+        const leave = activeLeaves.filter(l => l.company === k).length;
+        const assigned = todayShifts.filter(sh => sh.company === k).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+        const available = Math.max(0, reg - leave - assigned);
+        html += `<tr><td>${comp.name}</td><td>${reg}</td><td>${leave}</td><td>${assigned}</td><td>${available}</td></tr>`;
+    });
+    html += '</table>';
+
+    // Today's shifts
+    if (todayShifts.length > 0) {
+        html += '<h3>שיבוצים להיום</h3>';
+        html += '<table><tr><th>פלוגה</th><th>משימה</th><th>שעות</th><th>חיילים</th></tr>';
+        todayShifts.forEach(sh => {
+            const compName = companyData[sh.company] ? companyData[sh.company].name : sh.company;
+            const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
+            html += `<tr><td>${compName}</td><td>${sh.task}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
+        });
+        html += '</table>';
+    }
+
+    html += '</div>';
+    document.getElementById('reportOutput').innerHTML = html;
+    document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateCompanyReport() {
+    let html = reportHeader('דו"ח פלוגות - כוח אדם');
+    html += '<div class="report-body">';
+
+    ALL_COMPANIES.forEach(k => {
+        const comp = companyData[k];
+        const soldiers = state.soldiers.filter(s => s.company === k);
+        html += `<h3>${comp.name} (${comp.location || ''}) - ${soldiers.length} חיילים</h3>`;
+        if (soldiers.length > 0) {
+            html += '<table><tr><th>שם</th><th>דרגה</th><th>תפקיד</th><th>מ.א.</th><th>טלפון</th></tr>';
+            soldiers.forEach(s => {
+                html += `<tr><td>${s.name}</td><td>${s.rank}</td><td>${s.role}</td><td>${s.personalId || '-'}</td><td>${s.phone || '-'}</td></tr>`;
+            });
+            html += '</table>';
+        } else {
+            html += '<p style="color:var(--text-light);font-size:0.85em;">אין חיילים רשומים</p>';
+        }
+    });
+
+    html += '</div>';
+    document.getElementById('reportOutput').innerHTML = html;
+    document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateShiftsReport() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let html = reportHeader('דו"ח שיבוצים');
+    html += '<div class="report-body">';
+
+    // Group shifts by company
+    ALL_COMPANIES.forEach(k => {
+        const comp = companyData[k];
+        const shifts = state.shifts.filter(sh => sh.company === k && sh.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
+        if (shifts.length === 0) return;
+
+        html += `<h3>${comp.name} - ${shifts.length} שיבוצים</h3>`;
+        html += '<table><tr><th>תאריך</th><th>משימה</th><th>משמרת</th><th>שעות</th><th>חיילים</th></tr>';
+        shifts.forEach(sh => {
+            const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
+            html += `<tr><td>${formatDate(sh.date)}</td><td>${sh.task}</td><td>${sh.shiftName || '-'}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
+        });
+        html += '</table>';
+    });
+
+    if (state.shifts.filter(sh => sh.date >= todayStr).length === 0) {
+        html += '<p style="text-align:center;color:var(--text-light);padding:20px;">אין שיבוצים פעילים</p>';
+    }
+
+    html += '</div>';
+    document.getElementById('reportOutput').innerHTML = html;
+    document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateLeavesReport() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let html = reportHeader('דו"ח יציאות');
+    html += '<div class="report-body">';
+
+    // Active leaves
+    const activeLeaves = state.leaves.filter(l => l.endDate >= todayStr).sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    ALL_COMPANIES.forEach(k => {
+        const comp = companyData[k];
+        const leaves = activeLeaves.filter(l => l.company === k);
+        if (leaves.length === 0) return;
+
+        html += `<h3>${comp.name} - ${leaves.length} יציאות</h3>`;
+        html += '<table><tr><th>חייל</th><th>יציאה</th><th>חזרה</th><th>הערות</th></tr>';
+        leaves.forEach(l => {
+            const sol = state.soldiers.find(s => s.id === l.soldierId);
+            const isActive = l.startDate <= todayStr && l.endDate >= todayStr;
+            const rowStyle = isActive ? 'background:#fff8e1;' : '';
+            html += `<tr style="${rowStyle}"><td>${sol ? sol.name : '?'}</td><td>${formatDate(l.startDate)} ${l.startTime}</td><td>${formatDate(l.endDate)} ${l.endTime}</td><td>${l.notes || '-'}</td></tr>`;
+        });
+        html += '</table>';
+    });
+
+    if (activeLeaves.length === 0) {
+        html += '<p style="text-align:center;color:var(--text-light);padding:20px;">אין יציאות פעילות</p>';
+    }
+
+    html += '</div>';
+    document.getElementById('reportOutput').innerHTML = html;
+    document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ==================== EQUIPMENT (צל"מ) MODULE ====================
