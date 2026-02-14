@@ -3452,7 +3452,9 @@ function initWpSignatureCanvas(canvasId) {
     const getPos = (e) => {
         const r = canvas.getBoundingClientRect();
         const touch = e.touches ? e.touches[0] : e;
-        return { x: touch.clientX - r.left, y: touch.clientY - r.top };
+        const scaleX = canvas.width / r.width;
+        const scaleY = canvas.height / r.height;
+        return { x: (touch.clientX - r.left) * scaleX, y: (touch.clientY - r.top) * scaleY };
     };
 
     const start = (e) => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
@@ -3608,8 +3610,8 @@ async function generateWeaponsPDF(soldierId) {
         const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
         pdfDoc.registerFontkit(fontkit);
 
-        // Embed Hebrew font
-        const fontUrl = 'https://fonts.gstatic.com/s/rubik/v28/iJWKBXyIfDnIV7nBrXyw023e.ttf';
+        // Embed Hebrew font (static TTF, not variable font)
+        const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/rubik/static/Rubik-Regular.ttf';
         const fontBytes = await fetch(fontUrl).then(r => r.arrayBuffer());
         const hebrewFont = await pdfDoc.embedFont(fontBytes);
 
