@@ -926,7 +926,7 @@ tbody tr:hover { background: #f8f9ff; }
     display: flex;
     gap: 10px;
 }
-input[type="date"], input[type="time"], input[type="text"], input[type="number"], select {
+input[type="date"], input[type="time"], input[type="text"], input[type="number"], input[type="password"], select {
     padding: 8px 12px;
     border: 2px solid var(--border);
     border-radius: 8px;
@@ -1250,6 +1250,13 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     /* Modal full screen on tiny phones */
     .modal { max-height: 100vh; border-radius: 0; }
     .modal-header { border-radius: 0; }
+
+    /* Shift presets wrap */
+    .shift-presets { flex-wrap: wrap; }
+    .shift-preset-btn { font-size: 0.78em; padding: 8px 6px; min-height: 40px; }
+
+    /* Rotation label */
+    .rotation-label { min-width: 65px; font-size: 0.7em; }
 }
 
 /* ==================== Reports ==================== */
@@ -1504,7 +1511,7 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     flex-wrap: wrap;
 }
 .filter-btn {
-    padding: 4px 12px;
+    padding: 6px 14px;
     border: 2px solid var(--border);
     border-radius: 20px;
     background: white;
@@ -1513,9 +1520,12 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     font-size: 0.8em;
     font-weight: 600;
     transition: all 0.2s;
+    min-height: 36px;
 }
 .filter-btn:hover { border-color: var(--primary); }
 .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+[data-theme="dark"] .filter-btn { background: var(--card); color: var(--text); border-color: var(--border); }
+[data-theme="dark"] .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
 /* Edit button */
 .btn-edit { background: var(--info); color: white; }
@@ -1725,4 +1735,21 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     .health-q-row { flex-direction: column; align-items: flex-start; }
     .health-q-options { align-self: flex-end; }
     #weaponsFormModal .modal { max-width: 100%; }
+    #weaponsFormModal .modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+    #weaponsFormModal .modal-footer > div {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+    }
+    #weaponsFormModal .modal-footer > div .btn {
+        flex: 1;
+        min-height: 44px;
+        text-align: center;
+        justify-content: center;
+    }
+    .filter-btn { min-height: 44px; padding: 8px 14px; }
+    .id-upload-area { padding: 24px 12px; }
 }

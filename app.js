@@ -3259,7 +3259,7 @@ function renderWeaponsTab() {
     const statusLabel = { complete: 'הושלם', partial: 'בתהליך', none: 'לא התחיל' };
     const statusClass = { complete: 'wp-status-complete', partial: 'wp-status-partial', none: 'wp-status-none' };
 
-    let html = '<div class="table-wrapper"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>';
+    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>';
     soldiers.forEach(s => {
         const status = getWeaponsStatus(s.id);
         html += `<tr>
@@ -3269,11 +3269,11 @@ function renderWeaponsTab() {
             <td><span class="wp-status-badge ${statusClass[status]}">${statusLabel[status]}</span></td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="openWeaponsForm('${s.id}')">מלא טפסים</button>
-                ${status !== 'none' ? `<button class="btn btn-sm" style="background:#5C6BC0;color:white;" onclick="generateWeaponsPDF('${s.id}')">PDF</button>` : ''}
+                ${status !== 'none' ? `<button class="btn btn-sm" style="background:#5C6BC0;color:white;" onclick="generateWeaponsPDF('${s.id}')">הורד תמונות</button>` : ''}
             </td>
         </tr>`;
     });
-    html += '</tbody></table></div>';
+    html += '</tbody></table></div></div>';
     container.innerHTML = html;
 }
 
