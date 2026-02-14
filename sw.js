@@ -1,11 +1,12 @@
-const CACHE_NAME = 'battalion-v1';
+const CACHE_NAME = 'battalion-v2';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
     '/battalion-scheduler/style.css',
     '/battalion-scheduler/app.js',
     '/battalion-scheduler/logo.png',
-    '/battalion-scheduler/manifest.json'
+    '/battalion-scheduler/manifest.json',
+    '/battalion-scheduler/weapons-form.pdf'
 ];
 
 // Install: cache core assets

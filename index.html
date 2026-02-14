@@ -120,6 +120,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
             <span>צל"מ</span>
         </button>
+        <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>פרוייקט הנשקים</span>
+        </button>
         <button class="sidebar-item tab-settings" onclick="switchTab('settings')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
             <span>הגדרות</span>
@@ -390,6 +394,38 @@
                 היסטוריית חתימות (<span id="signatureHistoryCount">0</span>)
             </div>
             <div id="signatureHistoryContainer"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== TAB: WEAPONS PROJECT ====== -->
+<div class="tab-content" id="tab-weapons">
+    <div class="main-content">
+        <div class="info-box">
+            <span class="info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+            <div>
+                <strong>פרוייקט הנשקים:</strong> מילוי טפסים דיגיטלי לקבלת נשק צבאי.
+                כולל בקשת נשק, המלצת מפקד, ויתור סודיות רפואית, הצהרת בריאות וצילום תעודת זהות.
+                לאחר מילוי הטפסים ניתן להוריד PDF מלא עם כל הנתונים בדיוק על הטופס המקורי.
+            </div>
+        </div>
+        <div class="quick-stats" id="weaponsStats"></div>
+        <div class="search-bar">
+            <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" id="weaponsSearch" placeholder="חיפוש לפי שם חייל..." oninput="renderWeaponsTab()">
+        </div>
+        <div class="filter-buttons" style="margin-bottom:14px;">
+            <button class="filter-btn active" onclick="setWeaponsFilter('all',this)">הכל</button>
+            <button class="filter-btn" onclick="setWeaponsFilter('complete',this)">הושלם</button>
+            <button class="filter-btn" onclick="setWeaponsFilter('partial',this)">בתהליך</button>
+            <button class="filter-btn" onclick="setWeaponsFilter('none',this)">לא התחיל</button>
+        </div>
+        <div class="sub-section">
+            <div class="section-title">
+                <div class="icon" style="background:#E8EAF6;color:#5C6BC0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                סטטוס חיילים (<span id="weaponsSoldiersCount">0</span>)
+            </div>
+            <div id="weaponsTableContainer"></div>
         </div>
     </div>
 </div>
@@ -802,6 +838,171 @@
     </div>
 </div>
 
+<!-- Weapons Form Wizard Modal -->
+<div class="modal-overlay" id="weaponsFormModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#5C6BC0;">
+            <h3 id="weaponsModalTitle">מילוי טפסי נשק</h3>
+            <button class="modal-close" onclick="closeModal('weaponsFormModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+            <input type="hidden" id="weaponsSoldierId" value="">
+            <!-- Step Indicator -->
+            <div class="wizard-steps" id="wizardSteps">
+                <div class="wizard-step active" data-step="1"><span class="step-num">1</span><span class="step-label">פרטים אישיים</span></div>
+                <div class="wizard-step" data-step="2"><span class="step-num">2</span><span class="step-label">הצהרת בריאות</span></div>
+                <div class="wizard-step" data-step="3"><span class="step-num">3</span><span class="step-label">ויתור סודיות</span></div>
+                <div class="wizard-step" data-step="4"><span class="step-num">4</span><span class="step-label">בקשת נשק</span></div>
+                <div class="wizard-step" data-step="5"><span class="step-num">5</span><span class="step-label">צילום ת.ז.</span></div>
+            </div>
+
+            <!-- Step 1: Personal Details -->
+            <div class="wizard-page active" id="wizPage1">
+                <h4 style="margin-bottom:12px;color:var(--primary);">פרטים אישיים</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>שם פרטי</label><input type="text" id="wpFirstName"></div>
+                    <div class="form-group"><label>שם משפחה</label><input type="text" id="wpLastName"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>תעודת זהות</label><input type="text" id="wpIdNumber" maxlength="9" placeholder="9 ספרות"></div>
+                    <div class="form-group"><label>מספר אישי</label><input type="text" id="wpPersonalNum"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>שנת לידה</label><input type="text" id="wpBirthYear" maxlength="4" placeholder="1990"></div>
+                    <div class="form-group"><label>שם האב</label><input type="text" id="wpFatherName"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>טלפון נייד</label><input type="text" id="wpPhone" placeholder="050-0000000"></div>
+                    <div class="form-group"><label>טלפון נוסף</label><input type="text" id="wpPhone2" placeholder="טלפון בית/עבודה"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>כתובת מגורים</label><input type="text" id="wpAddress" placeholder="רחוב, עיר"></div>
+                    <div class="form-group"><label>יישוב</label><input type="text" id="wpCity"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>דרגה</label><input type="text" id="wpRank"></div>
+                    <div class="form-group"><label>תפקיד ביחידה</label><input type="text" id="wpRole"></div>
+                </div>
+            </div>
+
+            <!-- Step 2: Health Declaration -->
+            <div class="wizard-page" id="wizPage2">
+                <h4 style="margin-bottom:12px;color:var(--primary);">הצהרת בריאות</h4>
+                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:14px;">יש לסמן כן או לא לכל שאלה. סימון "כן" לאחת מהשאלות עלול לדרוש בדיקה רפואית נוספת.</p>
+                <div class="health-questions" id="healthQuestions"></div>
+                <div class="form-group" style="margin-top:16px;">
+                    <label>חתימת מבקש על הצהרת בריאות</label>
+                    <div class="signature-container">
+                        <canvas id="healthSigCanvas" width="600" height="180"></canvas>
+                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('healthSigCanvas')">נקה חתימה</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Medical Confidentiality Waiver -->
+            <div class="wizard-page" id="wizPage3">
+                <h4 style="margin-bottom:12px;color:var(--primary);">כתב ויתור על סודיות רפואית</h4>
+                <div style="background:var(--bg);border-radius:10px;padding:14px;font-size:0.88em;line-height:1.8;margin-bottom:16px;">
+                    <p><strong>אני החתום מטה</strong> <span id="waiverNameDisplay" style="color:var(--primary);font-weight:700;"></span></p>
+                    <ol style="padding-right:20px;margin-top:8px;">
+                        <li>נותן בזה רשות לכל אדם, הועסד במוסד רפואי, פסיכולוגי, פסיכיאטרי, לרבות מרפאות, בית חולים, קופת חולים, סגרון, ביה"ס או כל גורם רפואי, הסתמכות על בעיות התלהטות, החתירה או השיקומי (להלן "המבקש").</li>
+                        <li>לעניין כתב ויתור על סודיות רפואית (בטפסי החובה) - "מידע על מצב הבריאות" כולל: מידע על מצב בריאותי הפיזית ו/או הנפשית, הנפשות וכושר, לרבות מידע על טיפולים שקיבלתי או סיוע פסיכולוגי.</li>
+                        <li>הנני מסכים כי הגורמים שצויינו לעיל, ומהדורות שנמנו לעיל, כל סנף נתעב 5 שנים, כל טעה או תסמונת המבקש שנפי התשובה מצד.</li>
+                        <li>הנני מוותר על סודיות זו לכפי המבקשים, ולא תהא לי אל נותני השירותים שנמנו בסעיף 5 לעיל, כל טענה או תביעה בסיפור כלשהו קשורה לאחר שנמסר.</li>
+                        <li>בבקשתי זו יפה גם לפי חוק הפרטיות, התשמ"א 5085 והיא חלה על כל מידע רפואי או אחר המצוי בנאגר.</li>
+                        <li>המידע על כל המוסדות והאנשים המצוינים לקבלת נשק צבאי.</li>
+                    </ol>
+                </div>
+                <div style="background:#fff3e0;border-radius:8px;padding:10px;margin-bottom:14px;font-size:0.85em;border:1px solid #ffe0b2;">
+                    <strong>ייפוי כוח:</strong> הריני מייפה את כוחו של: <strong>אוגדה 96</strong> לקבל את המידע הרפואי לעיל.
+                </div>
+                <div class="form-group">
+                    <label>חתימה על ויתור סודיות רפואית</label>
+                    <div class="signature-container">
+                        <canvas id="waiverSigCanvas" width="600" height="180"></canvas>
+                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('waiverSigCanvas')">נקה חתימה</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Weapon Request -->
+            <div class="wizard-page" id="wizPage4">
+                <h4 style="margin-bottom:12px;color:var(--primary);">בקשה לקבלת נשק צבאי</h4>
+                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:10px;">הנדון: בקשה לקבלת נשק צבאי להחזקה, לנשיאה ולהובלת נשק מסוג M-16</p>
+                <div style="background:var(--bg);border-radius:10px;padding:14px;font-size:0.88em;line-height:1.9;margin-bottom:16px;">
+                    <div class="wp-declaration-list" id="weaponDeclarations"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>סוג נשק</label>
+                        <select id="wpWeaponType">
+                            <option value="M-16">M-16</option>
+                            <option value="מיקרו תבור">מיקרו תבור</option>
+                            <option value="תבור">תבור</option>
+                            <option value="נגב">נגב</option>
+                            <option value="אחר">אחר</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>מספר נשק (סידורי)</label>
+                        <input type="text" id="wpWeaponSerial" placeholder="מספר סידורי של הנשק">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>חתימת המבקש על בקשת נשק</label>
+                    <div class="signature-container">
+                        <canvas id="requestSigCanvas" width="600" height="180"></canvas>
+                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('requestSigCanvas')">נקה חתימה</button>
+                    </div>
+                </div>
+                <hr style="margin:18px 0;border-color:var(--border);">
+                <h4 style="margin-bottom:12px;color:#e65100;">המלצת מפקד</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>שם מפקד ממליץ</label><input type="text" id="wpCmdName"></div>
+                    <div class="form-group"><label>דרגת מפקד</label><input type="text" id="wpCmdRank"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>מ.א. מפקד</label><input type="text" id="wpCmdId"></div>
+                    <div class="form-group"><label>תפקיד מפקד</label><input type="text" id="wpCmdRole"></div>
+                </div>
+                <div class="form-group">
+                    <label>חתימת מפקד ממליץ</label>
+                    <div class="signature-container">
+                        <canvas id="cmdSigCanvas" width="600" height="180"></canvas>
+                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('cmdSigCanvas')">נקה חתימה</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: ID Photo -->
+            <div class="wizard-page" id="wizPage5">
+                <h4 style="margin-bottom:12px;color:var(--primary);">צילום תעודת זהות</h4>
+                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:14px;">חובה: לצרף צילום תעודת זהות (צד קדמי)</p>
+                <div class="id-upload-area" id="idUploadArea" onclick="document.getElementById('idPhotoInput').click()">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    <div style="margin-top:8px;">לחץ להעלאת צילום ת.ז. או גרור לכאן</div>
+                    <div style="font-size:0.8em;color:var(--text-light);">תומך ב-JPG, PNG, PDF</div>
+                </div>
+                <input type="file" id="idPhotoInput" accept="image/*" style="display:none" onchange="handleIdPhotoUpload(event)">
+                <div id="idPhotoPreview" style="display:none;margin-top:14px;text-align:center;">
+                    <img id="idPhotoImg" style="max-width:100%;max-height:300px;border-radius:10px;border:2px solid var(--border);">
+                    <br><button class="btn btn-sm" style="background:var(--bg);margin-top:8px;" onclick="removeIdPhoto()">הסר צילום</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between;">
+            <div>
+                <button class="btn btn-primary" id="wpBtnNext" onclick="weaponsWizardNext()">הבא &larr;</button>
+                <button class="btn" style="background:var(--bg)" id="wpBtnPrev" onclick="weaponsWizardPrev()" disabled>הקודם &rarr;</button>
+            </div>
+            <div>
+                <button class="btn btn-success" id="wpBtnSave" onclick="saveWeaponsForm()">שמור טיוטה</button>
+                <button class="btn" style="background:#5C6BC0;color:white;" id="wpBtnPDF" onclick="generateWeaponsPDF()">הורד PDF מלא</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Footer Credit -->
 <div class="app-footer" style="text-align:center;padding:20px;background:var(--primary-dark);color:rgba(255,255,255,0.6);font-size:0.8em;margin-top:30px;margin-right:260px;transition:margin-right 0.3s cubic-bezier(0.4,0,0.2,1);">
     <a href="https://wa.me/972542012000" target="_blank" style="color:rgba(255,255,255,0.8);text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
@@ -811,6 +1012,7 @@
 </div>
 </div><!-- end mainApp -->
 
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -132,6 +132,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
 
     // Hide section labels if all items in section are hidden
@@ -256,7 +257,7 @@ const companyData = {
 };
 
 // State
-let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [] };
+let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [] };
 
 // Calendar state
 let calendarWeekOffset = 0;
@@ -264,6 +265,7 @@ let calendarWeekOffset = 0;
 // Search & filter state per company
 let searchState = {};
 let equipmentFilter = 'all';
+let weaponsFilter = 'all';
 
 function getSearchState(compKey) {
     if (!searchState[compKey]) searchState[compKey] = { query: '', filter: 'all' };
@@ -276,6 +278,7 @@ function loadState() {
     if (!state.rotationGroups) state.rotationGroups = [];
     if (!state.equipment) state.equipment = [];
     if (!state.signatureLog) state.signatureLog = [];
+    if (!state.weaponsData) state.weaponsData = [];
 }
 
 function saveState() {
@@ -1407,6 +1410,7 @@ function switchTab(tab) {
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') renderEquipmentTab();
+    if (tab === 'weapons') renderWeaponsTab();
     if (tab === 'settings') renderSettingsTab();
 
     // Close sidebar on mobile after tab switch
@@ -3097,6 +3101,654 @@ function exportEquipmentCSV() {
     link.download = `צלמ_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     showToast('צל"מ יוצא ל-CSV');
+}
+
+// ==================== WEAPONS PROJECT ====================
+
+const HEALTH_QUESTIONS = [
+    { id: 'q1', text: 'האם עברת אירוע של איבוד הכרה ב-5 שנים האחרונות?' },
+    { id: 'q2', text: 'האם הזדקקת לטיפול נפשי/פסיכיאטרי/פסיכולוגי?' },
+    { id: 'q3', text: 'האם אתה סובל מהפרעות שינה?' },
+    { id: 'q4', text: 'האם הזדקקת חלקית לאשפוז?' },
+    { id: 'q5', text: 'האם אתה סובל מאפילפסיה או התקפים?' },
+    { id: 'q6', text: 'האם אתה סובל ממחלת לב?' },
+    { id: 'q7', text: 'האם אתה סובל מסוכרת?' },
+    { id: 'q8', text: 'האם את/ה נוטל/ת תרופות באופן קבוע?' },
+    { id: 'q9', text: 'האם יש לך בעיות ראייה משמעותיות?' },
+    { id: 'q10', text: 'האם אתה סובל מבעיות שמיעה?' },
+    { id: 'q11', text: 'האם אתה סובל ממחלה כרונית כלשהי?' },
+    { id: 'q12', text: 'האם עברת ניתוח ב-5 שנים האחרונות?' },
+    { id: 'q13', text: 'האם אתה סובל מדיכאון, חרדה או מתח נפשי?' },
+    { id: 'q14', text: 'האם יש לך היסטוריה של שימוש בסמים/אלכוהול?' },
+    { id: 'q15', text: 'האם קיבלת אי-פעם צו הרחקה או הגבלה?' },
+    { id: 'q16', text: 'האם יש לך הרשעות פליליות?' },
+    { id: 'q17', text: 'האם עברת אירוע טראומטי (תאונה, פציעה, אלימות)?' },
+    { id: 'q18', text: 'האם אתה סובל מבעיות תפקוד מוטוריות?' },
+    { id: 'q19', text: 'האם יש לך מחשבות אובדניות או ניסיונות בעבר?' },
+    { id: 'q20', text: 'האם יש ברשותך נשק חוקי נוסף?' }
+];
+
+const WEAPON_DECLARATIONS = [
+    'אני מבקש שיימסר לי נשק צבאי ממסטור אחד.',
+    'אני מתחייב שאחזיר בזאת כי לא קיים ברשותי נשק צבאי ממסטור אחר. אם החתימה מעודכנת בארכנת, מהו מספר הרישיון?',
+    'אני מתחייב מעודכנת בזאת כי ידוע לי שעל"מ יפנה לצבור"ט ולמשטרת הבריאות לשם בדיקת המקבק שנפי התשובה מצד ופרטים מן הפלילי ואני מסכים לכך.',
+    'בתאריך עבדתי אימונון בהפעלה בנק"ד ומשמורת בנשק מסוג',
+    'תקופת שירות בצה"ל / משטרה מתאריך עד תאריך',
+    'דרגה, לוח פלוגי, בכירא',
+    'מצ"ב אישור לכך, החתום על ידי מפקדת המפקדת המסתפיית / מקביל היחידה.',
+    'מצ"ב המלצה של לכתו הביטחוני / או של מפקדי השירותי במילואים.',
+    'מצ"ב כתב ויתור סדיויות רפואית מצב בריאותי.',
+    'מצ"ב אישור רפואי לקבלת נשק צבאי.',
+    'מצ"ב הצהרת התנאים לקבלת נשק צבאי.',
+    'אני מצהיר בזאת כי הפרטים שמסרתי לעיל נכונים, שלמים ומדויקים.'
+];
+
+let currentWizardStep = 1;
+let wpSignatureCanvases = {};
+
+function setWeaponsFilter(filter, btn) {
+    weaponsFilter = filter;
+    document.querySelectorAll('#tab-weapons .filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderWeaponsTab();
+}
+
+function getWeaponsStatus(soldierId) {
+    const rec = state.weaponsData.find(r => r.soldierId === soldierId);
+    if (!rec) return 'none';
+    let filled = 0;
+    if (rec.firstName && rec.lastName && rec.idNumber) filled++;
+    if (rec.healthAnswers && Object.keys(rec.healthAnswers).length >= 15) filled++;
+    if (rec.waiverSig) filled++;
+    if (rec.requestSig) filled++;
+    if (rec.idPhoto) filled++;
+    if (filled >= 5) return 'complete';
+    if (filled > 0) return 'partial';
+    return 'none';
+}
+
+function renderWeaponsTab() {
+    const searchInput = document.getElementById('weaponsSearch');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    let soldiers = [...state.soldiers];
+    if (query) soldiers = soldiers.filter(s => s.name.toLowerCase().includes(query));
+
+    // Apply filter
+    if (weaponsFilter !== 'all') {
+        soldiers = soldiers.filter(s => getWeaponsStatus(s.id) === weaponsFilter);
+    }
+
+    // Stats
+    const statsEl = document.getElementById('weaponsStats');
+    if (statsEl) {
+        const total = state.soldiers.length;
+        const complete = state.soldiers.filter(s => getWeaponsStatus(s.id) === 'complete').length;
+        const partial = state.soldiers.filter(s => getWeaponsStatus(s.id) === 'partial').length;
+        const none = total - complete - partial;
+        statsEl.innerHTML = `
+            <div class="quick-stat"><div class="value">${total}</div><div class="label">סה"כ חיילים</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--success);"><div class="value">${complete}</div><div class="label">הושלם</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--warning);"><div class="value">${partial}</div><div class="label">בתהליך</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--danger);"><div class="value">${none}</div><div class="label">לא התחיל</div></div>
+        `;
+    }
+
+    document.getElementById('weaponsSoldiersCount').textContent = soldiers.length;
+
+    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם' };
+    const container = document.getElementById('weaponsTableContainer');
+
+    if (!soldiers.length) {
+        container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-light);">לא נמצאו חיילים</div>';
+        return;
+    }
+
+    const statusLabel = { complete: 'הושלם', partial: 'בתהליך', none: 'לא התחיל' };
+    const statusClass = { complete: 'wp-status-complete', partial: 'wp-status-partial', none: 'wp-status-none' };
+
+    let html = '<div class="table-wrapper"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>';
+    soldiers.forEach(s => {
+        const status = getWeaponsStatus(s.id);
+        html += `<tr>
+            <td style="font-weight:600;">${s.name}</td>
+            <td>${companyNames[s.company] || s.company}</td>
+            <td>${s.personalId || '-'}</td>
+            <td><span class="wp-status-badge ${statusClass[status]}">${statusLabel[status]}</span></td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="openWeaponsForm('${s.id}')">מלא טפסים</button>
+                ${status !== 'none' ? `<button class="btn btn-sm" style="background:#5C6BC0;color:white;" onclick="generateWeaponsPDF('${s.id}')">PDF</button>` : ''}
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function openWeaponsForm(soldierId) {
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+
+    document.getElementById('weaponsSoldierId').value = soldierId;
+    document.getElementById('weaponsModalTitle').textContent = `מילוי טפסי נשק - ${sol.name}`;
+
+    // Load existing data or create new
+    let rec = state.weaponsData.find(r => r.soldierId === soldierId);
+    if (!rec) {
+        // Auto-fill from soldier data
+        const nameParts = sol.name.split(' ');
+        rec = {
+            soldierId,
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            idNumber: '',
+            personalNum: sol.personalId || '',
+            birthYear: '',
+            fatherName: '',
+            phone: sol.phone || '',
+            phone2: '',
+            address: '',
+            city: '',
+            rank: sol.rank || '',
+            role: sol.role || '',
+            healthAnswers: {},
+            healthSig: null,
+            waiverSig: null,
+            requestSig: null,
+            cmdSig: null,
+            cmdName: '',
+            cmdRank: '',
+            cmdId: '',
+            cmdRole: '',
+            weaponType: 'M-16',
+            weaponSerial: '',
+            idPhoto: null,
+            date: new Date().toISOString().split('T')[0]
+        };
+    }
+
+    // Fill form fields
+    document.getElementById('wpFirstName').value = rec.firstName;
+    document.getElementById('wpLastName').value = rec.lastName;
+    document.getElementById('wpIdNumber').value = rec.idNumber;
+    document.getElementById('wpPersonalNum').value = rec.personalNum;
+    document.getElementById('wpBirthYear').value = rec.birthYear;
+    document.getElementById('wpFatherName').value = rec.fatherName;
+    document.getElementById('wpPhone').value = rec.phone;
+    document.getElementById('wpPhone2').value = rec.phone2;
+    document.getElementById('wpAddress').value = rec.address;
+    document.getElementById('wpCity').value = rec.city;
+    document.getElementById('wpRank').value = rec.rank;
+    document.getElementById('wpRole').value = rec.role;
+    document.getElementById('wpWeaponType').value = rec.weaponType || 'M-16';
+    document.getElementById('wpWeaponSerial').value = rec.weaponSerial;
+    document.getElementById('wpCmdName').value = rec.cmdName;
+    document.getElementById('wpCmdRank').value = rec.cmdRank;
+    document.getElementById('wpCmdId').value = rec.cmdId;
+    document.getElementById('wpCmdRole').value = rec.cmdRole;
+
+    // Render health questions
+    renderHealthQuestions(rec.healthAnswers);
+
+    // Render weapon declarations
+    renderWeaponDeclarations();
+
+    // Update waiver name display
+    document.getElementById('waiverNameDisplay').textContent = rec.firstName + ' ' + rec.lastName;
+
+    // ID photo
+    if (rec.idPhoto) {
+        document.getElementById('idPhotoImg').src = rec.idPhoto;
+        document.getElementById('idPhotoPreview').style.display = '';
+        document.getElementById('idUploadArea').style.display = 'none';
+    } else {
+        document.getElementById('idPhotoPreview').style.display = 'none';
+        document.getElementById('idUploadArea').style.display = '';
+    }
+
+    // Go to step 1
+    currentWizardStep = 1;
+    updateWizardUI();
+
+    openModal('weaponsFormModal');
+
+    // Init signature canvases after modal is visible
+    setTimeout(() => {
+        ['healthSigCanvas', 'waiverSigCanvas', 'requestSigCanvas', 'cmdSigCanvas'].forEach(cId => {
+            initWpSignatureCanvas(cId);
+            // Restore saved signature
+            const key = cId.replace('Canvas', '').replace('Sig', 'Sig');
+            const sigKey = cId === 'healthSigCanvas' ? 'healthSig' : cId === 'waiverSigCanvas' ? 'waiverSig' : cId === 'requestSigCanvas' ? 'requestSig' : 'cmdSig';
+            if (rec[sigKey]) restoreCanvasImage(cId, rec[sigKey]);
+        });
+    }, 200);
+}
+
+function renderHealthQuestions(answers) {
+    const container = document.getElementById('healthQuestions');
+    container.innerHTML = HEALTH_QUESTIONS.map(q => `
+        <div class="health-q-row">
+            <span class="health-q-text">${q.text}</span>
+            <div class="health-q-options">
+                <label class="health-radio"><input type="radio" name="${q.id}" value="yes" ${answers[q.id] === 'yes' ? 'checked' : ''}> כן</label>
+                <label class="health-radio"><input type="radio" name="${q.id}" value="no" ${answers[q.id] === 'no' ? 'checked' : ''}> לא</label>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderWeaponDeclarations() {
+    const container = document.getElementById('weaponDeclarations');
+    container.innerHTML = WEAPON_DECLARATIONS.map((d, i) => `
+        <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;">
+            <span style="font-weight:700;color:var(--primary);min-width:24px;">${i + 1}.</span>
+            <span>${d}</span>
+        </div>
+    `).join('');
+}
+
+function updateWizardUI() {
+    // Update step indicators
+    document.querySelectorAll('.wizard-step').forEach(s => {
+        const step = parseInt(s.dataset.step);
+        s.classList.toggle('active', step === currentWizardStep);
+        s.classList.toggle('done', step < currentWizardStep);
+    });
+
+    // Show/hide pages
+    document.querySelectorAll('.wizard-page').forEach((p, i) => {
+        p.classList.toggle('active', i + 1 === currentWizardStep);
+    });
+
+    // Button states
+    document.getElementById('wpBtnPrev').disabled = currentWizardStep <= 1;
+    document.getElementById('wpBtnNext').style.display = currentWizardStep >= 5 ? 'none' : '';
+}
+
+function weaponsWizardNext() {
+    if (currentWizardStep < 5) {
+        // Update waiver name on step 3
+        if (currentWizardStep === 1) {
+            document.getElementById('waiverNameDisplay').textContent =
+                document.getElementById('wpFirstName').value + ' ' + document.getElementById('wpLastName').value;
+        }
+        currentWizardStep++;
+        updateWizardUI();
+    }
+}
+
+function weaponsWizardPrev() {
+    if (currentWizardStep > 1) {
+        currentWizardStep--;
+        updateWizardUI();
+    }
+}
+
+function initWpSignatureCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    // Resize canvas to fit container
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = Math.min(600, rect.width - 20);
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let drawing = false;
+    const getPos = (e) => {
+        const r = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return { x: touch.clientX - r.left, y: touch.clientY - r.top };
+    };
+
+    const start = (e) => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
+    const move = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000'; ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    const end = () => { drawing = false; };
+
+    canvas.onmousedown = start;
+    canvas.onmousemove = move;
+    canvas.onmouseup = end;
+    canvas.onmouseleave = end;
+    canvas.ontouchstart = start;
+    canvas.ontouchmove = move;
+    canvas.ontouchend = end;
+
+    wpSignatureCanvases[canvasId] = true;
+}
+
+function clearWpCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function restoreCanvasImage(canvasId, dataUrl) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !dataUrl) return;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+    img.src = dataUrl;
+}
+
+function isWpCanvasEmpty(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return true;
+    const ctx = canvas.getContext('2d');
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) return false;
+    }
+    return true;
+}
+
+function getWpCanvasDataURL(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    return canvas ? canvas.toDataURL('image/png') : null;
+}
+
+function handleIdPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('idPhotoImg').src = e.target.result;
+        document.getElementById('idPhotoPreview').style.display = '';
+        document.getElementById('idUploadArea').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeIdPhoto() {
+    document.getElementById('idPhotoPreview').style.display = 'none';
+    document.getElementById('idUploadArea').style.display = '';
+    document.getElementById('idPhotoInput').value = '';
+    document.getElementById('idPhotoImg').src = '';
+}
+
+function collectWeaponsFormData() {
+    const soldierId = document.getElementById('weaponsSoldierId').value;
+    const healthAnswers = {};
+    HEALTH_QUESTIONS.forEach(q => {
+        const checked = document.querySelector(`input[name="${q.id}"]:checked`);
+        if (checked) healthAnswers[q.id] = checked.value;
+    });
+
+    return {
+        soldierId,
+        firstName: document.getElementById('wpFirstName').value.trim(),
+        lastName: document.getElementById('wpLastName').value.trim(),
+        idNumber: document.getElementById('wpIdNumber').value.trim(),
+        personalNum: document.getElementById('wpPersonalNum').value.trim(),
+        birthYear: document.getElementById('wpBirthYear').value.trim(),
+        fatherName: document.getElementById('wpFatherName').value.trim(),
+        phone: document.getElementById('wpPhone').value.trim(),
+        phone2: document.getElementById('wpPhone2').value.trim(),
+        address: document.getElementById('wpAddress').value.trim(),
+        city: document.getElementById('wpCity').value.trim(),
+        rank: document.getElementById('wpRank').value.trim(),
+        role: document.getElementById('wpRole').value.trim(),
+        healthAnswers,
+        healthSig: isWpCanvasEmpty('healthSigCanvas') ? null : getWpCanvasDataURL('healthSigCanvas'),
+        waiverSig: isWpCanvasEmpty('waiverSigCanvas') ? null : getWpCanvasDataURL('waiverSigCanvas'),
+        requestSig: isWpCanvasEmpty('requestSigCanvas') ? null : getWpCanvasDataURL('requestSigCanvas'),
+        cmdSig: isWpCanvasEmpty('cmdSigCanvas') ? null : getWpCanvasDataURL('cmdSigCanvas'),
+        cmdName: document.getElementById('wpCmdName').value.trim(),
+        cmdRank: document.getElementById('wpCmdRank').value.trim(),
+        cmdId: document.getElementById('wpCmdId').value.trim(),
+        cmdRole: document.getElementById('wpCmdRole').value.trim(),
+        weaponType: document.getElementById('wpWeaponType').value,
+        weaponSerial: document.getElementById('wpWeaponSerial').value.trim(),
+        idPhoto: document.getElementById('idPhotoImg').src || null,
+        date: new Date().toISOString().split('T')[0]
+    };
+}
+
+function saveWeaponsForm() {
+    const data = collectWeaponsFormData();
+    if (!data.firstName) { showToast('יש למלא שם פרטי', 'error'); return; }
+
+    const idx = state.weaponsData.findIndex(r => r.soldierId === data.soldierId);
+    if (idx >= 0) state.weaponsData[idx] = data;
+    else state.weaponsData.push(data);
+
+    saveState();
+    showToast('טופס נשמר בהצלחה');
+    renderWeaponsTab();
+}
+
+// --- PDF Generation with exact coordinate mapping ---
+
+// Helper: reverse Hebrew string for pdf-lib text drawing
+function reverseHebrew(str) {
+    if (!str) return '';
+    // Split into segments of Hebrew and non-Hebrew
+    const parts = str.match(/[\u0590-\u05FF\uFB1D-\uFB4F]+|[^\u0590-\u05FF\uFB1D-\uFB4F]+/g) || [str];
+    return parts.map(part => {
+        if (/[\u0590-\u05FF]/.test(part)) return part.split('').reverse().join('');
+        return part;
+    }).reverse().join('');
+}
+
+async function generateWeaponsPDF(soldierId) {
+    if (!soldierId) soldierId = document.getElementById('weaponsSoldierId').value;
+    let rec = state.weaponsData.find(r => r.soldierId === soldierId);
+
+    // If form is open, collect current data
+    if (document.getElementById('weaponsFormModal').classList.contains('active')) {
+        rec = collectWeaponsFormData();
+    }
+
+    if (!rec || !rec.firstName) {
+        showToast('יש למלא את הטופס לפני הפקת PDF', 'error');
+        return;
+    }
+
+    showToast('מפיק PDF... אנא המתן', 'success');
+
+    try {
+        // Load the original PDF template
+        const pdfBytes = await fetch('weapons-form.pdf').then(r => r.arrayBuffer());
+        const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+
+        // Embed Hebrew font
+        const fontUrl = 'https://fonts.gstatic.com/s/rubik/v28/iJWKBXyIfDnIV7nBrXyw023e.ttf';
+        const fontBytes = await fetch(fontUrl).then(r => r.arrayBuffer());
+        const hebrewFont = await pdfDoc.embedFont(fontBytes);
+
+        const pages = pdfDoc.getPages();
+        const { rgb } = PDFLib;
+        const blue = rgb(0.05, 0.1, 0.5);
+        const black = rgb(0, 0, 0);
+
+        const dateStr = formatDate(rec.date);
+
+        // ===== PAGE 1: Weapon Request Form (נספח א' מוסף 5) =====
+        if (pages[0]) {
+            const p = pages[0];
+            const { width: pw, height: ph } = p.getSize();
+            const sz = 11;
+
+            // Personal details table - Row 1
+            // Table is roughly at 68% from bottom (y = ph * 0.68)
+            const tableY = ph * 0.685;
+            const row2Y = tableY - 30;
+
+            // Columns from RIGHT to LEFT on the form:
+            p.drawText(reverseHebrew(rec.firstName), { x: pw * 0.78, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.lastName), { x: pw * 0.62, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.idNumber, { x: pw * 0.44, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.personalNum, { x: pw * 0.31, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.birthYear, { x: pw * 0.2, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.fatherName), { x: pw * 0.08, y: tableY, size: sz, font: hebrewFont, color: blue });
+
+            // Row 2: phones
+            p.drawText(rec.phone, { x: pw * 0.08, y: row2Y, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.phone2, { x: pw * 0.2, y: row2Y, size: sz, font: hebrewFont, color: blue });
+
+            // Weapon type and serial in declaration item 4 area
+            p.drawText(rec.weaponType, { x: pw * 0.32, y: ph * 0.388, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.weaponSerial, { x: pw * 0.08, y: ph * 0.375, size: sz, font: hebrewFont, color: blue });
+
+            // Bottom signature block
+            p.drawText(reverseHebrew(rec.firstName + ' ' + rec.lastName), { x: pw * 0.65, y: ph * 0.075, size: sz, font: hebrewFont, color: blue });
+            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.075, size: sz, font: hebrewFont, color: blue });
+
+            // Draw signature image if available
+            if (rec.requestSig) {
+                const sigImg = await pdfDoc.embedPng(rec.requestSig);
+                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.055, width: 100, height: 40 });
+            }
+        }
+
+        // ===== PAGE 2: Recommendation Letter (נספח א' מוסף 3) =====
+        if (pages[1]) {
+            const p = pages[1];
+            const { width: pw, height: ph } = p.getSize();
+            const sz = 11;
+
+            // Same personal details table
+            const tableY = ph * 0.72;
+            const row2Y = tableY - 30;
+
+            p.drawText(reverseHebrew(rec.firstName), { x: pw * 0.78, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.lastName), { x: pw * 0.62, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.idNumber, { x: pw * 0.44, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.personalNum, { x: pw * 0.31, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.birthYear, { x: pw * 0.2, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.fatherName), { x: pw * 0.08, y: tableY, size: sz, font: hebrewFont, color: blue });
+
+            p.drawText(rec.phone, { x: pw * 0.08, y: row2Y, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.phone2, { x: pw * 0.2, y: row2Y, size: sz, font: hebrewFont, color: blue });
+
+            // Commander details table (lower)
+            const cmdY = ph * 0.34;
+            p.drawText(reverseHebrew(rec.cmdName ? rec.cmdName.split(' ')[0] : ''), { x: pw * 0.78, y: cmdY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.cmdName ? rec.cmdName.split(' ').slice(1).join(' ') : ''), { x: pw * 0.62, y: cmdY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.cmdRank), { x: pw * 0.44, y: cmdY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.cmdId, { x: pw * 0.31, y: cmdY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.cmdRole), { x: pw * 0.12, y: cmdY, size: sz, font: hebrewFont, color: blue });
+
+            // Commander signature
+            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.17, size: sz, font: hebrewFont, color: blue });
+            if (rec.cmdSig) {
+                const sigImg = await pdfDoc.embedPng(rec.cmdSig);
+                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.14, width: 100, height: 40 });
+            }
+        }
+
+        // ===== PAGE 3: Medical Confidentiality Waiver (נספח א' מוסף 2) =====
+        if (pages[2]) {
+            const p = pages[2];
+            const { width: pw, height: ph } = p.getSize();
+            const sz = 11;
+
+            // Personal details table
+            const tableY = ph * 0.77;
+            const row2Y = tableY - 30;
+
+            p.drawText(reverseHebrew(rec.firstName), { x: pw * 0.78, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.lastName), { x: pw * 0.62, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.idNumber, { x: pw * 0.44, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.personalNum, { x: pw * 0.31, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(rec.birthYear, { x: pw * 0.2, y: tableY, size: sz, font: hebrewFont, color: blue });
+            p.drawText(reverseHebrew(rec.fatherName), { x: pw * 0.08, y: tableY, size: sz, font: hebrewFont, color: blue });
+
+            p.drawText(rec.phone, { x: pw * 0.08, y: row2Y, size: sz, font: hebrewFont, color: blue });
+
+            // Bottom signature
+            p.drawText(reverseHebrew(rec.firstName + ' ' + rec.lastName), { x: pw * 0.65, y: ph * 0.1, size: sz, font: hebrewFont, color: blue });
+            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.1, size: sz, font: hebrewFont, color: blue });
+
+            if (rec.waiverSig) {
+                const sigImg = await pdfDoc.embedPng(rec.waiverSig);
+                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.08, width: 100, height: 40 });
+            }
+        }
+
+        // ===== PAGE 4: Health Declaration =====
+        if (pages[3]) {
+            const p = pages[3];
+            const { width: pw, height: ph } = p.getSize();
+
+            // Health checkboxes - draw X marks for yes/no answers
+            // The form has two columns of checkboxes
+            // We'll draw small checkmarks/X at approximate positions
+            const startY = ph * 0.82;
+            const rowH = ph * 0.033;
+            const yesX_right = pw * 0.52;  // "כן" column right side
+            const noX_right = pw * 0.47;   // "לא" column right side
+            const yesX_left = pw * 0.95;   // "כן" column left side
+            const noX_left = pw * 0.9;     // "לא" column left side
+
+            HEALTH_QUESTIONS.forEach((q, i) => {
+                const answer = rec.healthAnswers[q.id];
+                if (!answer) return;
+                const y = startY - (i * rowH);
+                const isLeft = i < 10;
+                const xYes = isLeft ? yesX_left : yesX_right;
+                const xNo = isLeft ? noX_left : noX_right;
+
+                if (answer === 'yes') {
+                    p.drawText('X', { x: xYes, y, size: 12, font: hebrewFont, color: blue });
+                } else {
+                    p.drawText('X', { x: xNo, y, size: 12, font: hebrewFont, color: blue });
+                }
+            });
+
+            // Signature at bottom
+            p.drawText(dateStr, { x: pw * 0.38, y: ph * 0.15, size: 10, font: hebrewFont, color: blue });
+            if (rec.healthSig) {
+                const sigImg = await pdfDoc.embedPng(rec.healthSig);
+                p.drawImage(sigImg, { x: pw * 0.04, y: ph * 0.12, width: 100, height: 40 });
+            }
+        }
+
+        // ===== PAGE 5: ID Photo =====
+        if (pages[4] && rec.idPhoto && rec.idPhoto.startsWith('data:image')) {
+            const p = pages[4];
+            const { width: pw, height: ph } = p.getSize();
+
+            try {
+                let idImg;
+                if (rec.idPhoto.includes('image/png')) {
+                    idImg = await pdfDoc.embedPng(rec.idPhoto);
+                } else {
+                    idImg = await pdfDoc.embedJpg(rec.idPhoto);
+                }
+                // Center the ID photo on the page
+                const imgW = pw * 0.7;
+                const imgH = imgW * 0.63; // ID card aspect ratio
+                p.drawImage(idImg, {
+                    x: (pw - imgW) / 2,
+                    y: ph * 0.35,
+                    width: imgW,
+                    height: imgH
+                });
+            } catch (e) {
+                console.warn('Could not embed ID photo:', e);
+            }
+        }
+
+        // Save and download
+        const filledPdf = await pdfDoc.save();
+        const blob = new Blob([filledPdf], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `טופס_נשק_${rec.firstName}_${rec.lastName}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showToast('PDF הופק בהצלחה!');
+    } catch (err) {
+        console.error('PDF generation error:', err);
+        showToast('שגיאה בהפקת PDF: ' + err.message, 'error');
+    }
 }
 
 // Close modals
