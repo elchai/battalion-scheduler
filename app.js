@@ -82,6 +82,12 @@ function activateApp() {
 
     applyUnitFilter();
 
+    // Set calendar filter to user's company
+    const calFilter = document.getElementById('calCompanyFilter');
+    if (calFilter && currentUser.unit !== 'gdudi') {
+        calFilter.value = currentUser.unit;
+    }
+
     // Auto-switch to the relevant tab
     if (currentUser.unit !== 'gdudi') {
         switchTab(currentUser.unit);
@@ -108,6 +114,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-d').forEach(el => el.style.display = (isGdudi || unit === 'd') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-hq').forEach(el => el.style.display = (isGdudi || unit === 'hq') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-palsam').forEach(el => el.style.display = (isGdudi || unit === 'palsam') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-calendar').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
@@ -234,6 +241,9 @@ const companyData = {
 
 // State
 let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [] };
+
+// Calendar state
+let calendarWeekOffset = 0;
 
 // Search & filter state per company
 let searchState = {};
@@ -1055,6 +1065,138 @@ function getRotationGroupForSoldier(soldierId) {
     return state.rotationGroups.find(g => g.soldiers.includes(soldierId));
 }
 
+// ==================== CALENDAR ====================
+function calendarNav(dir) {
+    if (dir === 0) {
+        calendarWeekOffset = 0;
+    } else {
+        calendarWeekOffset += dir;
+    }
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calGrid');
+    const titleEl = document.getElementById('calTitle');
+    if (!grid || !titleEl) return;
+
+    const filterCompany = document.getElementById('calCompanyFilter').value;
+
+    // Calculate the week's start (Sunday) based on offset
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay(); // 0=Sunday
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - dayOfWeek + (calendarWeekOffset * 7));
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    // Title
+    const fmt = d => d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+    titleEl.textContent = fmt(weekStart) + ' — ' + fmt(weekEnd);
+
+    // Day names (Hebrew, Sunday first)
+    const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+
+    let html = dayNames.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+
+    // Build 7 days
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(weekStart);
+        day.setDate(weekStart.getDate() + i);
+        const dateStr = day.toISOString().split('T')[0];
+        const isToday = dateStr === today.toISOString().split('T')[0];
+
+        // Get shifts for this day
+        const dayShifts = state.shifts.filter(sh => {
+            if (sh.date !== dateStr) return false;
+            if (filterCompany !== 'all' && sh.company !== filterCompany) return false;
+            return true;
+        });
+
+        // Get leaves active on this day
+        const dayLeaves = state.leaves.filter(l => {
+            if (filterCompany !== 'all' && l.company !== filterCompany) return false;
+            return l.startDate <= dateStr && l.endDate >= dateStr;
+        });
+
+        // Get rotation groups that are out on this day
+        let rotationEvents = [];
+        if (filterCompany === 'all' || ['a', 'b', 'c', 'd'].includes(filterCompany)) {
+            state.rotationGroups.forEach(g => {
+                const status = getRotationStatus(g, day);
+                if (!status.inBase) {
+                    const count = filterCompany === 'all'
+                        ? g.soldiers.length
+                        : g.soldiers.filter(sid => {
+                            const sol = state.soldiers.find(s => s.id === sid);
+                            return sol && sol.company === filterCompany;
+                        }).length;
+                    if (count > 0) {
+                        rotationEvents.push({ name: g.name, count, dayInCycle: status.dayInCycle });
+                    }
+                }
+            });
+        }
+
+        // Render events
+        let eventsHtml = '';
+
+        // Shifts
+        dayShifts.forEach(sh => {
+            const compName = companyData[sh.company] ? companyData[sh.company].name : sh.company;
+            const label = filterCompany === 'all' ? `${compName} - ${sh.task}` : sh.task;
+            eventsHtml += `<div class="cal-event cal-event-shift" title="${label} (${sh.startTime}-${sh.endTime}) - ${sh.soldiers.length} חיילים">
+                <span class="cal-event-time">${sh.startTime}</span>
+                <span class="cal-event-label">${label}</span>
+                <span class="cal-event-count">${sh.soldiers.length}</span>
+            </div>`;
+        });
+
+        // Leaves (group by company)
+        if (dayLeaves.length > 0) {
+            if (filterCompany !== 'all') {
+                eventsHtml += `<div class="cal-event cal-event-leave" title="${dayLeaves.length} ביציאה">
+                    <span class="cal-event-label">יציאות</span>
+                    <span class="cal-event-count">${dayLeaves.length}</span>
+                </div>`;
+            } else {
+                // Group leaves by company
+                const leavesByComp = {};
+                dayLeaves.forEach(l => {
+                    if (!leavesByComp[l.company]) leavesByComp[l.company] = 0;
+                    leavesByComp[l.company]++;
+                });
+                Object.entries(leavesByComp).forEach(([comp, count]) => {
+                    const compName = companyData[comp] ? companyData[comp].name : comp;
+                    eventsHtml += `<div class="cal-event cal-event-leave" title="${compName} - ${count} ביציאה">
+                        <span class="cal-event-label">${compName}</span>
+                        <span class="cal-event-count">${count}</span>
+                    </div>`;
+                });
+            }
+        }
+
+        // Rotation out
+        rotationEvents.forEach(r => {
+            eventsHtml += `<div class="cal-event cal-event-rotation" title="${r.name} - ${r.count} בבית (יום ${r.dayInCycle} במחזור)">
+                <span class="cal-event-label">${r.name}</span>
+                <span class="cal-event-count">${r.count}</span>
+            </div>`;
+        });
+
+        const dateLabel = day.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+
+        html += `<div class="cal-day${isToday ? ' today' : ''}">
+            <div class="cal-date">${dateLabel}</div>
+            <div class="cal-events">${eventsHtml || '<div class="cal-empty">—</div>'}</div>
+        </div>`;
+    }
+
+    grid.innerHTML = html;
+}
+
 // ==================== TAB NAVIGATION ====================
 function switchTab(tab) {
     // Update sidebar active state
@@ -1070,6 +1212,7 @@ function switchTab(tab) {
     const tabContent = document.getElementById(`tab-${tab}`);
     if (tabContent) tabContent.classList.add('active');
     if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
+    if (tab === 'calendar') renderCalendar();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') renderEquipmentTab();
     if (tab === 'settings') renderSettingsTab();

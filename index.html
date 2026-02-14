@@ -99,6 +99,10 @@
         </button>
 
         <div class="sidebar-section-label">כלים</div>
+        <button class="sidebar-item tab-calendar" onclick="switchTab('calendar')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>לוח שבועי</span>
+        </button>
         <button class="sidebar-item tab-rotation" onclick="switchTab('rotation')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
             <span>רוטציה 10/4</span>
@@ -206,6 +210,32 @@
 <div class="tab-content" id="tab-d"><div class="main-content" id="content-d"></div></div>
 <div class="tab-content" id="tab-hq"><div class="main-content" id="content-hq"></div></div>
 <div class="tab-content" id="tab-palsam"><div class="main-content" id="content-palsam"></div></div>
+
+<!-- ====== TAB: CALENDAR ====== -->
+<div class="tab-content" id="tab-calendar">
+    <div class="main-content">
+        <div class="cal-header">
+            <button class="btn" style="background:var(--bg)" onclick="calendarNav(-1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h2 class="cal-title" id="calTitle"></h2>
+            <button class="btn" style="background:var(--bg)" onclick="calendarNav(1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="btn btn-primary" style="margin-right:auto;" onclick="calendarNav(0)">היום</button>
+            <select id="calCompanyFilter" onchange="renderCalendar()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
+                <option value="all">כל הפלוגות</option>
+                <option value="a">פלוגה א</option>
+                <option value="b">פלוגה ב</option>
+                <option value="c">פלוגה ג</option>
+                <option value="d">פלוגה ד</option>
+                <option value="hq">חפ"ק מג"ד</option>
+                <option value="palsam">פלס"ם</option>
+            </select>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+    </div>
+</div>
 
 <!-- ====== TAB: ROTATION ====== -->
 <div class="tab-content" id="tab-rotation">
