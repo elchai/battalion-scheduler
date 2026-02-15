@@ -2740,9 +2740,8 @@ function openSignEquipment() {
     });
     document.getElementById('signEquipInfo').style.display = 'none';
     document.getElementById('signSoldierInfo').style.display = 'none';
-    // Default to user's company, or show all if gdudi
-    const userUnit = currentUser ? currentUser.unit : 'a';
-    document.getElementById('signCompany').value = (userUnit === 'gdudi') ? 'all' : userUnit;
+    // Equipment is battalion-wide, default to all companies
+    document.getElementById('signCompany').value = 'all';
     updateSignSoldiers();
     openModal('signEquipmentModal');
     setTimeout(() => {
