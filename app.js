@@ -1704,12 +1704,12 @@ function switchCommanderCompany(compKey) {
     renderCommanderDashboard();
 }
 
-// ==================== DOCSMOVE LINK (EXTERNAL SIGNATURE SYSTEM) ====================
+// ==================== SMOOV LINK (EXTERNAL SIGNATURE SYSTEM) ====================
 function openDocsMove() {
-    window.open('./docsmove/', '_blank');
+    window.open('https://elchai.github.io/smoov/', '_blank');
 }
 
-// (Signature system moved to standalone DocsMove app - see ./docsmove/)
+// (Signature system moved to standalone Smoov app - see https://elchai.github.io/smoov/)
 
 // ==================== WHATSAPP NOTIFICATION CENTER ====================
 let whatsappFilterType = 'all';
