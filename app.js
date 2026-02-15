@@ -152,9 +152,14 @@ function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     if (window.innerWidth <= 768) {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('active');
-        document.body.classList.toggle('sidebar-open', sidebar.classList.contains('open'));
+        const isOpen = sidebar.classList.contains('open');
+        if (isOpen) {
+            closeSidebarMobile();
+        } else {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+            document.body.classList.add('sidebar-open');
+        }
     } else {
         sidebar.classList.toggle('collapsed');
         document.getElementById('topbar').classList.toggle('expanded');
@@ -163,6 +168,44 @@ function toggleSidebar() {
         if (footer) footer.style.marginRight = sidebar.classList.contains('collapsed') ? '0' : '260px';
     }
 }
+
+function closeSidebarMobile() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
+}
+
+// Swipe-to-close sidebar on mobile
+(function() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let swiping = false;
+
+    document.addEventListener('touchstart', function(e) {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar || !sidebar.classList.contains('open')) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        swiping = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+        if (!swiping) return;
+        swiping = false;
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar || !sidebar.classList.contains('open')) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        // Swipe right to close (RTL layout)
+        if (deltaX > 60 && deltaY < 100) {
+            closeSidebarMobile();
+        }
+    }, { passive: true });
+})();
 
 // Check for existing session
 function checkSession() {
