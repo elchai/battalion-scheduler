@@ -333,6 +333,21 @@ function loadState() {
     if (!state.equipment) state.equipment = [];
     if (!state.signatureLog) state.signatureLog = [];
     if (!state.weaponsData) state.weaponsData = [];
+
+    // One-time migration: clear shifts and equipment assignments
+    if (!localStorage.getItem('migration_clear_v1')) {
+        state.shifts = [];
+        state.signatureLog = [];
+        state.equipment.forEach(e => {
+            delete e.holderId;
+            delete e.holderName;
+            delete e.holderPhone;
+            delete e.signatureData;
+        });
+        localStorage.setItem('migration_clear_v1', '1');
+        saveState();
+    }
+
     seedTestSoldier();
 }
 
