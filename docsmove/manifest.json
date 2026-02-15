@@ -1,0 +1,26 @@
+{
+    "name": "DocsMove - חתימה דיגיטלית",
+    "short_name": "DocsMove",
+    "description": "מערכת חתימה דיגיטלית לניהול מסמכים",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#f1f5f9",
+    "theme_color": "#2563eb",
+    "orientation": "any",
+    "lang": "he",
+    "dir": "rtl",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%232563eb'/%3E%3Cpath d='M57 134V58h40c20 0 33 10 33 25s-13 25-33 25H77v26H57z' fill='white'/%3E%3Cpath d='M100 118l22 22M122 118l-22 22' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%232563eb'/%3E%3Cpath d='M152 358V154h106c54 0 88 28 88 68s-34 68-88 68H204v68H152z' fill='white'/%3E%3Cpath d='M268 316l58 58M326 316l-58 58' stroke='white' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

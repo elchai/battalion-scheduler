@@ -1,4 +1,4 @@
-const CACHE_NAME = 'battalion-v5';
+const CACHE_NAME = 'battalion-v6';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
@@ -7,7 +7,12 @@ const ASSETS = [
     '/battalion-scheduler/firebase-config.js',
     '/battalion-scheduler/logo.png',
     '/battalion-scheduler/manifest.json',
-    '/battalion-scheduler/weapons-form.pdf'
+    '/battalion-scheduler/weapons-form.pdf',
+    '/battalion-scheduler/docsmove/',
+    '/battalion-scheduler/docsmove/index.html',
+    '/battalion-scheduler/docsmove/style.css',
+    '/battalion-scheduler/docsmove/app.js',
+    '/battalion-scheduler/docsmove/manifest.json'
 ];
 
 // Install: cache core assets
