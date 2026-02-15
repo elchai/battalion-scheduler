@@ -2643,7 +2643,7 @@ function openAddEquipment() {
     document.getElementById('equipType').value = 'נשק';
     document.getElementById('equipCustomTypeGroup').style.display = 'none';
     document.getElementById('equipSerial').value = '';
-    document.getElementById('equipCompany').value = currentUser ? currentUser.unit : 'a';
+    document.getElementById('equipCompany').value = 'gdudi';
     document.getElementById('equipCondition').value = 'תקין';
     document.getElementById('equipNotes').value = '';
     openModal('addEquipmentModal');
