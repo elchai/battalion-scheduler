@@ -5,7 +5,8 @@ const DEFAULT_SETTINGS = {
     shiftPresets: {
         morning:   { name: 'בוקר',    start: '06:00', end: '14:00' },
         afternoon: { name: 'צהריים',  start: '14:00', end: '22:00' },
-        night:     { name: 'לילה',    start: '22:00', end: '06:00' }
+        night:     { name: 'לילה',    start: '22:00', end: '06:00' },
+        fullday:   { name: 'יום שלם', start: '00:00', end: '23:59' }
     },
     rotationDaysIn: 10,
     rotationDaysOut: 4,
@@ -294,8 +295,18 @@ const companyData = {
     },
     palsam: {
         name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', color: '#795548', colorClass: 'company-palsam',
-        tasks: [],
-        totals: { soldiers: 0, commanders: 0, officers: 0 }
+        tasks: [
+            { name: 'מטבח', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'שמירה', soldiers: 5, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'ארמו"ן', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'נהיגה', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'חפ"ק רפואי', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'תורנות', soldiers: 5, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'ניידת טנ"א', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'ניידת לוגיסטית', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
+            { name: 'משימת ת"ש', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } }
+        ],
+        totals: { soldiers: 45, commanders: 0, officers: 0 }
     }
 };
 
@@ -2115,9 +2126,10 @@ function renderSettingsTab() {
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> שעות משמרות</h3>
         <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">הגדר שעות ברירת מחדל לכפתורי בוקר/צהריים/לילה</p>
-        ${['morning','afternoon','night'].map(key => {
+        ${['morning','afternoon','night','fullday'].map(key => {
             const p = settings.shiftPresets[key];
-            const labels = { morning: 'בוקר', afternoon: 'צהריים', night: 'לילה' };
+            if (!p) return '';
+            const labels = { morning: 'בוקר', afternoon: 'צהריים', night: 'לילה', fullday: 'יום שלם' };
             return `<div class="settings-row" style="margin-bottom:8px;">
                 <div class="settings-field"><label>${labels[key]}</label></div>
                 <div class="settings-field"><label>התחלה</label><input type="time" value="${p.start}" onchange="updatePreset('${key}','start',this.value)"></div>
