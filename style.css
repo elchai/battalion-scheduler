@@ -1147,10 +1147,6 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .sidebar-close { display: flex; }
 
     /* Overlay covers remaining area for easy close */
-    .sidebar-overlay {
-        backdrop-filter: blur(2px);
-        -webkit-backdrop-filter: blur(2px);
-    }
 
     /* Topbar */
     .topbar { margin-right: 0; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); flex-wrap: nowrap; }

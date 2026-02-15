@@ -132,7 +132,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = isGdudi ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
-    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = isGdudi ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
 
     // Hide section labels if all items in section are hidden
