@@ -1,9 +1,10 @@
-const CACHE_NAME = 'battalion-v3';
+const CACHE_NAME = 'battalion-v4';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
     '/battalion-scheduler/style.css',
     '/battalion-scheduler/app.js',
+    '/battalion-scheduler/firebase-config.js',
     '/battalion-scheduler/logo.png',
     '/battalion-scheduler/manifest.json',
     '/battalion-scheduler/weapons-form.pdf'
@@ -29,9 +30,11 @@ self.addEventListener('activate', event => {
 
 // Fetch: network first, fallback to cache
 self.addEventListener('fetch', event => {
-    // Skip non-GET requests and Google Sheets API calls
+    // Skip non-GET requests, Google Sheets API, and Firebase calls
     if (event.request.method !== 'GET') return;
     if (event.request.url.includes('docs.google.com')) return;
+    if (event.request.url.includes('firestore.googleapis.com')) return;
+    if (event.request.url.includes('firebase')) return;
 
     event.respondWith(
         fetch(event.request)

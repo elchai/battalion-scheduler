@@ -103,6 +103,11 @@
             <span>פלס"ם</span>
         </button>
 
+        <button class="sidebar-item tab-commander" onclick="switchTab('commander')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span>לוח מ"פ</span>
+        </button>
+
         <div class="sidebar-section-label">כלים</div>
         <button class="sidebar-item tab-reports" onclick="switchTab('reports')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -115,6 +120,10 @@
         <button class="sidebar-item tab-rotation" onclick="switchTab('rotation')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
             <span>רוטציה 10/4</span>
+        </button>
+        <button class="sidebar-item tab-whatsapp" onclick="switchTab('whatsapp')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+            <span>התראות WhatsApp</span>
         </button>
         <button class="sidebar-item tab-equipment" onclick="switchTab('equipment')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
@@ -242,6 +251,12 @@
 <div class="tab-content" id="tab-hq"><div class="main-content" id="content-hq"></div></div>
 <div class="tab-content" id="tab-palsam"><div class="main-content" id="content-palsam"></div></div>
 
+<!-- ====== TAB: COMMANDER DASHBOARD ====== -->
+<div class="tab-content" id="tab-commander"><div class="main-content" id="content-commander"></div></div>
+
+<!-- ====== TAB: WHATSAPP NOTIFICATIONS ====== -->
+<div class="tab-content" id="tab-whatsapp"><div class="main-content" id="content-whatsapp"></div></div>
+
 <!-- ====== TAB: CALENDAR ====== -->
 <div class="tab-content" id="tab-calendar">
     <div class="main-content">
@@ -282,6 +297,10 @@
                 </div>
                 <h3>דו"ח יומי</h3>
                 <p>סיכום מצב יומי - כוח אדם, שיבוצים, יציאות ורוטציה</p>
+                <div class="report-export-btns" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('daily')">PDF</button>
+                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('daily')">Excel</button>
+                </div>
             </div>
             <div class="report-card" onclick="generateCompanyReport()">
                 <div class="report-icon" style="background:#e3f2fd;color:#1565c0;">
@@ -289,6 +308,10 @@
                 </div>
                 <h3>דו"ח פלוגות</h3>
                 <p>מצב כוח אדם מפורט לכל פלוגה - חיילים, מפקדים, קצינים</p>
+                <div class="report-export-btns" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('company')">PDF</button>
+                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('company')">Excel</button>
+                </div>
             </div>
             <div class="report-card" onclick="generateShiftsReport()">
                 <div class="report-icon" style="background:#fff3e0;color:#e65100;">
@@ -296,6 +319,10 @@
                 </div>
                 <h3>דו"ח שיבוצים</h3>
                 <p>כל השיבוצים הפעילים - לפי פלוגה, משימה ותאריך</p>
+                <div class="report-export-btns" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('shifts')">PDF</button>
+                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('shifts')">Excel</button>
+                </div>
             </div>
             <div class="report-card" onclick="generateLeavesReport()">
                 <div class="report-icon" style="background:#fce4ec;color:#c62828;">
@@ -303,6 +330,10 @@
                 </div>
                 <h3>דו"ח יציאות</h3>
                 <p>כל היציאות הפעילות והמתוכננות לפי פלוגה</p>
+                <div class="report-export-btns" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('leaves')">PDF</button>
+                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('leaves')">Excel</button>
+                </div>
             </div>
         </div>
         <div id="reportOutput" class="report-output"></div>
@@ -1024,6 +1055,45 @@
     </div>
 </div>
 
+<!-- Transfer Soldier Modal -->
+<div class="modal-overlay" id="transferSoldierModal">
+    <div class="modal">
+        <div class="modal-header" style="background:#9C27B0;">
+            <h3>העברת חייל בין פלוגות</h3>
+            <button class="modal-close" onclick="closeModal('transferSoldierModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="transferSoldierId" value="">
+            <div id="transferSoldierInfo" style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+            <div class="form-group">
+                <label>פלוגה נוכחית</label>
+                <input type="text" id="transferFromCompany" disabled style="background:var(--bg);">
+            </div>
+            <div class="form-group">
+                <label>פלוגת יעד</label>
+                <select id="transferToCompany">
+                    <option value="">-- בחר פלוגה --</option>
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>סיבת העברה (אופציונלי)</label>
+                <input type="text" id="transferNotes" placeholder="סיבת ההעברה">
+            </div>
+            <div id="transferWarnings" style="display:none;background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:12px;margin-top:10px;color:#e65100;font-size:0.9em;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" style="background:#9C27B0;" onclick="confirmTransferSoldier()">אשר העברה</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('transferSoldierModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
 <!-- Footer Credit -->
 <div class="app-footer" style="text-align:center;padding:20px;background:var(--primary-dark);color:rgba(255,255,255,0.6);font-size:0.8em;margin-top:30px;margin-right:260px;transition:margin-right 0.3s cubic-bezier(0.4,0,0.2,1);">
     <a href="https://wa.me/972542012000" target="_blank" style="color:rgba(255,255,255,0.8);text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
@@ -1033,7 +1103,15 @@
 </div>
 </div><!-- end mainApp -->
 
+<!-- Firebase SDK (loaded before app for sync) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

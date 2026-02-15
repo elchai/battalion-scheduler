@@ -26,6 +26,7 @@ function loadSettings() {
 
 function saveSettings() {
     localStorage.setItem('battalionSettings', JSON.stringify(settings));
+    if (typeof firebaseSaveSettings === 'function') firebaseSaveSettings();
 }
 
 function isAdmin() {
@@ -135,6 +136,8 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
+    const isCompanyCommander = ['a','b','c','d'].includes(unit);
+    document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = (isGdudi || isCompanyCommander) ? '' : 'none');
 
     // Hide section labels if all items in section are hidden
     document.querySelectorAll('.sidebar-section-label').forEach(label => {
@@ -404,6 +407,7 @@ function seedTestSoldier() {
 
 function saveState() {
     localStorage.setItem('battalionState_v2', JSON.stringify(state));
+    if (typeof firebaseSaveState === 'function') firebaseSaveState();
 }
 
 // ==================== INIT ====================
@@ -431,11 +435,26 @@ const deptToCompany = {
     'פלגת רפואה': 'palsam'
 };
 
-function init() {
+async function init() {
     loadSettings();
     loadState();
     loadTasksFromStorage();
     loadTheme();
+
+    // Load from Firebase if available (async, then re-render)
+    if (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && typeof firebaseLoadState === 'function') {
+        try {
+            const loaded = await firebaseLoadState();
+            if (loaded) {
+                await firebaseLoadSettings();
+                await firebaseLoadTasks();
+                setupRealtimeListeners();
+            }
+        } catch (err) {
+            console.warn('Firebase init load failed:', err);
+        }
+    }
+
     // Force re-sync if data version changed (multi-sheet support)
     const dataVersion = 'v4_allsheets_fix';
     if (localStorage.getItem('battalionDataVersion') !== dataVersion) {
@@ -1071,6 +1090,7 @@ function renderSoldiersGrid(compKey) {
             <div style="display:flex;align-items:center;gap:6px;">
                 <span class="person-status ${badge}">${txt}</span>
                 ${canEdit(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
+                <button class="btn btn-icon btn-sm" style="background:#9C27B0;color:white;" onclick="openTransferSoldier('${s.id}')" title="העבר פלוגה">&#8644;</button>
                 <button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}
             </div>
         </div>`;
@@ -1512,6 +1532,308 @@ function renderCalendar() {
     grid.innerHTML = html;
 }
 
+// ==================== COMMANDER DASHBOARD ====================
+function renderCommanderDashboard() {
+    const container = document.getElementById('content-commander');
+    if (!container) return;
+
+    // Determine which company to show
+    let compKey = commanderViewCompany || currentUser.unit;
+    if (compKey === 'gdudi') compKey = 'a';
+    const comp = companyData[compKey];
+    if (!comp) return;
+
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const shifts = state.shifts.filter(sh => sh.company === compKey);
+    const todayShifts = shifts.filter(sh => sh.date === todayStr);
+    const leaves = state.leaves.filter(l => l.company === compKey);
+
+    // Categorize soldiers
+    const inBase = [], atHome = [], returningToday = [], unassigned = [];
+    const assignedIds = new Set();
+    todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
+
+    soldiers.forEach(s => {
+        const onLeave = leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
+        const rotGroup = getRotationGroupForSoldier(s.id);
+        const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
+        const isHome = onLeave || (rotStatus && !rotStatus.inBase);
+        const returning = leaves.some(l => l.soldierId === s.id && l.endDate === todayStr);
+
+        if (isHome) {
+            atHome.push(s);
+            if (returning) returningToday.push(s);
+        } else {
+            inBase.push(s);
+            if (!assignedIds.has(s.id)) unassigned.push(s);
+        }
+    });
+
+    // Task manning
+    const taskManning = (comp.tasks || []).map(task => {
+        const totalNeeded = (task.soldiers || 0) + (task.commanders || 0) + (task.officers || 0);
+        const assigned = todayShifts.filter(sh => sh.task === task.name)
+            .reduce((sum, sh) => sum + sh.soldiers.length, 0);
+        const pct = totalNeeded > 0 ? Math.round(assigned / totalNeeded * 100) : 0;
+        return { name: task.name, assigned, needed: totalNeeded, pct };
+    });
+
+    // Company selector for gdudi users
+    const compSelector = currentUser.unit === 'gdudi' ? `
+        <select id="cmdCompanySelect" onchange="switchCommanderCompany(this.value)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
+            ${['a','b','c','d','hq','palsam'].map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
+        </select>` : '';
+
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <h2 style="margin:0;font-size:1.3em;">לוח מ"פ - ${comp.name}</h2>
+            <div style="display:flex;align-items:center;gap:10px;">
+                ${compSelector}
+                <span style="font-size:0.85em;color:var(--text-light);">${getReportDateStr()}</span>
+            </div>
+        </div>
+
+        <div class="quick-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px;">
+            <div style="background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--success);">
+                <div style="font-size:1.6em;font-weight:700;color:var(--success);">${inBase.length}</div>
+                <div style="font-size:0.82em;color:var(--text-light);">בבסיס</div>
+            </div>
+            <div style="background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--danger);">
+                <div style="font-size:1.6em;font-weight:700;color:var(--danger);">${atHome.length}</div>
+                <div style="font-size:0.82em;color:var(--text-light);">בבית</div>
+            </div>
+            <div style="background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid #2196F3;">
+                <div style="font-size:1.6em;font-weight:700;color:#2196F3;">${returningToday.length}</div>
+                <div style="font-size:0.82em;color:var(--text-light);">חוזרים היום</div>
+            </div>
+            <div style="background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--warning);">
+                <div style="font-size:1.6em;font-weight:700;color:var(--warning);">${unassigned.length}</div>
+                <div style="font-size:0.82em;color:var(--text-light);">ללא שיבוץ</div>
+            </div>
+        </div>
+
+        ${returningToday.length > 0 ? `
+        <div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title">
+                <div class="icon" style="background:#e8f5e9;color:var(--success);width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </div>
+                חוזרים היום (${returningToday.length})
+            </div>
+            <div class="personnel-grid">${returningToday.map(s => cmdSoldierCard(s, 'returning')).join('')}</div>
+        </div>` : ''}
+
+        <div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title">
+                <div class="icon" style="background:#fff3e0;color:var(--warning);width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                חיילים ללא שיבוץ (${unassigned.length})
+            </div>
+            ${unassigned.length > 0 ? `<div class="personnel-grid">${unassigned.map(s => cmdSoldierCard(s, 'unassigned')).join('')}</div>` :
+            '<div style="text-align:center;padding:16px;color:var(--text-light);">כל החיילים משובצים</div>'}
+        </div>
+
+        ${taskManning.length > 0 ? `
+        <div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title">
+                <div class="icon" style="background:#e3f2fd;color:var(--primary);width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg>
+                </div>
+                מצב אכלוס משימות
+            </div>
+            <div class="table-scroll"><table>
+                <thead><tr><th>משימה</th><th>משובצים</th><th>נדרשים</th><th>מילוי</th></tr></thead>
+                <tbody>${taskManning.map(t => `<tr>
+                    <td style="text-align:right;font-weight:600;">${t.name}</td>
+                    <td style="text-align:center;">${t.assigned}</td>
+                    <td style="text-align:center;">${t.needed}</td>
+                    <td><div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+                        <div style="width:60px;height:6px;background:var(--border);border-radius:3px;">
+                            <div style="width:${Math.min(100,t.pct)}%;height:100%;background:${t.pct>=100?'var(--success)':t.pct>=50?'var(--warning)':'var(--danger)'};border-radius:3px;"></div>
+                        </div>
+                        <span style="font-size:0.82em;">${t.pct}%</span>
+                    </div></td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+        </div>` : ''}
+
+        <div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title">
+                <div class="icon" style="background:#fce4ec;color:var(--danger);width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                בבית כרגע (${atHome.length})
+            </div>
+            ${atHome.length > 0 ? `<div class="personnel-grid">${atHome.map(s => cmdSoldierCard(s, 'home')).join('')}</div>` :
+            '<div style="text-align:center;padding:16px;color:var(--text-light);">כל החיילים בבסיס</div>'}
+        </div>
+
+        <div class="action-bar" style="margin-top:20px;">
+            <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ חדש</button>
+            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')">+ יציאה</button>
+            <button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
+            <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
+        </div>
+    `;
+}
+
+function cmdSoldierCard(s, status) {
+    const cls = status === 'home' ? 'on-leave' : status === 'returning' ? 'on-duty' : '';
+    const badge = status === 'home' ? 'status-on-leave' : status === 'returning' ? 'status-on-duty' : 'status-available';
+    const txt = status === 'home' ? 'בבית' : status === 'returning' ? 'חוזר היום' : 'ללא שיבוץ';
+    return `<div class="person-card ${cls}">
+        <div class="person-info">
+            <h4>${s.name}</h4>
+            <div class="meta">${s.role || ''}${s.rank ? ' | '+s.rank : ''}${s.phone ? ' | '+s.phone : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <span class="person-status ${badge}">${txt}</span>
+            ${s.phone ? `<a href="https://wa.me/972${s.phone.replace(/^0/,'')}" target="_blank" class="btn btn-icon btn-sm" style="background:#25D366;color:white;" title="WhatsApp">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            </a>` : ''}
+        </div>
+    </div>`;
+}
+
+let commanderViewCompany = null;
+
+function switchCommanderCompany(compKey) {
+    commanderViewCompany = compKey;
+    renderCommanderDashboard();
+}
+
+// ==================== WHATSAPP NOTIFICATION CENTER ====================
+let whatsappFilterType = 'all';
+
+function renderWhatsAppCenter() {
+    const container = document.getElementById('content-whatsapp');
+    if (!container) return;
+
+    const notifications = generateWhatsAppNotifications();
+    const filtered = whatsappFilterType === 'all' ? notifications : notifications.filter(n => n.type === whatsappFilterType);
+    const counts = { all: notifications.length, shift: 0, leave: 0, rotation: 0 };
+    notifications.forEach(n => counts[n.type] = (counts[n.type]||0) + 1);
+
+    container.innerHTML = `
+        <div class="section-title">
+            <div class="icon" style="background:#e8f5e9;color:#25D366;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            </div>
+            מרכז התראות WhatsApp
+        </div>
+        <div class="info-box">
+            <span class="info-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+            <div>לחיצה על "שלח" תפתח את WhatsApp עם הודעה מוכנה. ניתן לערוך לפני שליחה.</div>
+        </div>
+        <div class="filter-buttons" style="margin:14px 0;">
+            <button class="filter-btn ${whatsappFilterType==='all'?'active':''}" onclick="filterWhatsApp('all')">הכל (${counts.all})</button>
+            <button class="filter-btn ${whatsappFilterType==='shift'?'active':''}" onclick="filterWhatsApp('shift')">משמרות (${counts.shift})</button>
+            <button class="filter-btn ${whatsappFilterType==='leave'?'active':''}" onclick="filterWhatsApp('leave')">יציאות (${counts.leave})</button>
+            <button class="filter-btn ${whatsappFilterType==='rotation'?'active':''}" onclick="filterWhatsApp('rotation')">רוטציה (${counts.rotation})</button>
+        </div>
+        <div id="whatsappNotifList">
+            ${filtered.length === 0 ? '<div style="text-align:center;padding:30px;color:var(--text-light);">אין התראות כרגע</div>' :
+              filtered.map(n => renderWhatsAppCard(n)).join('')}
+        </div>
+    `;
+}
+
+function filterWhatsApp(type) {
+    whatsappFilterType = type;
+    renderWhatsAppCenter();
+}
+
+function generateWhatsAppNotifications() {
+    const notifications = [];
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    // 1. Shift reminders (tomorrow's shifts)
+    state.shifts.filter(sh => sh.date === tomorrowStr).forEach(sh => {
+        sh.soldiers.forEach(sid => {
+            const sol = state.soldiers.find(s => s.id === sid);
+            if (!sol || !sol.phone) return;
+            const compName = companyData[sh.company] ? companyData[sh.company].name : '';
+            const msg = `שלום ${sol.name},\nתזכורת: אתה משובץ מחר (${formatDate(sh.date)}) ל${sh.task} בשעות ${sh.startTime}-${sh.endTime}.\n${compName}`;
+            notifications.push({ type: 'shift', soldier: sol, title: `תזכורת משמרת - ${sol.name}`, desc: `${sh.task} מחר ${sh.startTime}-${sh.endTime}`, phone: sol.phone, message: msg, priority: 'medium' });
+        });
+    });
+
+    // 2. Today's shifts (same-day reminder)
+    state.shifts.filter(sh => sh.date === todayStr).forEach(sh => {
+        sh.soldiers.forEach(sid => {
+            const sol = state.soldiers.find(s => s.id === sid);
+            if (!sol || !sol.phone) return;
+            const msg = `שלום ${sol.name},\nתזכורת: אתה משובץ היום ל${sh.task} בשעות ${sh.startTime}-${sh.endTime}.`;
+            notifications.push({ type: 'shift', soldier: sol, title: `משמרת היום - ${sol.name}`, desc: `${sh.task} היום ${sh.startTime}-${sh.endTime}`, phone: sol.phone, message: msg, priority: 'high' });
+        });
+    });
+
+    // 3. Leave ending today
+    state.leaves.filter(l => l.endDate === todayStr).forEach(l => {
+        const sol = state.soldiers.find(s => s.id === l.soldierId);
+        if (!sol || !sol.phone) return;
+        const msg = `שלום ${sol.name},\nתזכורת: היציאה שלך מסתיימת היום (${formatDate(l.endDate)})${l.endTime ? ' בשעה '+l.endTime : ''}.\nנא לחזור לבסיס בזמן.`;
+        notifications.push({ type: 'leave', soldier: sol, title: `חזרה מיציאה - ${sol.name}`, desc: `יציאה מסתיימת היום`, phone: sol.phone, message: msg, priority: 'high' });
+    });
+
+    // 4. Leave ending tomorrow
+    state.leaves.filter(l => l.endDate === tomorrowStr).forEach(l => {
+        const sol = state.soldiers.find(s => s.id === l.soldierId);
+        if (!sol || !sol.phone) return;
+        const msg = `שלום ${sol.name},\nתזכורת: היציאה שלך מסתיימת מחר (${formatDate(l.endDate)})${l.endTime ? ' בשעה '+l.endTime : ''}.\nנא לחזור לבסיס בזמן.`;
+        notifications.push({ type: 'leave', soldier: sol, title: `חזרה מחר - ${sol.name}`, desc: `יציאה מסתיימת מחר`, phone: sol.phone, message: msg, priority: 'medium' });
+    });
+
+    // 5. Rotation changes tomorrow
+    state.rotationGroups.forEach(g => {
+        const statusToday = getRotationStatus(g, today);
+        const statusTomorrow = getRotationStatus(g, tomorrow);
+        if (statusToday.inBase !== statusTomorrow.inBase) {
+            g.soldiers.forEach(sid => {
+                const sol = state.soldiers.find(s => s.id === sid);
+                if (!sol || !sol.phone) return;
+                const action = statusTomorrow.inBase ? 'חוזרת לבסיס' : 'יוצאת הביתה';
+                const msg = `שלום ${sol.name},\nקבוצת רוטציה "${g.name}" ${action} מחר.\nנא להתעדכן ולהגיע/להתארגן בהתאם.`;
+                notifications.push({ type: 'rotation', soldier: sol, title: `רוטציה - ${sol.name}`, desc: `${g.name} ${action} מחר`, phone: sol.phone, message: msg, priority: statusTomorrow.inBase ? 'high' : 'medium' });
+            });
+        }
+    });
+
+    return notifications.sort((a, b) => {
+        const p = { high: 0, medium: 1, low: 2 };
+        return (p[a.priority]||1) - (p[b.priority]||1);
+    });
+}
+
+function renderWhatsAppCard(n) {
+    const phone = n.phone.replace(/[^0-9]/g, '');
+    const intlPhone = phone.startsWith('0') ? '972' + phone.substring(1) : phone;
+    const waLink = `https://wa.me/${intlPhone}?text=${encodeURIComponent(n.message)}`;
+    const borderColor = n.priority === 'high' ? 'var(--danger)' : 'var(--warning)';
+    const typeLabels = { shift: 'משמרת', leave: 'יציאה', rotation: 'רוטציה' };
+
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:8px;border-right:4px solid ${borderColor};">
+        <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <h4 style="margin:0;font-size:0.92em;">${n.title}</h4>
+                <span style="font-size:0.7em;background:var(--bg);padding:2px 8px;border-radius:10px;color:var(--text-light);">${typeLabels[n.type]||n.type}</span>
+            </div>
+            <div style="font-size:0.82em;color:var(--text-light);">${n.desc}</div>
+            <div style="font-size:0.78em;color:var(--text-light);margin-top:2px;">${n.phone}</div>
+        </div>
+        <a href="${waLink}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#25D366;color:white;border-radius:8px;text-decoration:none;font-size:0.85em;font-weight:600;white-space:nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            שלח
+        </a>
+    </div>`;
+}
+
 // ==================== TAB NAVIGATION ====================
 function switchTab(tab) {
     // Update sidebar active state
@@ -1533,6 +1855,8 @@ function switchTab(tab) {
     if (tab === 'equipment') renderEquipmentTab();
     if (tab === 'weapons') renderWeaponsTab();
     if (tab === 'settings') renderSettingsTab();
+    if (tab === 'commander') renderCommanderDashboard();
+    if (tab === 'whatsapp') renderWhatsAppCenter();
 
     // Close sidebar on mobile after tab switch
     if (window.innerWidth <= 768) {
@@ -1629,6 +1953,109 @@ function deleteSoldier(id) {
     renderOverview();
     updateGlobalStats();
     showToast('חייל נמחק');
+}
+
+// ==================== SOLDIER TRANSFER ====================
+function canTransfer(fromComp, toComp) {
+    if (!currentUser) return false;
+    if (isAdmin()) return true;
+    if (currentUser.unit === 'gdudi') return true;
+    return currentUser.unit === fromComp || currentUser.unit === toComp;
+}
+
+function openTransferSoldier(soldierId) {
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+
+    if (!canEdit(sol.company) && !isAdmin()) {
+        showToast('אין הרשאה להעביר חייל זה', 'error');
+        return;
+    }
+
+    document.getElementById('transferSoldierId').value = soldierId;
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    document.getElementById('transferFromCompany').value = compNames[sol.company] || sol.company;
+    document.getElementById('transferSoldierInfo').innerHTML = `
+        <h4 style="margin:0 0 4px;">${sol.name}</h4>
+        <div style="font-size:0.85em;color:var(--text-light);">${sol.rank || ''} | ${sol.role || ''} ${sol.personalId ? '| מ.א. ' + sol.personalId : ''}</div>`;
+
+    const toSelect = document.getElementById('transferToCompany');
+    toSelect.value = sol.company === 'a' ? 'd' : sol.company === 'd' ? 'a' : '';
+    document.getElementById('transferNotes').value = '';
+
+    updateTransferWarnings(soldierId);
+    openModal('transferSoldierModal');
+}
+
+function updateTransferWarnings(soldierId) {
+    const el = document.getElementById('transferWarnings');
+    const warnings = [];
+    const affectedShifts = state.shifts.filter(sh => sh.soldiers.includes(soldierId));
+    if (affectedShifts.length > 0) warnings.push(`${affectedShifts.length} שיבוצים יוסרו מהפלוגה הנוכחית`);
+    const affectedLeaves = state.leaves.filter(l => l.soldierId === soldierId);
+    if (affectedLeaves.length > 0) warnings.push(`${affectedLeaves.length} יציאות יועברו לפלוגה החדשה`);
+    const rotGroup = getRotationGroupForSoldier(soldierId);
+    if (rotGroup) warnings.push(`החייל יוסר מקבוצת רוטציה "${rotGroup.name}"`);
+
+    if (warnings.length > 0) {
+        el.style.display = '';
+        el.innerHTML = '<strong>שים לב:</strong><ul style="margin:6px 0 0;padding-right:18px;">' + warnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+function confirmTransferSoldier() {
+    const soldierId = document.getElementById('transferSoldierId').value;
+    const toCompany = document.getElementById('transferToCompany').value;
+    const notes = document.getElementById('transferNotes').value.trim();
+
+    if (!toCompany) { showToast('יש לבחור פלוגת יעד', 'error'); return; }
+
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+
+    const fromCompany = sol.company;
+    if (fromCompany === toCompany) { showToast('החייל כבר בפלוגה זו', 'error'); return; }
+
+    if (!canTransfer(fromCompany, toCompany)) {
+        showToast('אין הרשאה להעביר לפלוגה זו', 'error');
+        return;
+    }
+
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    if (!confirm(`להעביר את ${sol.name} מ${compNames[fromCompany]} ל${compNames[toCompany]}?`)) return;
+
+    // Cascade: remove from shifts in old company
+    state.shifts.forEach(sh => {
+        if (sh.company === fromCompany) {
+            sh.soldiers = sh.soldiers.filter(sid => sid !== soldierId);
+        }
+    });
+
+    // Cascade: update leave company references
+    state.leaves.forEach(l => {
+        if (l.soldierId === soldierId && l.company === fromCompany) {
+            l.company = toCompany;
+        }
+    });
+
+    // Cascade: remove from rotation groups
+    state.rotationGroups.forEach(g => {
+        g.soldiers = g.soldiers.filter(sid => sid !== soldierId);
+    });
+
+    // Update soldier company
+    sol.company = toCompany;
+
+    saveState();
+    closeModal('transferSoldierModal');
+    renderCompanyTab(fromCompany);
+    renderCompanyTab(toCompany);
+    renderOverview();
+    renderDashboard();
+    updateGlobalStats();
+    showToast(`${sol.name} הועבר ל${compNames[toCompany]} בהצלחה`);
 }
 
 // ==================== SHIFT ====================
@@ -2193,6 +2620,18 @@ function renderSettingsTab() {
         </div>
     </div>
 
+    <!-- Firebase Sync -->
+    <div class="settings-card">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> סנכרון Firebase</h3>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:${typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && typeof firestoreReady !== 'undefined' && firestoreReady ? '#27ae60' : '#e74c3c'};"></div>
+            <span style="font-size:0.85em;">${typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED ? (typeof firestoreReady !== 'undefined' && firestoreReady ? 'מחובר ומסנכרן' : 'מנסה להתחבר...') : 'לא מוגדר'}</span>
+        </div>
+        <p style="font-size:0.78em;color:var(--text-light);">
+            ${typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED ? 'הנתונים מסונכרנים בזמן אמת בין כל המשתמשים.' : 'להפעלה: ערוך את firebase-config.js והגדר FIREBASE_ENABLED = true עם פרטי הפרויקט שלך.'}
+        </p>
+    </div>
+
     <!-- Data Management -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ניהול נתונים</h3>
@@ -2280,6 +2719,7 @@ function saveTasksToStorage() {
     const tasksData = {};
     ALL_COMPANIES.forEach(k => { tasksData[k] = companyData[k].tasks; });
     localStorage.setItem('battalionTasks', JSON.stringify(tasksData));
+    if (typeof firebaseSaveTasks === 'function') firebaseSaveTasks();
 }
 
 function loadTasksFromStorage() {
@@ -2540,6 +2980,170 @@ function generateLeavesReport() {
     html += '</div>';
     document.getElementById('reportOutput').innerHTML = html;
     document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ==================== PDF / EXCEL EXPORT ====================
+function exportReportPDF(type) {
+    if (typeof jspdf === 'undefined') { showToast('ספריית PDF לא נטענה', 'error'); return; }
+    const todayStr = new Date().toISOString().split('T')[0];
+    let html = buildReportHTML(type);
+    if (!html) return;
+
+    // Create a temporary hidden div for rendering
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;top:-9999px;right:0;width:210mm;direction:rtl;font-family:Arial,sans-serif;font-size:12px;padding:15mm;';
+    tmp.innerHTML = html;
+    document.body.appendChild(tmp);
+
+    const doc = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    doc.html(tmp, {
+        callback: function(doc) {
+            const titles = { daily: 'דוח_יומי', company: 'דוח_פלוגות', shifts: 'דוח_שיבוצים', leaves: 'דוח_יציאות' };
+            doc.save(`${titles[type] || 'דוח'}_${todayStr}.pdf`);
+            document.body.removeChild(tmp);
+            showToast('PDF נוצר בהצלחה');
+        },
+        x: 10, y: 10, width: 190, windowWidth: 800
+    });
+}
+
+function buildReportHTML(type) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = getReportDateStr();
+    let html = '';
+
+    if (type === 'daily') {
+        const activeLeaves = state.leaves.filter(l => l.startDate <= todayStr && l.endDate >= todayStr);
+        const todayShifts = state.shifts.filter(sh => sh.date === todayStr);
+        const assignedToday = new Set();
+        todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedToday.add(sid)));
+
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח מצב יומי</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        html += `<table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+            <tr><td><strong>סה"כ חיילים</strong></td><td>${state.soldiers.length}</td></tr>
+            <tr><td><strong>ביציאה היום</strong></td><td>${activeLeaves.length}</td></tr>
+            <tr><td><strong>משובצים היום</strong></td><td>${assignedToday.size}</td></tr>
+            <tr><td><strong>משמרות פעילות</strong></td><td>${todayShifts.length}</td></tr></table>`;
+        html += `<h3>מצב לפי פלוגה</h3><table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;">
+            <tr style="background:#1a3a5c;color:white;"><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>זמינים</th></tr>`;
+        ALL_COMPANIES.forEach(k => {
+            const comp = companyData[k];
+            const reg = state.soldiers.filter(s => s.company === k).length;
+            const lv = activeLeaves.filter(l => l.company === k).length;
+            const asg = todayShifts.filter(sh => sh.company === k).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+            html += `<tr><td>${comp.name}</td><td>${reg}</td><td>${lv}</td><td>${asg}</td><td>${Math.max(0,reg-lv-asg)}</td></tr>`;
+        });
+        html += '</table>';
+    } else if (type === 'company') {
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח פלוגות - כוח אדם</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        ALL_COMPANIES.forEach(k => {
+            const soldiers = state.soldiers.filter(s => s.company === k);
+            html += `<h3>${companyData[k].name} - ${soldiers.length} חיילים</h3>`;
+            if (soldiers.length > 0) {
+                html += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+                <tr style="background:#1a3a5c;color:white;"><th>שם</th><th>דרגה</th><th>תפקיד</th><th>מ.א.</th><th>טלפון</th></tr>`;
+                soldiers.forEach(s => html += `<tr><td>${s.name}</td><td>${s.rank}</td><td>${s.role}</td><td>${s.personalId||'-'}</td><td>${s.phone||'-'}</td></tr>`);
+                html += '</table>';
+            }
+        });
+    } else if (type === 'shifts') {
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח שיבוצים</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        ALL_COMPANIES.forEach(k => {
+            const shifts = state.shifts.filter(sh => sh.company === k && sh.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date));
+            if (!shifts.length) return;
+            html += `<h3>${companyData[k].name} - ${shifts.length} שיבוצים</h3>`;
+            html += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+            <tr style="background:#1a3a5c;color:white;"><th>תאריך</th><th>משימה</th><th>שעות</th><th>חיילים</th></tr>`;
+            shifts.forEach(sh => {
+                const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
+                html += `<tr><td>${formatDate(sh.date)}</td><td>${sh.task}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
+            });
+            html += '</table>';
+        });
+    } else if (type === 'leaves') {
+        const activeLeaves = state.leaves.filter(l => l.endDate >= todayStr).sort((a,b) => a.startDate.localeCompare(b.startDate));
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח יציאות</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        ALL_COMPANIES.forEach(k => {
+            const leaves = activeLeaves.filter(l => l.company === k);
+            if (!leaves.length) return;
+            html += `<h3>${companyData[k].name} - ${leaves.length} יציאות</h3>`;
+            html += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+            <tr style="background:#1a3a5c;color:white;"><th>חייל</th><th>יציאה</th><th>חזרה</th><th>הערות</th></tr>`;
+            leaves.forEach(l => {
+                const sol = state.soldiers.find(s => s.id === l.soldierId);
+                html += `<tr><td>${sol?sol.name:'?'}</td><td>${formatDate(l.startDate)} ${l.startTime}</td><td>${formatDate(l.endDate)} ${l.endTime}</td><td>${l.notes||'-'}</td></tr>`;
+            });
+            html += '</table>';
+        });
+    }
+    return html;
+}
+
+function exportReportExcel(type) {
+    if (typeof XLSX === 'undefined') { showToast('ספריית Excel לא נטענה', 'error'); return; }
+    const todayStr = new Date().toISOString().split('T')[0];
+    const wb = XLSX.utils.book_new();
+    const titles = { daily: 'דוח_יומי', company: 'דוח_פלוגות', shifts: 'דוח_שיבוצים', leaves: 'דוח_יציאות' };
+
+    if (type === 'daily') {
+        const activeLeaves = state.leaves.filter(l => l.startDate <= todayStr && l.endDate >= todayStr);
+        const todayShifts = state.shifts.filter(sh => sh.date === todayStr);
+        const assignedToday = new Set();
+        todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedToday.add(sid)));
+
+        // Summary sheet
+        const summary = [
+            ['דו"ח מצב יומי', getReportDateStr()], [],
+            ['סה"כ חיילים', state.soldiers.length],
+            ['ביציאה היום', activeLeaves.length],
+            ['משובצים היום', assignedToday.size],
+            ['משמרות פעילות', todayShifts.length],
+            [], ['פלוגה', 'רשומים', 'ביציאה', 'משובצים', 'זמינים']
+        ];
+        ALL_COMPANIES.forEach(k => {
+            const reg = state.soldiers.filter(s => s.company === k).length;
+            const lv = activeLeaves.filter(l => l.company === k).length;
+            const asg = todayShifts.filter(sh => sh.company === k).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+            summary.push([companyData[k].name, reg, lv, asg, Math.max(0,reg-lv-asg)]);
+        });
+        const ws = XLSX.utils.aoa_to_sheet(summary);
+        ws['!cols'] = [{wch:20},{wch:12},{wch:12},{wch:12},{wch:12}];
+        XLSX.utils.book_append_sheet(wb, ws, 'סיכום');
+    } else if (type === 'company') {
+        ALL_COMPANIES.forEach(k => {
+            const soldiers = state.soldiers.filter(s => s.company === k);
+            const data = [['שם', 'דרגה', 'תפקיד', 'מ.א.', 'טלפון']];
+            soldiers.forEach(s => data.push([s.name, s.rank, s.role, s.personalId||'', s.phone||'']));
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            ws['!cols'] = [{wch:20},{wch:12},{wch:18},{wch:14},{wch:14}];
+            XLSX.utils.book_append_sheet(wb, ws, companyData[k].name);
+        });
+    } else if (type === 'shifts') {
+        const data = [['פלוגה', 'תאריך', 'משימה', 'משמרת', 'שעות', 'חיילים']];
+        ALL_COMPANIES.forEach(k => {
+            state.shifts.filter(sh => sh.company === k && sh.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date)).forEach(sh => {
+                const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
+                data.push([companyData[k].name, formatDate(sh.date), sh.task, sh.shiftName||'', `${sh.startTime}-${sh.endTime}`, names]);
+            });
+        });
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [{wch:14},{wch:12},{wch:16},{wch:10},{wch:12},{wch:40}];
+        XLSX.utils.book_append_sheet(wb, ws, 'שיבוצים');
+    } else if (type === 'leaves') {
+        const data = [['פלוגה', 'חייל', 'יציאה', 'שעה', 'חזרה', 'שעה', 'הערות']];
+        const activeLeaves = state.leaves.filter(l => l.endDate >= todayStr).sort((a,b) => a.startDate.localeCompare(b.startDate));
+        activeLeaves.forEach(l => {
+            const sol = state.soldiers.find(s => s.id === l.soldierId);
+            const compName = companyData[l.company] ? companyData[l.company].name : l.company;
+            data.push([compName, sol?sol.name:'?', formatDate(l.startDate), l.startTime, formatDate(l.endDate), l.endTime, l.notes||'']);
+        });
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [{wch:14},{wch:18},{wch:12},{wch:8},{wch:12},{wch:8},{wch:20}];
+        XLSX.utils.book_append_sheet(wb, ws, 'יציאות');
+    }
+
+    XLSX.writeFile(wb, `${titles[type]||'דוח'}_${todayStr}.xlsx`);
+    showToast('Excel נוצר בהצלחה');
 }
 
 // ==================== EQUIPMENT (צל"מ) MODULE ====================
