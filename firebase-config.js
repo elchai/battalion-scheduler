@@ -7,15 +7,16 @@
 // 5. Copy the config values below
 // 6. Set FIREBASE_ENABLED = true
 
-const FIREBASE_ENABLED = false; // Set to true after configuring Firebase
+const FIREBASE_ENABLED = true;
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCFs1YrTTRU6TQlzkkqmUASh8y6zq5VNKM",
+    authDomain: "battalion-scheduler.firebaseapp.com",
+    projectId: "battalion-scheduler",
+    storageBucket: "battalion-scheduler.firebasestorage.app",
+    messagingSenderId: "782286427873",
+    appId: "1:782286427873:web:385fa860253eedd8d909a0",
+    measurementId: "G-WWXZCY49E1"
 };
 
 // Initialize Firebase (only if enabled and SDK loaded)
@@ -56,6 +57,7 @@ async function firebaseLoadState() {
             state.equipment = remoteState.equipment || state.equipment;
             state.signatureLog = remoteState.signatureLog || state.signatureLog;
             state.weaponsData = remoteState.weaponsData || state.weaponsData;
+            state.personalEquipment = remoteState.personalEquipment || state.personalEquipment;
             localStorage.setItem('battalionState_v2', JSON.stringify(state));
             firestoreReady = true;
             return true;
@@ -157,6 +159,7 @@ function setupRealtimeListeners() {
                 if (!state.equipment) state.equipment = [];
                 if (!state.signatureLog) state.signatureLog = [];
                 if (!state.weaponsData) state.weaponsData = [];
+                if (!state.personalEquipment) state.personalEquipment = [];
                 localStorage.setItem('battalionState_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');

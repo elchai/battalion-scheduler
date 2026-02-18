@@ -10,7 +10,11 @@ const DEFAULT_SETTINGS = {
     },
     rotationDaysIn: 10,
     rotationDaysOut: 4,
-    sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE'
+    sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
+    equipmentSets: {
+        baseSet: { name: 'סט בסיס', items: [] },
+        roleSets: []
+    }
 };
 
 let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -314,7 +318,7 @@ const companyData = {
 };
 
 // State
-let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [] };
+let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [] };
 
 // Calendar state
 let calendarWeekOffset = 0;
@@ -323,6 +327,8 @@ let calendarWeekOffset = 0;
 let searchState = {};
 let equipmentFilter = 'all';
 let weaponsFilter = 'all';
+let pakalFilter = 'all';
+let equipmentSubTab = 'items';
 
 function getSearchState(compKey) {
     if (!searchState[compKey]) searchState[compKey] = { query: '', filter: 'all' };
@@ -336,6 +342,7 @@ function loadState() {
     if (!state.equipment) state.equipment = [];
     if (!state.signatureLog) state.signatureLog = [];
     if (!state.weaponsData) state.weaponsData = [];
+    if (!state.personalEquipment) state.personalEquipment = [];
 
     // One-time migration: clear shifts and equipment assignments
     if (!localStorage.getItem('migration_clear_v1')) {
@@ -1112,7 +1119,7 @@ function renderCompanyTab(compKey) {
         <div class="action-bar">
             ${editable ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
             <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
-            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')">+ יציאה הביתה</button>` : ''}
+            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>` : ''}
             <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">&#128196; ייצוא CSV</button>
         </div>
 
@@ -1672,7 +1679,7 @@ function renderCommanderDashboard() {
 
         <div class="action-bar" style="margin-top:20px;">
             <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ חדש</button>
-            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')">+ יציאה</button>
+            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה</button>
             <button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
             <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
         </div>
@@ -1859,7 +1866,7 @@ function switchTab(tab) {
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'rotation') renderRotationTab();
-    if (tab === 'equipment') renderEquipmentTab();
+    if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') renderWeaponsTab();
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'commander') renderCommanderDashboard();
@@ -2665,9 +2672,19 @@ function renderSettingsTab() {
             </select>
         </div>
         <div id="taskEditorContainer"></div>
+    </div>
+
+    <!-- Equipment Sets Management -->
+    <div class="settings-card" style="grid-column: 1 / -1;">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg> ניהול סטי ציוד (פק"ל)</h3>
+        <p style="font-size:0.83em;color:var(--text-light);margin-bottom:16px;">
+            הגדר סט בסיס (לכל חייל) וסטים תפקידיים (לפי תפקיד). שינויים כאן לא ישפיעו על פק"לים שכבר נוצרו.
+        </p>
+        <div id="equipmentSetsEditor"></div>
     </div>`;
 
     renderTaskEditor();
+    renderEquipmentSetsSettings();
 }
 
 function renderTaskEditor() {
@@ -2784,7 +2801,7 @@ function importAllData(input) {
 function resetAllData() {
     if (!confirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
     if (!confirm('אישור סופי - למחוק הכל?')) return;
-    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [] };
+    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [] };
     saveState();
     localStorage.removeItem('battalionTasks');
     localStorage.removeItem('battalionDataVersion');
@@ -4435,6 +4452,768 @@ async function generateWeaponsPDF(soldierId) {
         console.error('Image generation error:', err);
         showToast('שגיאה בהפקת תמונות: ' + err.message, 'error');
     }
+}
+
+// ==================== PAKAL (PERSONAL EQUIPMENT) SYSTEM ====================
+
+// --- Equipment Sets Settings ---
+function renderEquipmentSetsSettings() {
+    const container = document.getElementById('equipmentSetsEditor');
+    if (!container) return;
+    if (!settings.equipmentSets) settings.equipmentSets = { baseSet: { name: 'סט בסיס', items: [] }, roleSets: [] };
+    const es = settings.equipmentSets;
+
+    let html = `<div class="sub-section" style="margin-bottom:20px;">
+        <h4 style="margin:0 0 10px;">סט בסיס (לכל חייל)</h4>
+        <div class="table-scroll"><table style="width:100%;font-size:0.85em;">
+            <thead><tr><th>שם פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th><th></th></tr></thead>
+            <tbody>
+                ${es.baseSet.items.map((item, i) => `<tr>
+                    <td><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;"></td>
+                    <td><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:60px;"></td>
+                    <td><select onchange="updateBaseSetItem(${i},'category',this.value)">
+                        ${['מגן','נשק','קשר','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+                    </select></td>
+                    <td><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)"></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})">&#10005;</button></td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>
+        <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="addBaseSetItem()">+ הוסף פריט</button>
+    </div>
+
+    <div class="sub-section">
+        <h4 style="margin:0 0 10px;">סטים תפקידיים</h4>
+        ${es.roleSets.map((rs, ri) => `
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;border-right:3px solid var(--primary);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <input type="text" value="${rs.name}" onchange="updateRoleSet(${ri},'name',this.value)" style="font-weight:700;font-size:0.95em;border:none;background:transparent;width:200px;">
+                <button class="btn btn-danger btn-sm" onclick="deleteRoleSet(${ri})">מחק סט</button>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:0.82em;font-weight:600;">תפקידים:</label>
+                <input type="text" value="${rs.roles.join(', ')}" onchange="updateRoleSetRoles(${ri},this.value)" placeholder="לוחם, מפקד, ..." style="width:100%;font-size:0.85em;">
+                <span style="font-size:0.75em;color:var(--text-light);">הפרד בפסיקים</span>
+            </div>
+            <div class="table-scroll"><table style="width:100%;font-size:0.83em;">
+                <thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th><th></th></tr></thead>
+                <tbody>
+                    ${rs.items.map((item, ii) => `<tr>
+                        <td><input type="text" value="${item.name}" onchange="updateRoleSetItem(${ri},${ii},'name',this.value)" style="width:100%;"></td>
+                        <td><input type="number" min="1" value="${item.quantity}" onchange="updateRoleSetItem(${ri},${ii},'quantity',parseInt(this.value))" style="width:55px;"></td>
+                        <td><select onchange="updateRoleSetItem(${ri},${ii},'category',this.value)">
+                            ${['נשק','קשר','מגן','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+                        </select></td>
+                        <td><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateRoleSetItem(${ri},${ii},'requiresSerial',this.checked)"></td>
+                        <td><button class="btn btn-danger btn-sm" onclick="removeRoleSetItem(${ri},${ii})">&#10005;</button></td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>
+            <button class="btn btn-sm" style="background:var(--card);margin-top:6px;" onclick="addRoleSetItem(${ri})">+ פריט</button>
+        </div>`).join('')}
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="addRoleSet()">+ הוסף סט תפקידי</button>
+    </div>`;
+    container.innerHTML = html;
+}
+
+function addBaseSetItem() {
+    if (!settings.equipmentSets) settings.equipmentSets = { baseSet: { name: 'סט בסיס', items: [] }, roleSets: [] };
+    settings.equipmentSets.baseSet.items.push({ name: '', quantity: 1, category: 'אחר', requiresSerial: false });
+    saveSettings(); renderEquipmentSetsSettings();
+}
+function removeBaseSetItem(i) {
+    settings.equipmentSets.baseSet.items.splice(i, 1);
+    saveSettings(); renderEquipmentSetsSettings();
+}
+function updateBaseSetItem(i, field, val) {
+    settings.equipmentSets.baseSet.items[i][field] = val;
+    saveSettings();
+}
+function addRoleSet() {
+    const id = 'rs_' + Date.now();
+    settings.equipmentSets.roleSets.push({ id, name: 'סט חדש', roles: [], items: [] });
+    saveSettings(); renderEquipmentSetsSettings();
+}
+function deleteRoleSet(ri) {
+    if (!confirm('למחוק את הסט?')) return;
+    settings.equipmentSets.roleSets.splice(ri, 1);
+    saveSettings(); renderEquipmentSetsSettings();
+}
+function addRoleSetItem(ri) {
+    settings.equipmentSets.roleSets[ri].items.push({ name: '', quantity: 1, category: 'אחר', requiresSerial: false });
+    saveSettings(); renderEquipmentSetsSettings();
+}
+function removeRoleSetItem(ri, ii) {
+    settings.equipmentSets.roleSets[ri].items.splice(ii, 1);
+    saveSettings(); renderEquipmentSetsSettings();
+}
+function updateRoleSetItem(ri, ii, field, val) {
+    settings.equipmentSets.roleSets[ri].items[ii][field] = val;
+    saveSettings();
+}
+function updateRoleSet(ri, field, val) {
+    settings.equipmentSets.roleSets[ri][field] = val;
+    saveSettings();
+}
+function updateRoleSetRoles(ri, val) {
+    settings.equipmentSets.roleSets[ri].roles = val.split(',').map(r => r.trim()).filter(r => r);
+    saveSettings();
+}
+
+function getRoleSetForSoldier(soldier) {
+    if (!settings.equipmentSets || !settings.equipmentSets.roleSets) return null;
+    return settings.equipmentSets.roleSets.find(rs =>
+        rs.roles.some(role => soldier.role && soldier.role.includes(role))
+    ) || null;
+}
+
+// --- Sub-tab switching ---
+function switchEquipmentSubTab(tab) {
+    equipmentSubTab = tab;
+    document.querySelectorAll('.equip-subtab').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.remove('active'));
+    const target = document.getElementById('subtab-' + tab);
+    if (target) target.style.display = '';
+    const btns = document.querySelectorAll('#equipmentSubTabs .subtab-btn');
+    const idx = { items: 0, pakal: 1, dashboard: 2 }[tab] || 0;
+    if (btns[idx]) btns[idx].classList.add('active');
+
+    if (tab === 'pakal') renderPakalSubTab();
+    if (tab === 'dashboard') renderPalsamDashboard();
+}
+
+// --- Generate Personal Equipment ---
+function openGeneratePakalModal() {
+    openModal('generatePakalModal');
+    updatePakalGenSoldiers();
+    document.getElementById('pakalGenPreview').style.display = 'none';
+}
+
+function updatePakalGenSoldiers() {
+    const compFilter = document.getElementById('pakalGenCompany').value;
+    const select = document.getElementById('pakalGenSoldier');
+    let soldiers = state.soldiers;
+    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
+    // Exclude soldiers who already have a pakal
+    const existingIds = new Set(state.personalEquipment.map(pe => pe.soldierId));
+    soldiers = soldiers.filter(s => !existingIds.has(s.id));
+    select.innerHTML = '<option value="">-- בחר חייל --</option>' +
+        soldiers.map(s => `<option value="${s.id}">${s.name} (${s.role || 'לוחם'} - ${companyData[s.company]?.name || s.company})</option>`).join('');
+    document.getElementById('pakalGenPreview').style.display = 'none';
+}
+
+function previewPakalForSoldier() {
+    const soldierId = document.getElementById('pakalGenSoldier').value;
+    const preview = document.getElementById('pakalGenPreview');
+    if (!soldierId) { preview.style.display = 'none'; return; }
+    const soldier = state.soldiers.find(s => s.id === soldierId);
+    if (!soldier) return;
+
+    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
+    const roleSet = getRoleSetForSoldier(soldier);
+    const baseItems = es.baseSet.items || [];
+    const roleItems = roleSet ? roleSet.items : [];
+
+    preview.style.display = '';
+    preview.innerHTML = `
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
+            <strong>${soldier.name}</strong> - ${soldier.role || 'לוחם'}
+            <div style="margin-top:8px;">
+                <div style="font-weight:600;font-size:0.85em;margin-bottom:4px;">סט בסיס (${baseItems.length} פריטים):</div>
+                ${baseItems.length ? `<ul style="font-size:0.83em;margin:0;padding-right:20px;">${baseItems.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>` : '<span style="font-size:0.83em;color:var(--text-light);">ריק - הגדר בהגדרות</span>'}
+            </div>
+            ${roleSet ? `<div style="margin-top:8px;">
+                <div style="font-weight:600;font-size:0.85em;margin-bottom:4px;">${roleSet.name} (${roleItems.length} פריטים):</div>
+                <ul style="font-size:0.83em;margin:0;padding-right:20px;">${roleItems.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>
+            </div>` : '<div style="margin-top:8px;font-size:0.83em;color:var(--text-light);">אין סט תפקידי מתאים</div>'}
+            <div style="margin-top:8px;font-size:0.85em;font-weight:700;">סה"כ: ${baseItems.length + roleItems.length} פריטים</div>
+        </div>`;
+}
+
+function confirmGeneratePakal() {
+    const soldierId = document.getElementById('pakalGenSoldier').value;
+    if (!soldierId) { showToast('בחר חייל', 'error'); return; }
+    if (state.personalEquipment.find(pe => pe.soldierId === soldierId)) {
+        showToast('לחייל זה כבר יש פק"ל', 'error'); return;
+    }
+    generatePersonalEquipment(soldierId);
+    closeModal('generatePakalModal');
+    showToast('פק"ל נוצר בהצלחה');
+    if (equipmentSubTab === 'pakal') renderPakalSubTab();
+}
+
+function generatePersonalEquipment(soldierId) {
+    const soldier = state.soldiers.find(s => s.id === soldierId);
+    if (!soldier) return;
+    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
+    const roleSet = getRoleSetForSoldier(soldier);
+
+    const items = [];
+    let counter = 1;
+    (es.baseSet.items || []).forEach(item => {
+        items.push({
+            itemId: 'pi_' + (counter++),
+            name: item.name, quantity: item.quantity, category: item.category,
+            requiresSerial: item.requiresSerial, source: 'base',
+            status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
+            issuedDate: null, returnedDate: null, notes: ''
+        });
+    });
+    if (roleSet) {
+        roleSet.items.forEach(item => {
+            items.push({
+                itemId: 'pi_' + (counter++),
+                name: item.name, quantity: item.quantity, category: item.category,
+                requiresSerial: item.requiresSerial, source: 'role',
+                status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
+                issuedDate: null, returnedDate: null, notes: ''
+            });
+        });
+    }
+
+    const pe = {
+        id: 'pe_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        soldierId,
+        generatedDate: new Date().toISOString(),
+        roleSetId: roleSet ? roleSet.id : null,
+        items,
+        bulkSignature: { signed: false, signatureImg: null, signedDate: null, issuedBy: '', issuerSignatureImg: null },
+        history: [{ date: new Date().toISOString(), action: 'created', details: 'פק"ל נוצר' }]
+    };
+    state.personalEquipment.push(pe);
+    saveState();
+    return pe;
+}
+
+function openBulkGeneratePakalModal() {
+    openModal('bulkGeneratePakalModal');
+}
+
+function confirmBulkGeneratePakal() {
+    const compKey = document.getElementById('bulkPakalCompany').value;
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const existingIds = new Set(state.personalEquipment.map(pe => pe.soldierId));
+    let count = 0;
+    soldiers.forEach(s => {
+        if (!existingIds.has(s.id)) {
+            generatePersonalEquipment(s.id);
+            count++;
+        }
+    });
+    closeModal('bulkGeneratePakalModal');
+    showToast(`נוצרו ${count} פק"לים חדשים`);
+    if (equipmentSubTab === 'pakal') renderPakalSubTab();
+}
+
+// --- Render Pakal Sub-tab ---
+function setPakalFilter(filter, btn) {
+    pakalFilter = filter;
+    if (btn) {
+        btn.closest('.filter-buttons').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    renderPakalSubTab();
+}
+
+function renderPakalSubTab() {
+    const container = document.getElementById('pakalSubTabContent');
+    if (!container) return;
+
+    const search = (document.getElementById('pakalSearch')?.value || '').trim().toLowerCase();
+    let pelist = state.personalEquipment.map(pe => {
+        const sol = state.soldiers.find(s => s.id === pe.soldierId);
+        return { ...pe, soldier: sol };
+    }).filter(pe => pe.soldier);
+
+    // Filter
+    if (pakalFilter === 'signed') pelist = pelist.filter(pe => pe.bulkSignature.signed);
+    else if (pakalFilter === 'unsigned') pelist = pelist.filter(pe => !pe.bulkSignature.signed && pe.items.every(i => i.status === 'pending'));
+    else if (pakalFilter === 'partial') pelist = pelist.filter(pe => !pe.bulkSignature.signed && pe.items.some(i => i.status !== 'pending'));
+
+    // Search
+    if (search) {
+        pelist = pelist.filter(pe =>
+            pe.soldier.name.toLowerCase().includes(search) ||
+            pe.items.some(i => i.name.toLowerCase().includes(search))
+        );
+    }
+
+    const stats = getPakalStats();
+
+    container.innerHTML = `
+        <div class="action-bar">
+            <button class="btn btn-primary" onclick="openGeneratePakalModal()">+ יצירת פק"ל לחייל</button>
+            <button class="btn btn-success" onclick="openBulkGeneratePakalModal()">יצירת פק"ל לפלוגה</button>
+            <button class="btn" style="background:var(--bg)" onclick="exportPakalCSV()">&#128196; ייצוא CSV</button>
+        </div>
+        <div class="quick-stats" style="margin-bottom:14px;">
+            <div class="quick-stat"><div class="value">${stats.total}</div><div class="label">סה"כ פק"לים</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--success)"><div class="value" style="color:var(--success)">${stats.signed}</div><div class="label">חתמו</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--danger)"><div class="value" style="color:var(--danger)">${stats.unsigned}</div><div class="label">לא חתמו</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--warning)"><div class="value" style="color:var(--warning)">${stats.partial}</div><div class="label">חלקי</div></div>
+        </div>
+        <div class="search-bar">
+            <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" id="pakalSearch" placeholder="חיפוש לפי שם חייל, פריט..." oninput="renderPakalSubTab()" value="${search}">
+        </div>
+        <div class="filter-buttons" style="margin-bottom:14px;">
+            <button class="filter-btn ${pakalFilter==='all'?'active':''}" onclick="setPakalFilter('all',this)">הכל (${stats.total})</button>
+            <button class="filter-btn ${pakalFilter==='signed'?'active':''}" onclick="setPakalFilter('signed',this)">חתמו (${stats.signed})</button>
+            <button class="filter-btn ${pakalFilter==='unsigned'?'active':''}" onclick="setPakalFilter('unsigned',this)">לא חתמו (${stats.unsigned})</button>
+            <button class="filter-btn ${pakalFilter==='partial'?'active':''}" onclick="setPakalFilter('partial',this)">חלקי (${stats.partial})</button>
+        </div>
+        ${pelist.length === 0 ? '<div class="empty-state"><p>אין פק"לים להצגה</p></div>' :
+        pelist.map(pe => renderPakalCard(pe)).join('')}
+    `;
+}
+
+function renderPakalCard(pe) {
+    const sol = pe.soldier;
+    const totalItems = pe.items.length;
+    const issuedItems = pe.items.filter(i => i.status === 'issued').length;
+    const isSigned = pe.bulkSignature.signed;
+    const statusClass = isSigned ? 'signed' : (issuedItems > 0 ? 'partial' : 'unsigned');
+    const statusText = isSigned ? 'חתם' : (issuedItems > 0 ? `חלקי (${issuedItems}/${totalItems})` : 'טרם חתם');
+    const statusBadge = isSigned ? 'status-on-duty' : (issuedItems > 0 ? 'status-available' : 'status-on-leave');
+    const compName = companyData[sol.company]?.name || sol.company;
+
+    return `<div class="pakal-card ${statusClass}">
+        <div class="pakal-card-header">
+            <div>
+                <h4>${sol.name}</h4>
+                <div class="pakal-card-meta">${sol.role || 'לוחם'} | ${compName} | ${sol.personalId || ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="person-status ${statusBadge}">${statusText}</span>
+            </div>
+        </div>
+        <div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.83em;margin-bottom:3px;">
+                <span>התקדמות הנפקה</span><span>${issuedItems}/${totalItems}</span>
+            </div>
+            <div class="pakal-progress"><div class="pakal-progress-bar" style="width:${totalItems>0?(issuedItems/totalItems*100):0}%;${isSigned?'background:var(--success)':''}"></div></div>
+        </div>
+        <details>
+            <summary style="cursor:pointer;font-size:0.85em;font-weight:600;margin-bottom:6px;">פירוט פריטים (${totalItems})</summary>
+            <div class="table-scroll"><table class="pakal-items-table">
+                <thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
+                <tbody>
+                    ${pe.items.map(item => `<tr>
+                        <td style="text-align:right;">${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td>${item.category}</td>
+                        <td>${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
+                        <td><span class="pakal-status ${item.status}">${item.status === 'pending' ? 'ממתין' : item.status === 'issued' ? 'הונפק' : 'הוחזר'}</span></td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>
+        </details>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+            ${!isSigned ? `<button class="btn btn-success btn-sm" onclick="openBulkSignModal('${pe.soldierId}')">&#9998; חתימה</button>` : ''}
+            <button class="btn btn-sm" style="background:#7B1FA2;color:#fff;" onclick="openAddExtraItemModal('${pe.soldierId}')">+ פריט</button>
+            ${issuedItems > 0 ? `<button class="btn btn-warning btn-sm" onclick="openReturnPakalModal('${pe.soldierId}')">&#8634; החזרה</button>` : ''}
+            <button class="btn btn-sm" style="background:var(--bg)" onclick="generatePakalPDF('${pe.soldierId}')">PDF</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePakal('${pe.soldierId}')">&#10005;</button>
+        </div>
+    </div>`;
+}
+
+function deletePakal(soldierId) {
+    if (!confirm('למחוק את הפק"ל של חייל זה?')) return;
+    state.personalEquipment = state.personalEquipment.filter(pe => pe.soldierId !== soldierId);
+    saveState();
+    renderPakalSubTab();
+    showToast('פק"ל נמחק');
+}
+
+// --- Bulk Sign ---
+function openBulkSignModal(soldierId) {
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!pe || !sol) return;
+
+    document.getElementById('bulkSignSoldierId').value = soldierId;
+    document.getElementById('bulkSignSoldierInfo').innerHTML = `
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;">
+            <strong>${sol.name}</strong> | ${sol.role || 'לוחם'} | ${companyData[sol.company]?.name || ''} | מ.א: ${sol.personalId || '-'}
+        </div>`;
+
+    document.getElementById('bulkSignItemsList').innerHTML = `
+        <div class="table-scroll"><table class="pakal-items-table">
+            <thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th></tr></thead>
+            <tbody>
+                ${pe.items.map(item => `<tr>
+                    <td style="text-align:right;">${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.category}</td>
+                    <td>${item.requiresSerial ? 'כן' : '-'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>
+        <div style="font-size:0.85em;font-weight:700;margin-top:8px;">סה"כ: ${pe.items.length} פריטים</div>`;
+
+    document.getElementById('bulkSignIssuer').value = currentUser ? currentUser.name : '';
+    openModal('bulkSignPakalModal');
+    setTimeout(() => {
+        setupSignatureCanvas('bulkSignCanvas');
+        setupSignatureCanvas('issuerSignCanvas');
+    }, 200);
+}
+
+function confirmBulkSign() {
+    const soldierId = document.getElementById('bulkSignSoldierId').value;
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    if (!pe) { showToast('פק"ל לא נמצא', 'error'); return; }
+
+    if (isCanvasEmpty('bulkSignCanvas')) { showToast('חייל חייב לחתום', 'error'); return; }
+    if (isCanvasEmpty('issuerSignCanvas')) { showToast('מנפיק חייב לחתום', 'error'); return; }
+
+    const issuerName = document.getElementById('bulkSignIssuer').value.trim();
+    if (!issuerName) { showToast('נא למלא שם מנפיק', 'error'); return; }
+
+    const now = new Date();
+    pe.bulkSignature = {
+        signed: true,
+        signatureImg: getCanvasDataURL('bulkSignCanvas'),
+        signedDate: now.toISOString(),
+        issuedBy: issuerName,
+        issuerSignatureImg: getCanvasDataURL('issuerSignCanvas')
+    };
+
+    pe.items.forEach(item => {
+        if (item.status === 'pending') {
+            item.status = 'issued';
+            item.issuedQuantity = item.quantity;
+            item.issuedDate = now.toISOString();
+        }
+    });
+
+    pe.history.push({ date: now.toISOString(), action: 'bulk_signed', details: `חתימה כוללנית ע"י ${issuerName}` });
+
+    saveState();
+    closeModal('bulkSignPakalModal');
+    generatePakalPDF(soldierId);
+    if (equipmentSubTab === 'pakal') renderPakalSubTab();
+    showToast('חתימה נשמרה בהצלחה');
+}
+
+// --- Extra Items ---
+function openAddExtraItemModal(soldierId) {
+    document.getElementById('extraItemSoldierId').value = soldierId;
+    document.getElementById('extraItemName').value = '';
+    document.getElementById('extraItemQty').value = '1';
+    document.getElementById('extraItemNotes').value = '';
+    document.getElementById('extraItemSerial').checked = false;
+    openModal('addExtraItemModal');
+}
+
+function confirmAddExtraItem() {
+    const soldierId = document.getElementById('extraItemSoldierId').value;
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    if (!pe) { showToast('פק"ל לא נמצא', 'error'); return; }
+
+    const name = document.getElementById('extraItemName').value.trim();
+    if (!name) { showToast('נא למלא שם פריט', 'error'); return; }
+
+    const item = {
+        itemId: 'pi_extra_' + Date.now(),
+        name,
+        quantity: parseInt(document.getElementById('extraItemQty').value) || 1,
+        category: document.getElementById('extraItemCategory').value,
+        requiresSerial: document.getElementById('extraItemSerial').checked,
+        source: 'manual',
+        status: 'pending',
+        issuedQuantity: 0,
+        linkedEquipmentIds: [],
+        issuedDate: null,
+        returnedDate: null,
+        notes: document.getElementById('extraItemNotes').value.trim()
+    };
+    pe.items.push(item);
+    pe.history.push({ date: new Date().toISOString(), action: 'item_added', details: `פריט "${name}" נוסף ידנית` });
+    saveState();
+    closeModal('addExtraItemModal');
+    if (equipmentSubTab === 'pakal') renderPakalSubTab();
+    showToast(`פריט "${name}" נוסף לפק"ל`);
+}
+
+// --- Return Pakal ---
+function openReturnPakalModal(soldierId) {
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!pe || !sol) return;
+
+    document.getElementById('returnPakalSoldierId').value = soldierId;
+    document.getElementById('returnPakalSoldierInfo').innerHTML = `
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;">
+            <strong>${sol.name}</strong> | ${sol.role || 'לוחם'} | ${companyData[sol.company]?.name || ''}
+        </div>`;
+
+    const issuedItems = pe.items.filter(i => i.status === 'issued');
+    document.getElementById('returnPakalItemsList').innerHTML = issuedItems.length === 0
+        ? '<p style="color:var(--text-light);">אין פריטים מונפקים להחזרה</p>'
+        : `<div class="table-scroll"><table class="pakal-items-table">
+            <thead><tr><th>החזר</th><th>פריט</th><th>כמות</th><th>קטגוריה</th></tr></thead>
+            <tbody>
+                ${issuedItems.map(item => `<tr>
+                    <td><input type="checkbox" class="return-item-cb" data-item-id="${item.itemId}" checked></td>
+                    <td style="text-align:right;">${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.category}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table></div>`;
+
+    document.getElementById('returnPakalNotes').value = '';
+    openModal('returnPakalModal');
+    setTimeout(() => setupSignatureCanvas('returnPakalCanvas'), 200);
+}
+
+function confirmReturnPakal() {
+    const soldierId = document.getElementById('returnPakalSoldierId').value;
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    if (!pe) { showToast('פק"ל לא נמצא', 'error'); return; }
+
+    if (isCanvasEmpty('returnPakalCanvas')) { showToast('נדרשת חתימת מחזיר', 'error'); return; }
+
+    const checkedIds = [];
+    document.querySelectorAll('.return-item-cb:checked').forEach(cb => checkedIds.push(cb.dataset.itemId));
+
+    if (checkedIds.length === 0) { showToast('בחר פריטים להחזרה', 'error'); return; }
+
+    const now = new Date();
+    const notes = document.getElementById('returnPakalNotes').value.trim();
+    const returnedNames = [];
+
+    checkedIds.forEach(itemId => {
+        const item = pe.items.find(i => i.itemId === itemId);
+        if (item) {
+            item.status = 'returned';
+            item.returnedDate = now.toISOString();
+            returnedNames.push(item.name);
+        }
+    });
+
+    const allReturned = pe.items.every(i => i.status === 'returned');
+    if (allReturned) {
+        pe.bulkSignature.signed = false;
+    }
+
+    pe.history.push({ date: now.toISOString(), action: 'items_returned', details: `הוחזרו: ${returnedNames.join(', ')}${notes ? ' | ' + notes : ''}` });
+    saveState();
+    closeModal('returnPakalModal');
+    if (equipmentSubTab === 'pakal') renderPakalSubTab();
+    showToast(`${checkedIds.length} פריטים הוחזרו`);
+}
+
+// --- Palsam Dashboard ---
+function getPakalStats(companyFilter) {
+    let pelist = state.personalEquipment;
+    if (companyFilter && companyFilter !== 'all') {
+        pelist = pelist.filter(pe => {
+            const sol = state.soldiers.find(s => s.id === pe.soldierId);
+            return sol && sol.company === companyFilter;
+        });
+    }
+    const total = pelist.length;
+    const signed = pelist.filter(pe => pe.bulkSignature.signed).length;
+    const partial = pelist.filter(pe => !pe.bulkSignature.signed && pe.items.some(i => i.status !== 'pending')).length;
+    const unsigned = total - signed - partial;
+    return { total, signed, unsigned, partial };
+}
+
+function renderPalsamDashboard() {
+    const container = document.getElementById('palsamDashboardContent');
+    if (!container) return;
+
+    const companyNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד', hq: 'חפ"ק', palsam: 'פלס"ם' };
+    const allStats = getPakalStats();
+
+    // Per-company stats
+    const companyStats = ALL_COMPANIES.map(k => {
+        const stats = getPakalStats(k);
+        return { key: k, name: companyNames[k], ...stats };
+    }).filter(c => c.total > 0);
+
+    // Unsigned soldiers
+    const unsignedSoldiers = state.personalEquipment
+        .filter(pe => !pe.bulkSignature.signed)
+        .map(pe => {
+            const sol = state.soldiers.find(s => s.id === pe.soldierId);
+            return sol ? { ...sol, pe } : null;
+        })
+        .filter(Boolean);
+
+    const pct = allStats.total > 0 ? Math.round(allStats.signed / allStats.total * 100) : 0;
+
+    container.innerHTML = `
+        <div class="info-box" style="margin-bottom:16px;">
+            <span class="info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg></span>
+            <div><strong>דשבורד פלס"ם:</strong> מעקב החתמות ציוד לכל חיילי הגדוד</div>
+        </div>
+
+        <!-- Overall Stats -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+            <div class="dashboard-stat-card" style="border-top:3px solid var(--primary);">
+                <div class="big-num" style="color:var(--primary);">${allStats.total}</div>
+                <div class="label">סה"כ פק"לים</div>
+            </div>
+            <div class="dashboard-stat-card" style="border-top:3px solid var(--success);">
+                <div class="big-num" style="color:var(--success);">${allStats.signed}</div>
+                <div class="label">חתמו</div>
+            </div>
+            <div class="dashboard-stat-card" style="border-top:3px solid var(--danger);">
+                <div class="big-num" style="color:var(--danger);">${allStats.unsigned}</div>
+                <div class="label">טרם חתמו</div>
+            </div>
+            <div class="dashboard-stat-card" style="border-top:3px solid var(--warning);">
+                <div class="big-num" style="color:var(--warning);">${pct}%</div>
+                <div class="label">אחוז השלמה</div>
+            </div>
+        </div>
+
+        <!-- Overall progress -->
+        <div style="margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:4px;">
+                <span>התקדמות כוללת</span><span>${allStats.signed}/${allStats.total}</span>
+            </div>
+            <div class="pakal-progress" style="height:12px;">
+                <div class="pakal-progress-bar" style="width:${pct}%;"></div>
+            </div>
+        </div>
+
+        <!-- Per-company breakdown -->
+        ${companyStats.length > 0 ? `
+        <div class="sub-section" style="margin-bottom:20px;">
+            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:var(--primary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg></div> מצב לפי פלוגה</div>
+            <div class="table-scroll"><table style="width:100%;font-size:0.85em;">
+                <thead><tr><th>פלוגה</th><th>סה"כ</th><th>חתמו</th><th>לא חתמו</th><th>התקדמות</th></tr></thead>
+                <tbody>
+                    ${companyStats.map(c => {
+                        const cpct = c.total > 0 ? Math.round(c.signed / c.total * 100) : 0;
+                        return `<tr>
+                            <td style="text-align:right;font-weight:600;">${c.name}</td>
+                            <td style="text-align:center;">${c.total}</td>
+                            <td style="text-align:center;color:var(--success);">${c.signed}</td>
+                            <td style="text-align:center;color:var(--danger);">${c.unsigned + c.partial}</td>
+                            <td><div style="display:flex;align-items:center;gap:6px;">
+                                <div style="flex:1;height:6px;background:var(--border);border-radius:3px;">
+                                    <div style="width:${cpct}%;height:100%;background:${cpct>=100?'var(--success)':cpct>=50?'var(--warning)':'var(--danger)'};border-radius:3px;"></div>
+                                </div>
+                                <span style="font-size:0.82em;min-width:35px;">${cpct}%</span>
+                            </div></td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table></div>
+        </div>` : ''}
+
+        <!-- Unsigned soldiers list -->
+        ${unsignedSoldiers.length > 0 ? `
+        <div class="sub-section">
+            <div class="section-title"><div class="icon" style="background:#FFEBEE;color:var(--danger);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div> חיילים שטרם חתמו (${unsignedSoldiers.length})</div>
+            <div class="table-scroll"><table style="width:100%;font-size:0.85em;">
+                <thead><tr><th>שם</th><th>תפקיד</th><th>פלוגה</th><th>פריטים</th><th>פעולות</th></tr></thead>
+                <tbody>
+                    ${unsignedSoldiers.slice(0, 50).map(s => `<tr>
+                        <td style="text-align:right;font-weight:600;">${s.name}</td>
+                        <td>${s.role || 'לוחם'}</td>
+                        <td>${companyNames[s.company] || s.company}</td>
+                        <td style="text-align:center;">${s.pe.items.length}</td>
+                        <td style="display:flex;gap:4px;">
+                            <button class="btn btn-success btn-sm" onclick="openBulkSignModal('${s.id}')">חתימה</button>
+                            ${s.phone ? `<a class="btn btn-sm" style="background:#25D366;color:#fff;" href="https://wa.me/972${s.phone.replace(/^0/,'').replace(/-/g,'')}?text=${encodeURIComponent('שלום ' + s.name + ', יש לך פק"ל ציוד שממתין לחתימתך במערכת הגדודית. נא להגיע לפלס"ם לחתום.')}" target="_blank">WhatsApp</a>` : ''}
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table></div>
+        </div>` : '<div class="empty-state"><p>כל החיילים חתמו!</p></div>'}
+    `;
+}
+
+// --- PDF Generation ---
+function generatePakalPDF(soldierId) {
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!pe || !sol) { showToast('לא נמצא', 'error'); return; }
+
+    const compName = companyData[sol.company]?.name || sol.company;
+    const dateStr = pe.bulkSignature.signedDate
+        ? new Date(pe.bulkSignature.signedDate).toLocaleDateString('he-IL')
+        : new Date().toLocaleDateString('he-IL');
+
+    const html = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+        h1 { text-align: center; color: #1a3a5c; border-bottom: 3px solid #1a3a5c; padding-bottom: 10px; }
+        .info { margin: 15px 0; }
+        .info td { padding: 4px 10px; font-size: 14px; }
+        table.items { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        table.items th { background: #1a3a5c; color: white; padding: 8px; font-size: 13px; }
+        table.items td { padding: 6px 8px; border: 1px solid #ddd; font-size: 13px; text-align: center; }
+        table.items tr:nth-child(even) { background: #f9f9f9; }
+        .sig-section { margin-top: 30px; display: flex; justify-content: space-between; }
+        .sig-box { width: 45%; text-align: center; }
+        .sig-box img { max-width: 200px; max-height: 80px; border-bottom: 1px solid #333; }
+        .sig-label { font-size: 12px; margin-top: 4px; color: #666; }
+        .footer { text-align: center; font-size: 11px; color: #999; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
+    </style></head><body>
+    <h1>פק"ל אישי - טופס חתימה על ציוד</h1>
+    <table class="info">
+        <tr><td><strong>שם:</strong></td><td>${sol.name}</td><td><strong>מ.א:</strong></td><td>${sol.personalId || '-'}</td></tr>
+        <tr><td><strong>תפקיד:</strong></td><td>${sol.role || 'לוחם'}</td><td><strong>פלוגה:</strong></td><td>${compName}</td></tr>
+        <tr><td><strong>טלפון:</strong></td><td>${sol.phone || '-'}</td><td><strong>תאריך:</strong></td><td>${dateStr}</td></tr>
+    </table>
+    <p style="font-size:13px;">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
+    <table class="items">
+        <thead><tr><th>#</th><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
+        <tbody>
+            ${pe.items.map((item, i) => `<tr>
+                <td>${i + 1}</td>
+                <td style="text-align:right;">${item.name}</td>
+                <td>${item.quantity}</td>
+                <td>${item.category}</td>
+                <td>${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
+                <td>${item.status === 'issued' ? 'הונפק' : item.status === 'returned' ? 'הוחזר' : 'ממתין'}</td>
+            </tr>`).join('')}
+        </tbody>
+    </table>
+    ${pe.bulkSignature.signed ? `
+    <div class="sig-section">
+        <div class="sig-box">
+            ${pe.bulkSignature.signatureImg ? `<img src="${pe.bulkSignature.signatureImg}">` : ''}
+            <div class="sig-label">חתימת חייל מקבל</div>
+            <div style="font-size:12px;">${sol.name}</div>
+        </div>
+        <div class="sig-box">
+            ${pe.bulkSignature.issuerSignatureImg ? `<img src="${pe.bulkSignature.issuerSignatureImg}">` : ''}
+            <div class="sig-label">חתימת מנפיק</div>
+            <div style="font-size:12px;">${pe.bulkSignature.issuedBy || ''}</div>
+        </div>
+    </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
+    <div class="footer">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
+    </body></html>`;
+
+    downloadPDF(html, `פקל_${sol.name}_${dateStr.replace(/\//g, '-')}`);
+}
+
+// --- CSV Export ---
+function exportPakalCSV() {
+    let csv = '\uFEFF' + 'שם חייל,תפקיד,פלוגה,מ.א,סטטוס חתימה,תאריך חתימה,פריטים,מנפיק\n';
+    state.personalEquipment.forEach(pe => {
+        const sol = state.soldiers.find(s => s.id === pe.soldierId);
+        if (!sol) return;
+        const compName = companyData[sol.company]?.name || sol.company;
+        const status = pe.bulkSignature.signed ? 'חתם' : 'לא חתם';
+        const signDate = pe.bulkSignature.signedDate ? new Date(pe.bulkSignature.signedDate).toLocaleDateString('he-IL') : '-';
+        const itemNames = pe.items.map(i => i.name).join(' | ');
+        csv += `"${sol.name}","${sol.role || ''}","${compName}","${sol.personalId || ''}","${status}","${signDate}","${itemNames}","${pe.bulkSignature.issuedBy || ''}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `פקל_גדודי_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
 }
 
 // Close modals

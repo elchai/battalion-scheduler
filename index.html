@@ -133,10 +133,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>פרוייקט הנשקים</span>
         </button>
-        <button class="sidebar-item tab-digsign" onclick="openDocsMove()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-            <span>Smoov</span>
-        </button>
         <button class="sidebar-item tab-settings" onclick="switchTab('settings')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
             <span>הגדרות</span>
@@ -387,51 +383,239 @@
 <!-- ====== TAB: EQUIPMENT (צל"מ) ====== -->
 <div class="tab-content" id="tab-equipment">
     <div class="main-content">
-        <div class="info-box">
-            <span class="info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg></span>
-            <div>
-                <strong>ניהול צל"מ - ציוד לחימה מבוקר:</strong> חתימה דיגיטלית על ציוד עם מספר סידורי.
-                כל חתימה כוללת זיהוי חייל, חתימה ויזואלית, ושמירה כ-PDF.
+        <!-- Sub-tab navigation -->
+        <div class="pakal-subtabs" id="equipmentSubTabs">
+            <button class="subtab-btn active" onclick="switchEquipmentSubTab('items')">ציוד בודד (צל"מ)</button>
+            <button class="subtab-btn" onclick="switchEquipmentSubTab('pakal')">פק"ל אישי</button>
+            <button class="subtab-btn" onclick="switchEquipmentSubTab('dashboard')">דשבורד פלס"ם</button>
+        </div>
+
+        <!-- Sub-tab: Equipment Items (existing) -->
+        <div class="equip-subtab" id="subtab-items">
+            <div class="info-box">
+                <span class="info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg></span>
+                <div>
+                    <strong>ניהול צל"מ - ציוד לחימה מבוקר:</strong> חתימה דיגיטלית על ציוד עם מספר סידורי.
+                    כל חתימה כוללת זיהוי חייל, חתימה ויזואלית, ושמירה כ-PDF.
+                </div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="openAddEquipment()">+ הוספת פריט ציוד</button>
+                <button class="btn btn-success" onclick="openSignEquipment()">&#9998; חתימה על ציוד</button>
+                <button class="btn btn-warning" onclick="openReturnEquipment()">&#8634; זיכוי / החזרת ציוד</button>
+                <button class="btn" style="background:var(--bg)" onclick="exportEquipmentCSV()">&#128196; ייצוא CSV</button>
+            </div>
+            <div class="quick-stats" id="equipmentStats"></div>
+            <div class="search-bar">
+                <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input type="text" id="equipmentSearch" placeholder="חיפוש לפי שם פריט, מספר סידורי, חייל..." oninput="renderEquipmentTab()">
+            </div>
+            <div class="filter-buttons" style="margin-bottom:14px;">
+                <button class="filter-btn active" onclick="setEquipmentFilter('all',this)">הכל</button>
+                <button class="filter-btn" onclick="setEquipmentFilter('assigned',this)">מוחזק</button>
+                <button class="filter-btn" onclick="setEquipmentFilter('available',this)">פנוי</button>
+                <button class="filter-btn" onclick="setEquipmentFilter('faulty',this)">תקול</button>
+            </div>
+            <div class="sub-section">
+                <div class="section-title">
+                    <div class="icon" style="background:#FBE9E7;color:#FF5722;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+                    רשימת ציוד (<span id="equipmentCount">0</span> פריטים)
+                </div>
+                <div id="equipmentTableContainer"></div>
+            </div>
+            <div class="sub-section">
+                <div class="section-title">
+                    <div class="icon" style="background:#E8EAF6;color:#3F51B5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                    היסטוריית חתימות (<span id="signatureHistoryCount">0</span>)
+                </div>
+                <div id="signatureHistoryContainer"></div>
             </div>
         </div>
-        <div class="action-bar">
-            <button class="btn btn-primary" onclick="openAddEquipment()">+ הוספת פריט ציוד</button>
-            <button class="btn btn-success" onclick="openSignEquipment()">&#9998; חתימה על ציוד</button>
-            <button class="btn btn-warning" onclick="openReturnEquipment()">&#8634; זיכוי / החזרת ציוד</button>
-            <button class="btn" style="background:var(--bg)" onclick="exportEquipmentCSV()">&#128196; ייצוא CSV</button>
+
+        <!-- Sub-tab: Personal Equipment (פק"ל) -->
+        <div class="equip-subtab" id="subtab-pakal" style="display:none;">
+            <div id="pakalSubTabContent"></div>
         </div>
 
-        <!-- Equipment Stats -->
-        <div class="quick-stats" id="equipmentStats"></div>
-
-        <!-- Equipment Search -->
-        <div class="search-bar">
-            <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" id="equipmentSearch" placeholder="חיפוש לפי שם פריט, מספר סידורי, חייל..." oninput="renderEquipmentTab()">
+        <!-- Sub-tab: Palsam Dashboard -->
+        <div class="equip-subtab" id="subtab-dashboard" style="display:none;">
+            <div id="palsamDashboardContent"></div>
         </div>
-        <div class="filter-buttons" style="margin-bottom:14px;">
-            <button class="filter-btn active" onclick="setEquipmentFilter('all',this)">הכל</button>
-            <button class="filter-btn" onclick="setEquipmentFilter('assigned',this)">מוחזק</button>
-            <button class="filter-btn" onclick="setEquipmentFilter('available',this)">פנוי</button>
-            <button class="filter-btn" onclick="setEquipmentFilter('faulty',this)">תקול</button>
-        </div>
+    </div>
+</div>
 
-        <!-- Equipment Table -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#FBE9E7;color:#FF5722;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
-                רשימת ציוד (<span id="equipmentCount">0</span> פריטים)
+<!-- Generate Pakal Modal -->
+<div class="modal-overlay" id="generatePakalModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#5C6BC0;">
+            <h3>יצירת פק"ל אישי</h3>
+            <button class="modal-close" onclick="closeModal('generatePakalModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>פלוגה</label>
+                <select id="pakalGenCompany" onchange="updatePakalGenSoldiers()">
+                    <option value="all">כל הפלוגות</option>
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
             </div>
-            <div id="equipmentTableContainer"></div>
-        </div>
-
-        <!-- Signature History -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#E8EAF6;color:#3F51B5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-                היסטוריית חתימות (<span id="signatureHistoryCount">0</span>)
+            <div class="form-group">
+                <label>בחר חייל</label>
+                <select id="pakalGenSoldier" onchange="previewPakalForSoldier()">
+                    <option value="">-- בחר חייל --</option>
+                </select>
             </div>
-            <div id="signatureHistoryContainer"></div>
+            <div id="pakalGenPreview" style="display:none;margin-top:12px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="confirmGeneratePakal()">צור פק"ל</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('generatePakalModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Generate Pakal Modal -->
+<div class="modal-overlay" id="bulkGeneratePakalModal">
+    <div class="modal" style="max-width:500px;">
+        <div class="modal-header" style="background:#5C6BC0;">
+            <h3>יצירת פק"ל לפלוגה</h3>
+            <button class="modal-close" onclick="closeModal('bulkGeneratePakalModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>בחר פלוגה</label>
+                <select id="bulkPakalCompany">
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <p style="font-size:0.85em;color:var(--text-light);">ייווצר פק"ל לכל חייל בפלוגה שעדיין אין לו פק"ל, לפי סט הבסיס + סט תפקידי מתאים.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="confirmBulkGeneratePakal()">צור לכולם</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('bulkGeneratePakalModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Sign Pakal Modal -->
+<div class="modal-overlay" id="bulkSignPakalModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#4CAF50;">
+            <h3>חתימה על פק"ל אישי</h3>
+            <button class="modal-close" onclick="closeModal('bulkSignPakalModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+            <input type="hidden" id="bulkSignSoldierId" value="">
+            <div id="bulkSignSoldierInfo"></div>
+            <div id="bulkSignItemsList"></div>
+            <div class="form-group" style="margin-top:16px;">
+                <label>שם מנפיק (פלס"ם)</label>
+                <input type="text" id="bulkSignIssuer" placeholder="שם הפלס&quot;ם המנפיק">
+            </div>
+            <div class="form-group">
+                <label>חתימת חייל מקבל</label>
+                <div style="border:2px solid var(--border);border-radius:8px;padding:4px;background:#fff;">
+                    <canvas id="bulkSignCanvas" style="width:100%;height:150px;display:block;cursor:crosshair;touch-action:none;"></canvas>
+                </div>
+                <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearCanvasById('bulkSignCanvas')">נקה חתימה</button>
+            </div>
+            <div class="form-group">
+                <label>חתימת מנפיק</label>
+                <div style="border:2px solid var(--border);border-radius:8px;padding:4px;background:#fff;">
+                    <canvas id="issuerSignCanvas" style="width:100%;height:150px;display:block;cursor:crosshair;touch-action:none;"></canvas>
+                </div>
+                <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearCanvasById('issuerSignCanvas')">נקה חתימה</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-success" onclick="confirmBulkSign()">אשר חתימה ושמור PDF</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('bulkSignPakalModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Return Pakal Modal -->
+<div class="modal-overlay" id="returnPakalModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#FF9800;">
+            <h3>החזרת ציוד - פק"ל</h3>
+            <button class="modal-close" onclick="closeModal('returnPakalModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+            <input type="hidden" id="returnPakalSoldierId" value="">
+            <div id="returnPakalSoldierInfo"></div>
+            <div id="returnPakalItemsList"></div>
+            <div class="form-group" style="margin-top:12px;">
+                <label>חתימת מחזיר</label>
+                <div style="border:2px solid var(--border);border-radius:8px;padding:4px;background:#fff;">
+                    <canvas id="returnPakalCanvas" style="width:100%;height:150px;display:block;cursor:crosshair;touch-action:none;"></canvas>
+                </div>
+                <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearCanvasById('returnPakalCanvas')">נקה חתימה</button>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <input type="text" id="returnPakalNotes" placeholder="הערות על מצב הציוד">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-warning" onclick="confirmReturnPakal()">אשר החזרה</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('returnPakalModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Extra Item Modal -->
+<div class="modal-overlay" id="addExtraItemModal">
+    <div class="modal">
+        <div class="modal-header" style="background:#7B1FA2;">
+            <h3>הוספת פריט לפק"ל</h3>
+            <button class="modal-close" onclick="closeModal('addExtraItemModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="extraItemSoldierId" value="">
+            <div class="form-group">
+                <label>שם הפריט</label>
+                <input type="text" id="extraItemName" placeholder="שם הציוד">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>כמות</label>
+                    <input type="number" id="extraItemQty" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>קטגוריה</label>
+                    <select id="extraItemCategory">
+                        <option value="נשק">נשק</option>
+                        <option value="קשר">קשר</option>
+                        <option value="מגן">מגן</option>
+                        <option value="רפואי">רפואי</option>
+                        <option value="שטח">שטח</option>
+                        <option value="תחמושת">תחמושת</option>
+                        <option value="אחר">אחר</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="extraItemSerial"> דורש מספר סידורי</label>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <input type="text" id="extraItemNotes" placeholder="הערות">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="confirmAddExtraItem()">הוסף</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('addExtraItemModal')">ביטול</button>
         </div>
     </div>
 </div>

@@ -1777,3 +1777,123 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     .filter-btn { min-height: 44px; padding: 8px 14px; }
     .id-upload-area { padding: 24px 12px; }
 }
+
+/* ==================== PAKAL SYSTEM ==================== */
+.pakal-subtabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+.subtab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: inherit;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+.subtab-btn:hover { color: var(--text); }
+.subtab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.pakal-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border-right: 4px solid var(--border);
+    transition: all 0.2s;
+}
+.pakal-card.signed { border-right-color: var(--success); }
+.pakal-card.unsigned { border-right-color: var(--danger); }
+.pakal-card.partial { border-right-color: var(--warning); }
+
+.pakal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.pakal-card-header h4 { margin: 0; font-size: 0.95em; }
+.pakal-card-meta { font-size: 0.82em; color: var(--text-light); }
+
+.pakal-items-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+.pakal-items-table th {
+    background: #5C6BC0;
+    color: white;
+    padding: 8px 12px;
+    text-align: center;
+    font-size: 0.83em;
+}
+.pakal-items-table td {
+    padding: 7px 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.pakal-status {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.78em;
+    font-weight: 600;
+}
+.pakal-status.pending { background: #FFF3E0; color: #E65100; }
+.pakal-status.issued { background: #E8F5E9; color: #2E7D32; }
+.pakal-status.returned { background: #E3F2FD; color: #1565C0; }
+
+.pakal-progress {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.pakal-progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s;
+    background: var(--success);
+}
+
+.dashboard-stat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    text-align: center;
+}
+.dashboard-stat-card .big-num {
+    font-size: 2.2em;
+    font-weight: 800;
+    line-height: 1;
+}
+.dashboard-stat-card .label {
+    font-size: 0.85em;
+    color: var(--text-light);
+    margin-top: 6px;
+}
+
+[data-theme="dark"] .pakal-items-table th { background: #3a4a7a; }
+[data-theme="dark"] .pakal-status.pending { background: #4e342e; color: #ffb74d; }
+[data-theme="dark"] .pakal-status.issued { background: #1b5e20; color: #81c784; }
+[data-theme="dark"] .pakal-status.returned { background: #0d47a1; color: #64b5f6; }
+[data-theme="dark"] .pakal-progress { background: #333; }
+
+@media (max-width: 768px) {
+    .pakal-subtabs { font-size: 0.82em; }
+    .subtab-btn { padding: 8px 12px; font-size: 0.82em; }
+    .pakal-card-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .pakal-card { padding: 12px 14px; }
+    .dashboard-stat-card .big-num { font-size: 1.6em; }
+    .dashboard-stat-card { padding: 14px; }
+}
