@@ -12,8 +12,23 @@ const DEFAULT_SETTINGS = {
     rotationDaysOut: 4,
     sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
     equipmentSets: {
-        baseSet: { name: 'סט בסיס', items: [] },
-        roleSets: []
+        baseSet: {
+            name: 'סט ציוד ללוחם',
+            items: [
+                { name: 'אפוד קרב', quantity: 1, category: 'מגן', requiresSerial: false },
+                { name: 'מחסנית m16', quantity: 5, category: 'תחמושת', requiresSerial: false },
+                { name: 'מדי ב\'', quantity: 2, category: 'אחר', requiresSerial: false },
+                { name: 'קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
+                { name: 'כיסוי קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
+                { name: 'מצנפת קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
+                { name: 'בירכיות', quantity: 2, category: 'מגן', requiresSerial: false },
+                { name: 'תחבושת אישית', quantity: 1, category: 'רפואי', requiresSerial: false },
+                { name: 'חוסם עורקים CAT', quantity: 1, category: 'רפואי', requiresSerial: false }
+            ]
+        },
+        roleSets: [],
+        defaultSigningUnit: 'פלוגת פלס"ם',
+        savedSignatures: {} // לחתימות קבועות של מחתימים
     }
 };
 
@@ -1539,6 +1554,135 @@ function renderCalendar() {
     grid.innerHTML = html;
 }
 
+function exportCalendarToPDF() {
+    const titleEl = document.getElementById('calTitle');
+    const filterCompany = document.getElementById('calCompanyFilter').value;
+    const grid = document.getElementById('calGrid');
+
+    if (!titleEl || !grid) {
+        showToast('שגיאה בייצוא הלוח השבועי', 'error');
+        return;
+    }
+
+    const companyName = filterCompany === 'all' ? 'כל הפלוגות' :
+                      companyData[filterCompany] ? companyData[filterCompany].name : filterCompany;
+
+    const dateStr = new Date().toLocaleDateString('he-IL', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+
+    // Create HTML for PDF
+    const htmlContent = `
+    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;background:#fff;padding:20px;width:100%;">
+        <div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1a237e;padding-bottom:20px;">
+            <h1 style="color:#1a237e;margin:0;font-size:28px;font-weight:bold;">גדוד יהודה - לוח שיבוצים שבועי</h1>
+            <h2 style="color:#555;margin:10px 0 0 0;font-size:20px;">${titleEl.textContent}</h2>
+            <p style="color:#777;margin:5px 0;font-size:16px;">${companyName} | נוצר: ${dateStr}</p>
+        </div>
+
+        <div class="cal-pdf-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#ddd;border:1px solid #ddd;">
+            ${grid.innerHTML}
+        </div>
+
+        <div style="margin-top:30px;padding-top:20px;border-top:1px solid #ddd;font-size:12px;color:#777;text-align:center;">
+            מערכת ניהול גדודי | תעסוקה מבצעית | ${new Date().toLocaleString('he-IL')}
+        </div>
+    </div>
+
+    <style>
+        .cal-day-header {
+            background: #1a237e;
+            color: white;
+            font-weight: bold;
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .cal-day {
+            background: white;
+            min-height: 120px;
+            padding: 8px;
+            position: relative;
+        }
+
+        .cal-day.today {
+            background: #e3f2fd;
+        }
+
+        .cal-date {
+            font-weight: bold;
+            font-size: 14px;
+            color: #1a237e;
+            margin-bottom: 6px;
+            text-align: right;
+        }
+
+        .cal-events {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .cal-event {
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1px;
+        }
+
+        .cal-event-shift {
+            background: #e8f5e9;
+            border-right: 3px solid #4caf50;
+        }
+
+        .cal-event-leave {
+            background: #fff3e0;
+            border-right: 3px solid #ff9800;
+        }
+
+        .cal-event-rotation {
+            background: #f3e5f5;
+            border-right: 3px solid #9c27b0;
+        }
+
+        .cal-event-time {
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .cal-event-label {
+            flex: 1;
+            margin: 0 4px;
+            text-align: right;
+        }
+
+        .cal-event-count {
+            background: rgba(0,0,0,0.1);
+            color: #333;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .cal-empty {
+            color: #bbb;
+            font-size: 12px;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>`;
+
+    const filename = `לוח_שבועי_${companyName.replace(/[^\w\u0590-\u05FF]/g, '_')}_${titleEl.textContent.replace(/[^\w\u0590-\u05FF]/g, '_')}`;
+    downloadPDF(htmlContent, filename);
+}
+
 // ==================== COMMANDER DASHBOARD ====================
 function renderCommanderDashboard() {
     const container = document.getElementById('content-commander');
@@ -2676,9 +2820,9 @@ function renderSettingsTab() {
 
     <!-- Equipment Sets Management -->
     <div class="settings-card" style="grid-column: 1 / -1;">
-        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg> ניהול סטי ציוד (פק"ל)</h3>
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg> ניהול סט ציוד ללוחם</h3>
         <p style="font-size:0.83em;color:var(--text-light);margin-bottom:16px;">
-            הגדר סט בסיס (לכל חייל) וסטים תפקידיים (לפי תפקיד). שינויים כאן לא ישפיעו על פק"לים שכבר נוצרו.
+            הגדר סט ציוד ללוחם (לכל חייל). שינויים כאן לא ישפיעו על פק"לים שכבר נוצרו.
         </p>
         <div id="equipmentSetsEditor"></div>
     </div>`;
@@ -3055,6 +3199,7 @@ function exportReportPDF(type) {
     }
 }
 
+
 function buildReportHTML(type) {
     const todayStr = new Date().toISOString().split('T')[0];
     const dateStr = getReportDateStr();
@@ -3196,6 +3341,29 @@ function exportReportExcel(type) {
 
 // ==================== EQUIPMENT (צל"מ) MODULE ====================
 
+// --- Document Logo Loader ---
+let DOC_LOGO_BASE64 = '';
+(function loadDocLogo() {
+    const img = new Image();
+    img.onload = function() {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        DOC_LOGO_BASE64 = c.toDataURL('image/png');
+    };
+    img.src = 'doc-logo.png';
+    img.onerror = function() {
+        const fallback = new Image();
+        fallback.onload = function() {
+            const c = document.createElement('canvas');
+            c.width = fallback.width; c.height = fallback.height;
+            c.getContext('2d').drawImage(fallback, 0, 0);
+            DOC_LOGO_BASE64 = c.toDataURL('image/png');
+        };
+        fallback.src = 'logo.png';
+    };
+})();
+
 // --- Signature Canvas Setup ---
 let signCtx = null, signDrawing = false;
 let returnCtx = null, returnDrawing = false;
@@ -3297,6 +3465,7 @@ function openAddEquipment() {
     document.getElementById('equipSerial').value = '';
     document.getElementById('equipCompany').value = 'gdudi';
     document.getElementById('equipCondition').value = 'תקין';
+    document.getElementById('equipDefaultQty').value = '1';
     document.getElementById('equipNotes').value = '';
     openModal('addEquipmentModal');
 }
@@ -3318,6 +3487,7 @@ function openEditEquipment(id) {
     document.getElementById('equipSerial').value = eq.serial;
     document.getElementById('equipCompany').value = eq.company;
     document.getElementById('equipCondition').value = eq.condition;
+    document.getElementById('equipDefaultQty').value = eq.defaultQty || 1;
     document.getElementById('equipNotes').value = eq.notes || '';
     openModal('addEquipmentModal');
 }
@@ -3334,6 +3504,7 @@ function saveEquipment() {
     const editId = document.getElementById('equipEditId').value;
     const company = document.getElementById('equipCompany').value;
     const condition = document.getElementById('equipCondition').value;
+    const defaultQty = parseInt(document.getElementById('equipDefaultQty').value) || 1;
     const notes = document.getElementById('equipNotes').value.trim();
 
     if (editId) {
@@ -3343,6 +3514,7 @@ function saveEquipment() {
             eq.serial = serial;
             eq.company = company;
             eq.condition = condition;
+            eq.defaultQty = defaultQty;
             eq.notes = notes;
         }
         showToast('פריט עודכן');
@@ -3354,7 +3526,7 @@ function saveEquipment() {
         }
         state.equipment.push({
             id: 'eq_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-            type, serial, company, condition, notes,
+            type, serial, company, condition, defaultQty, notes,
             holderId: null, holderName: '', holderPhone: '',
             assignedDate: null, signatureImg: null
         });
@@ -3381,20 +3553,29 @@ function deleteEquipment(id) {
 
 // --- Sign Equipment ---
 function openSignEquipment() {
-    // Populate available equipment
-    const sel = document.getElementById('signEquipSelect');
-    sel.innerHTML = '<option value="">-- בחר פריט --</option>';
-    state.equipment.filter(e => !e.holderId && e.condition !== 'תקול').forEach(e => {
-        const opt = document.createElement('option');
-        opt.value = e.id;
-        opt.textContent = `${e.type} | ${e.serial}`;
-        sel.appendChild(opt);
-    });
+    const container = document.getElementById('signEquipCheckboxList');
+    const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
+
+    container.innerHTML = availableEquip.length === 0
+        ? '<div style="padding:8px;color:var(--text-light);">אין פריטי ציוד פנויים</div>'
+        : availableEquip.map(e => `
+            <label class="sign-equip-checkbox-item" data-search="${e.type} ${e.serial} ${e.notes || ''}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;">
+                <input type="checkbox" value="${e.id}" onchange="updateSignEquipSelection()">
+                <span style="font-weight:600;flex:1;">${e.type}</span>
+                <span style="color:var(--text-light);font-size:0.85em;direction:ltr;font-family:monospace;">צ' ${e.serial}</span>
+                <span style="color:var(--text-light);font-size:0.8em;">x${e.defaultQty || 1}</span>
+            </label>
+        `).join('');
+
+    document.getElementById('signEquipSelectedCount').textContent = '';
     document.getElementById('signEquipInfo').style.display = 'none';
+    document.getElementById('signEquipInfo').innerHTML = '';
+    document.getElementById('signEquipSearch').value = '';
     document.getElementById('signSoldierInfo').style.display = 'none';
-    // Equipment is battalion-wide, default to all companies
     document.getElementById('signCompany').value = 'all';
     updateSignSoldiers();
+    // Clear edit context
+    delete document.getElementById('signEquipmentModal').dataset.editLogId;
     openModal('signEquipmentModal');
     setTimeout(() => {
         setupSignatureCanvas('signatureCanvas');
@@ -3402,14 +3583,46 @@ function openSignEquipment() {
     }, 100);
 }
 
-function onSignEquipSelect() {
-    const id = document.getElementById('signEquipSelect').value;
+function filterSignEquipCheckboxes() {
+    const query = document.getElementById('signEquipSearch').value.trim().toLowerCase();
+    document.querySelectorAll('#signEquipCheckboxList .sign-equip-checkbox-item').forEach(item => {
+        item.style.display = item.getAttribute('data-search').toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+function updateSignEquipSelection() {
+    const checkboxes = document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked');
+    const count = checkboxes.length;
+    document.getElementById('signEquipSelectedCount').textContent = count > 0 ? `(${count} נבחרו)` : '';
+
     const info = document.getElementById('signEquipInfo');
-    if (!id) { info.style.display = 'none'; return; }
-    const eq = state.equipment.find(e => e.id === id);
-    if (!eq) return;
+    if (count === 0) { info.style.display = 'none'; info.innerHTML = ''; return; }
+
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    const selectedEquip = selectedIds.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+
     info.style.display = '';
-    info.innerHTML = `<strong>${eq.type}</strong> | מס' סידורי: <strong>${eq.serial}</strong> | מצב: ${eq.condition} | ${eq.notes || ''}`;
+    info.innerHTML = `
+        <table style="width:100%;font-size:0.85em;border-collapse:collapse;">
+            <thead><tr style="background:var(--primary);color:white;">
+                <th style="padding:4px 8px;text-align:right;">#</th>
+                <th style="padding:4px 8px;text-align:right;">שם פריט</th>
+                <th style="padding:4px 8px;text-align:right;">מספר צ'</th>
+                <th style="padding:4px 8px;text-align:right;">כמות</th>
+            </tr></thead>
+            <tbody>${selectedEquip.map((e, i) => `
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:4px 8px;">${i + 1}</td>
+                    <td style="padding:4px 8px;font-weight:600;">${e.type}</td>
+                    <td style="padding:4px 8px;direction:ltr;font-family:monospace;">${e.serial}</td>
+                    <td style="padding:4px 8px;">${e.defaultQty || 1}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`;
+}
+
+function getSelectedSignEquipIds() {
+    return Array.from(document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked')).map(cb => cb.value);
 }
 
 function updateSignSoldiers() {
@@ -3488,35 +3701,68 @@ function onSignSoldierSelect() {
 }
 
 function confirmSignEquipment() {
-    const equipId = document.getElementById('signEquipSelect').value;
+    const selectedIds = getSelectedSignEquipIds();
     const soldierId = document.getElementById('signSoldier').value;
+    const editLogId = document.getElementById('signEquipmentModal').dataset.editLogId || '';
 
-    if (!equipId) { showToast('יש לבחור פריט ציוד', 'error'); return; }
+    if (selectedIds.length === 0) { showToast('יש לבחור לפחות פריט ציוד אחד', 'error'); return; }
     if (!soldierId) { showToast('יש לבחור חייל', 'error'); return; }
     if (isCanvasEmpty('signatureCanvas')) { showToast('יש לחתום על המסך', 'error'); return; }
 
-    const eq = state.equipment.find(e => e.id === equipId);
     const sol = state.soldiers.find(s => s.id === soldierId);
-    if (!eq || !sol) return;
+    if (!sol) return;
 
     const signatureImg = getCanvasDataURL('signatureCanvas');
     const now = new Date();
     const dateStr = now.toISOString();
 
-    // Update equipment
-    eq.holderId = sol.id;
-    eq.holderName = sol.name;
-    eq.holderPhone = sol.phone || '';
-    eq.assignedDate = dateStr;
-    eq.signatureImg = signatureImg;
+    // If editing - release old items first
+    if (editLogId) {
+        const oldLog = state.signatureLog.find(l => l.id === editLogId);
+        if (oldLog) {
+            const oldItems = oldLog.equipItems || [{ equipId: oldLog.equipId }];
+            oldItems.forEach(item => {
+                const eq = state.equipment.find(e => e.id === item.equipId);
+                if (eq && eq.holderId === oldLog.soldierId) {
+                    eq.holderId = null;
+                    eq.holderName = '';
+                    eq.holderPhone = '';
+                    eq.assignedDate = null;
+                    eq.signatureImg = null;
+                }
+            });
+            // Remove old log entry
+            state.signatureLog = state.signatureLog.filter(l => l.id !== editLogId);
+        }
+    }
 
-    // Add to signature log
+    // Collect all selected equipment
+    const selectedEquip = selectedIds.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+
+    // Update each equipment item
+    selectedEquip.forEach(eq => {
+        eq.holderId = sol.id;
+        eq.holderName = sol.name;
+        eq.holderPhone = sol.phone || '';
+        eq.assignedDate = dateStr;
+        eq.signatureImg = signatureImg;
+    });
+
+    // Create ONE batch log entry
     const logEntry = {
         id: 'sig_' + Date.now(),
         type: 'assign',
-        equipId: eq.id,
-        equipType: eq.type,
-        equipSerial: eq.serial,
+        // Legacy fields (first item) for backward compat
+        equipId: selectedEquip[0].id,
+        equipType: selectedEquip[0].type,
+        equipSerial: selectedEquip[0].serial,
+        // Batch: all items
+        equipItems: selectedEquip.map(eq => ({
+            equipId: eq.id,
+            equipType: eq.type,
+            equipSerial: eq.serial,
+            equipQty: eq.defaultQty || 1
+        })),
         soldierId: sol.id,
         soldierName: sol.name,
         soldierPhone: sol.phone || '',
@@ -3527,12 +3773,15 @@ function confirmSignEquipment() {
     state.signatureLog.push(logEntry);
     saveState();
 
-    // Generate PDF
-    generateSignaturePDF(logEntry, eq, sol);
+    // Clear edit context
+    delete document.getElementById('signEquipmentModal').dataset.editLogId;
 
+    // No auto-download - user downloads from signature history
     closeModal('signEquipmentModal');
     renderEquipmentTab();
-    showToast(`${sol.name} חתם על ${eq.type} (${eq.serial})`);
+
+    const itemNames = selectedEquip.map(e => e.type).join(', ');
+    showToast(`${sol.name} חתם על ${selectedEquip.length} פריטים: ${itemNames}`);
 }
 
 // --- Return Equipment ---
@@ -3679,7 +3928,7 @@ function renderEquipmentTab() {
             <div class="task-table-wrapper"><div class="table-scroll">
                 <table class="equip-table">
                     <thead><tr>
-                        <th>סוג ציוד</th><th>מספר סידורי</th><th>מסגרת</th><th>מצב</th>
+                        <th>סוג ציוד</th><th>מספר סידורי</th><th>כמות</th><th>מסגרת</th><th>מצב</th>
                         <th>סטטוס</th><th>מחזיק</th><th>טלפון</th><th>תאריך חתימה</th><th>פעולות</th>
                     </tr></thead>
                     <tbody>
@@ -3689,6 +3938,7 @@ function renderEquipmentTab() {
                             return `<tr>
                                 <td style="font-weight:600;">${e.type}</td>
                                 <td style="direction:ltr;font-family:monospace;">${e.serial}</td>
+                                <td>${e.defaultQty || 1}</td>
                                 <td>${companyNames[e.company] || e.company}</td>
                                 <td>${e.condition}</td>
                                 <td><span class="equip-status ${statusClass}">${statusText}</span></td>
@@ -3728,15 +3978,28 @@ function renderSignatureHistory() {
         const isReturn = log.type === 'return';
         const d = new Date(log.date);
         const dateFormatted = d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+        // Handle batch display
+        let equipDisplay;
+        if (log.equipItems && log.equipItems.length > 1) {
+            equipDisplay = `${log.equipItems.length} פריטים: ${log.equipItems.map(i => i.equipType).join(', ')}`;
+        } else {
+            equipDisplay = `${log.equipType} (${log.equipSerial})`;
+        }
+
         return `<div class="sig-history-card ${isReturn ? 'return' : ''}">
             <div class="sig-info">
-                <h4>${isReturn ? '&#8634; זיכוי' : '&#9998; חתימה'} - ${log.equipType} (${log.equipSerial})</h4>
+                <h4>${isReturn ? '&#8634; זיכוי' : '&#9998; חתימה'} - ${equipDisplay}</h4>
                 <div class="meta">${log.soldierName} | ${log.soldierPersonalId || ''} | ${log.soldierPhone || ''}</div>
                 <div class="meta">${dateFormatted}${log.notes ? ' | ' + log.notes : ''}</div>
             </div>
             <div class="sig-actions">
                 <img class="sig-preview" src="${log.signatureImg}" alt="חתימה">
-                <button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">&#128196; PDF</button>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    <button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">&#128196; PDF</button>
+                    ${!isReturn ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="ערוך / הוסף פריטים">&#9998;</button>` : ''}
+                    <button class="btn btn-danger btn-sm" onclick="deleteSignatureLog('${log.id}')" title="מחק חתימה">&#10005;</button>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -3744,38 +4007,145 @@ function renderSignatureHistory() {
 
 function redownloadPDF(logId) {
     const log = state.signatureLog.find(l => l.id === logId);
-    if (!log) return;
-    const eq = state.equipment.find(e => e.id === log.equipId);
-    const sol = state.soldiers.find(s => s.id === log.soldierId);
+    if (!log) { showToast('רשומה לא נמצאה', 'error'); return; }
+    const sol = state.soldiers.find(s => s.id === log.soldierId)
+        || { name: log.soldierName, personalId: log.soldierPersonalId, phone: log.soldierPhone };
     if (log.type === 'return') {
-        generateReturnPDF(log, eq || { type: log.equipType, serial: log.equipSerial });
+        const eq = state.equipment.find(e => e.id === log.equipId)
+            || { type: log.equipType, serial: log.equipSerial };
+        generateReturnPDF(log, eq);
     } else {
-        generateSignaturePDF(log, eq || { type: log.equipType, serial: log.equipSerial }, sol || { name: log.soldierName, personalId: log.soldierPersonalId, phone: log.soldierPhone });
+        generateSignaturePDF(log, null, sol);
     }
 }
 
+function deleteSignatureLog(logId) {
+    if (!confirm('למחוק חתימה זו?')) return;
+    const log = state.signatureLog.find(l => l.id === logId);
+    if (!log) return;
+
+    // Release equipment back if it was an assign
+    if (log.type === 'assign') {
+        const items = log.equipItems || [{ equipId: log.equipId }];
+        items.forEach(item => {
+            const eq = state.equipment.find(e => e.id === item.equipId);
+            if (eq && eq.holderId === log.soldierId) {
+                eq.holderId = null;
+                eq.holderName = '';
+                eq.holderPhone = '';
+                eq.assignedDate = null;
+                eq.signatureImg = null;
+            }
+        });
+    }
+
+    state.signatureLog = state.signatureLog.filter(l => l.id !== logId);
+    saveState();
+    renderEquipmentTab();
+    showToast('חתימה נמחקה');
+}
+
+function editSignatureLog(logId) {
+    const log = state.signatureLog.find(l => l.id === logId);
+    if (!log || log.type === 'return') return;
+
+    // Open sign modal pre-populated with the soldier and existing items
+    const container = document.getElementById('signEquipCheckboxList');
+    const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
+
+    // Include items already in this signature (they are currently held by the soldier)
+    const existingItems = log.equipItems || [{ equipId: log.equipId }];
+    const existingIds = existingItems.map(i => i.equipId);
+    const heldEquip = existingIds.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+    const allEquip = [...heldEquip, ...availableEquip];
+
+    container.innerHTML = allEquip.length === 0
+        ? '<div style="padding:8px;color:var(--text-light);">אין פריטי ציוד</div>'
+        : allEquip.map(e => {
+            const isExisting = existingIds.includes(e.id);
+            return `
+            <label class="sign-equip-checkbox-item" data-search="${e.type} ${e.serial} ${e.notes || ''}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;${isExisting ? 'background:rgba(76,175,80,0.1);' : ''}">
+                <input type="checkbox" value="${e.id}" ${isExisting ? 'checked' : ''} onchange="updateSignEquipSelection()">
+                <span style="font-weight:600;flex:1;">${e.type}</span>
+                <span style="color:var(--text-light);font-size:0.85em;direction:ltr;font-family:monospace;">צ' ${e.serial}</span>
+                <span style="color:var(--text-light);font-size:0.8em;">x${e.defaultQty || 1}</span>
+            </label>`;
+        }).join('');
+
+    document.getElementById('signEquipSelectedCount').textContent = `(${existingIds.length} נבחרו)`;
+    updateSignEquipSelection();
+    document.getElementById('signEquipSearch').value = '';
+    document.getElementById('signSoldierInfo').style.display = 'none';
+
+    // Pre-select the soldier
+    document.getElementById('signCompany').value = 'all';
+    updateSignSoldiers();
+    setTimeout(() => {
+        document.getElementById('signSoldier').value = log.soldierId;
+        onSignSoldierSelect();
+    }, 50);
+
+    // Store edit context
+    document.getElementById('signEquipmentModal').dataset.editLogId = logId;
+
+    openModal('signEquipmentModal');
+    setTimeout(() => {
+        setupSignatureCanvas('signatureCanvas');
+        clearSignatureCanvas();
+    }, 100);
+}
+
 // --- PDF Generation ---
-function generateSignaturePDF(logEntry, eq, sol) {
+function generateSignaturePDF(logEntry, eqUnused, sol) {
     const now = new Date(logEntry.date);
     const dateStr = now.toLocaleDateString('he-IL');
     const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
+    // Build items array: batch (equipItems) or legacy single item
+    const items = logEntry.equipItems
+        ? logEntry.equipItems
+        : [{ equipType: logEntry.equipType, equipSerial: logEntry.equipSerial, equipQty: 1 }];
+
+    const logoHtml = DOC_LOGO_BASE64
+        ? `<img src="${DOC_LOGO_BASE64}" style="max-height:80px;margin-bottom:8px;">`
+        : '';
+
+    const itemRows = items.map((item, i) => `
+        <tr>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
+            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${item.equipType}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
+        </tr>
+    `).join('');
+
     const html = `
     <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:auto;padding:30px;">
         <div style="text-align:center;margin-bottom:20px;">
-            <h1 style="color:#1a3a5c;margin:0;">טופס חתימה על ציוד מבוקר</h1>
-            <p style="color:#7f8c8d;margin:4px 0;">מערכת שיבוץ גדודית - צל"מ</p>
+            ${logoHtml}
+            <h1 style="color:#1a3a5c;margin:0;font-size:1.4em;">טופס חתימה על ציוד מבוקר</h1>
+            <p style="color:#7f8c8d;margin:4px 0;">מערכת ניהול גדודי - צל"מ</p>
             <hr style="border:1px solid #1a3a5c;margin:12px 0;">
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
             <tr><td style="padding:8px;font-weight:700;width:140px;background:#f0f2f5;">תאריך:</td><td style="padding:8px;">${dateStr}</td>
                 <td style="padding:8px;font-weight:700;width:140px;background:#f0f2f5;">שעה:</td><td style="padding:8px;">${timeStr}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#f0f2f5;">סוג ציוד:</td><td style="padding:8px;">${eq.type}</td>
-                <td style="padding:8px;font-weight:700;background:#f0f2f5;">מספר סידורי:</td><td style="padding:8px;direction:ltr;font-family:monospace;">${eq.serial}</td></tr>
             <tr><td style="padding:8px;font-weight:700;background:#f0f2f5;">שם מלא:</td><td style="padding:8px;">${sol.name}</td>
                 <td style="padding:8px;font-weight:700;background:#f0f2f5;">מספר אישי:</td><td style="padding:8px;">${sol.personalId || '-'}</td></tr>
             <tr><td style="padding:8px;font-weight:700;background:#f0f2f5;">טלפון:</td><td style="padding:8px;direction:ltr;">${sol.phone || '-'}</td>
                 <td style="padding:8px;font-weight:700;background:#f0f2f5;">סוג פעולה:</td><td style="padding:8px;color:#2E7D32;font-weight:700;">חתימה / קבלת ציוד</td></tr>
+        </table>
+        <div style="font-weight:700;margin-bottom:8px;font-size:1.05em;">פריטי ציוד (${items.length}):</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+            <thead>
+                <tr style="background:#1a3a5c;color:white;">
+                    <th style="padding:8px;border:1px solid #dfe6e9;width:40px;">#</th>
+                    <th style="padding:8px;border:1px solid #dfe6e9;text-align:right;">שם פריט</th>
+                    <th style="padding:8px;border:1px solid #dfe6e9;">מספר צ'</th>
+                    <th style="padding:8px;border:1px solid #dfe6e9;width:60px;">כמות</th>
+                </tr>
+            </thead>
+            <tbody>${itemRows}</tbody>
         </table>
         <div style="margin-bottom:10px;font-weight:700;">הצהרה:</div>
         <div style="background:#f0f2f5;padding:12px;border-radius:8px;font-size:0.9em;margin-bottom:20px;">
@@ -3788,11 +4158,11 @@ function generateSignaturePDF(logEntry, eq, sol) {
         </div>
         <hr style="border:1px solid #dfe6e9;margin:20px 0;">
         <div style="text-align:center;font-size:0.75em;color:#7f8c8d;">
-            מסמך זה הופק אוטומטית ממערכת שיבוץ גדודית | ${dateStr} ${timeStr}
+            מסמך זה הופק אוטומטית ממערכת ניהול גדודי | ${dateStr} ${timeStr}
         </div>
     </div>`;
 
-    downloadPDF(html, `חתימה_${eq.type}_${eq.serial}_${sol.name}_${dateStr.replace(/\./g,'-')}`);
+    downloadPDF(html, `חתימה_${sol.name}_${items.length}פריטים_${dateStr.replace(/\./g,'-')}`);
 }
 
 function generateReturnPDF(logEntry, eq) {
@@ -3800,11 +4170,16 @@ function generateReturnPDF(logEntry, eq) {
     const dateStr = now.toLocaleDateString('he-IL');
     const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
+    const logoHtml = DOC_LOGO_BASE64
+        ? `<img src="${DOC_LOGO_BASE64}" style="max-height:80px;margin-bottom:8px;">`
+        : '';
+
     const html = `
     <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:auto;padding:30px;">
         <div style="text-align:center;margin-bottom:20px;">
+            ${logoHtml}
             <h1 style="color:#E65100;margin:0;">טופס זיכוי / החזרת ציוד</h1>
-            <p style="color:#7f8c8d;margin:4px 0;">מערכת שיבוץ גדודית - צל"מ</p>
+            <p style="color:#7f8c8d;margin:4px 0;">מערכת ניהול גדודי - צל"מ</p>
             <hr style="border:1px solid #E65100;margin:12px 0;">
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
@@ -3824,7 +4199,7 @@ function generateReturnPDF(logEntry, eq) {
         </div>
         <hr style="border:1px solid #dfe6e9;margin:20px 0;">
         <div style="text-align:center;font-size:0.75em;color:#7f8c8d;">
-            מסמך זה הופק אוטומטית ממערכת שיבוץ גדודית | ${dateStr} ${timeStr}
+            מסמך זה הופק אוטומטית ממערכת ניהול גדודי | ${dateStr} ${timeStr}
         </div>
     </div>`;
 
@@ -3834,30 +4209,39 @@ function generateReturnPDF(logEntry, eq) {
 function downloadPDF(htmlContent, filename) {
     // html2pdf.js - pixel-perfect DOM-to-PDF with RTL/Hebrew support
     const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:210mm;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;';
+    container.style.cssText = 'position:fixed;top:0;left:0;z-index:-1;width:210mm;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;opacity:0;pointer-events:none;';
     container.innerHTML = htmlContent;
     document.body.appendChild(container);
 
-    if (typeof html2pdf !== 'undefined') {
-        html2pdf().set({
-            margin: [10, 10, 10, 10],
-            filename: (filename || 'document') + '.pdf',
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'] }
-        }).from(container).save().then(() => {
-            container.remove();
-            showToast('PDF הורד בהצלחה');
-        }).catch(err => {
-            console.error('PDF error:', err);
+    // Wait for all images (logo, signature) to load before rendering
+    const images = container.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+    });
+
+    Promise.all(imagePromises).then(() => {
+        if (typeof html2pdf !== 'undefined') {
+            html2pdf().set({
+                margin: [10, 10, 10, 10],
+                filename: (filename || 'document') + '.pdf',
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            }).from(container).save().then(() => {
+                container.remove();
+                showToast('PDF הורד בהצלחה');
+            }).catch(err => {
+                console.error('PDF error:', err);
+                container.remove();
+                _downloadPdfPrintFallback(htmlContent, filename);
+            });
+        } else {
             container.remove();
             _downloadPdfPrintFallback(htmlContent, filename);
-        });
-    } else {
-        container.remove();
-        _downloadPdfPrintFallback(htmlContent, filename);
-    }
+        }
+    });
 }
 
 function _downloadPdfPrintFallback(htmlContent, filename) {
@@ -4500,8 +4884,9 @@ function renderEquipmentSetsSettings() {
     if (!settings.equipmentSets) settings.equipmentSets = { baseSet: { name: 'סט בסיס', items: [] }, roleSets: [] };
     const es = settings.equipmentSets;
 
-    let html = `<div class="sub-section" style="margin-bottom:20px;">
-        <h4 style="margin:0 0 10px;">סט בסיס (לכל חייל)</h4>
+    let html = `<div class="sub-section">
+        <h4 style="margin:0 0 10px;">סט ציוד ללוחם</h4>
+        <p style="font-size:0.82em;color:var(--text-light);margin-bottom:10px;">רשימת הציוד שכל לוחם מקבל בעת ההצטיידות</p>
         <div class="table-scroll"><table style="width:100%;font-size:0.85em;">
             <thead><tr><th>שם פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th><th></th></tr></thead>
             <tbody>
@@ -4517,38 +4902,6 @@ function renderEquipmentSetsSettings() {
             </tbody>
         </table></div>
         <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="addBaseSetItem()">+ הוסף פריט</button>
-    </div>
-
-    <div class="sub-section">
-        <h4 style="margin:0 0 10px;">סטים תפקידיים</h4>
-        ${es.roleSets.map((rs, ri) => `
-        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;border-right:3px solid var(--primary);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <input type="text" value="${rs.name}" onchange="updateRoleSet(${ri},'name',this.value)" style="font-weight:700;font-size:0.95em;border:none;background:transparent;width:200px;">
-                <button class="btn btn-danger btn-sm" onclick="deleteRoleSet(${ri})">מחק סט</button>
-            </div>
-            <div style="margin-bottom:8px;">
-                <label style="font-size:0.82em;font-weight:600;">תפקידים:</label>
-                <input type="text" value="${rs.roles.join(', ')}" onchange="updateRoleSetRoles(${ri},this.value)" placeholder="לוחם, מפקד, ..." style="width:100%;font-size:0.85em;">
-                <span style="font-size:0.75em;color:var(--text-light);">הפרד בפסיקים</span>
-            </div>
-            <div class="table-scroll"><table style="width:100%;font-size:0.83em;">
-                <thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th><th></th></tr></thead>
-                <tbody>
-                    ${rs.items.map((item, ii) => `<tr>
-                        <td><input type="text" value="${item.name}" onchange="updateRoleSetItem(${ri},${ii},'name',this.value)" style="width:100%;"></td>
-                        <td><input type="number" min="1" value="${item.quantity}" onchange="updateRoleSetItem(${ri},${ii},'quantity',parseInt(this.value))" style="width:55px;"></td>
-                        <td><select onchange="updateRoleSetItem(${ri},${ii},'category',this.value)">
-                            ${['נשק','קשר','מגן','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
-                        </select></td>
-                        <td><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateRoleSetItem(${ri},${ii},'requiresSerial',this.checked)"></td>
-                        <td><button class="btn btn-danger btn-sm" onclick="removeRoleSetItem(${ri},${ii})">&#10005;</button></td>
-                    </tr>`).join('')}
-                </tbody>
-            </table></div>
-            <button class="btn btn-sm" style="background:var(--card);margin-top:6px;" onclick="addRoleSetItem(${ri})">+ פריט</button>
-        </div>`).join('')}
-        <button class="btn btn-primary" style="margin-top:8px;" onclick="addRoleSet()">+ הוסף סט תפקידי</button>
     </div>`;
     container.innerHTML = html;
 }
@@ -4889,12 +5242,63 @@ function openBulkSignModal(soldierId) {
         </table></div>
         <div style="font-size:0.85em;font-weight:700;margin-top:8px;">סה"כ: ${pe.items.length} פריטים</div>`;
 
-    document.getElementById('bulkSignIssuer').value = currentUser ? currentUser.name : '';
+    // Set default signing unit
+    document.getElementById('bulkSignUnit').value = settings.equipmentSets?.defaultSigningUnit || 'פלוגת פלס"ם';
+
+    // Try to load saved signature info for current user
+    const savedSigKey = currentUser ? currentUser.name : '';
+    const savedSignature = settings.equipmentSets?.savedSignatures?.[savedSigKey];
+
+    if (savedSignature) {
+        document.getElementById('bulkSignIssuerFirstName').value = savedSignature.firstName || '';
+        document.getElementById('bulkSignIssuerLastName').value = savedSignature.lastName || '';
+        document.getElementById('bulkSignUnit').value = savedSignature.unit || 'פלוגת פלס"ם';
+    } else {
+        document.getElementById('bulkSignIssuerFirstName').value = '';
+        document.getElementById('bulkSignIssuerLastName').value = '';
+    }
+
     openModal('bulkSignPakalModal');
     setTimeout(() => {
         setupSignatureCanvas('bulkSignCanvas');
         setupSignatureCanvas('issuerSignCanvas');
+
+        // Load saved signature if exists
+        if (savedSignature && savedSignature.signatureImg) {
+            loadSignatureToCanvas('issuerSignCanvas', savedSignature.signatureImg);
+        }
     }, 200);
+}
+
+// Helper function to load signature image to canvas
+function loadSignatureToCanvas(canvasId, imageDataUrl) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !imageDataUrl) return;
+
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = imageDataUrl;
+}
+
+// Function to manually load saved signature
+function loadSavedSignature() {
+    const savedSigKey = currentUser ? currentUser.name : '';
+    const savedSignature = settings.equipmentSets?.savedSignatures?.[savedSigKey];
+
+    if (savedSignature) {
+        if (savedSignature.signatureImg) {
+            loadSignatureToCanvas('issuerSignCanvas', savedSignature.signatureImg);
+            showToast('חתימה נטענה מהזיכרון');
+        } else {
+            showToast('לא נמצאת חתימה שמורה', 'warning');
+        }
+    } else {
+        showToast('לא נמצאת חתימה שמורה עבור המשתמש הנוכחי', 'warning');
+    }
 }
 
 function confirmBulkSign() {
@@ -4905,15 +5309,42 @@ function confirmBulkSign() {
     if (isCanvasEmpty('bulkSignCanvas')) { showToast('חייל חייב לחתום', 'error'); return; }
     if (isCanvasEmpty('issuerSignCanvas')) { showToast('מנפיק חייב לחתום', 'error'); return; }
 
-    const issuerName = document.getElementById('bulkSignIssuer').value.trim();
-    if (!issuerName) { showToast('נא למלא שם מנפיק', 'error'); return; }
+    const signingUnit = document.getElementById('bulkSignUnit').value;
+    const issuerFirstName = document.getElementById('bulkSignIssuerFirstName').value.trim();
+    const issuerLastName = document.getElementById('bulkSignIssuerLastName').value.trim();
+
+    if (!issuerFirstName || !issuerLastName) {
+        showToast('נא למלא שם פרטי ושם משפחה של המחתים', 'error');
+        return;
+    }
+
+    const issuerFullName = `${issuerFirstName} ${issuerLastName}`;
+
+    // Save signature info for future use
+    if (!settings.equipmentSets.savedSignatures) {
+        settings.equipmentSets.savedSignatures = {};
+    }
+
+    const savedSigKey = currentUser ? currentUser.name : issuerFullName;
+    settings.equipmentSets.savedSignatures[savedSigKey] = {
+        firstName: issuerFirstName,
+        lastName: issuerLastName,
+        unit: signingUnit,
+        signatureImg: getCanvasDataURL('issuerSignCanvas'),
+        lastUsed: new Date().toISOString()
+    };
+
+    saveSettings();
 
     const now = new Date();
     pe.bulkSignature = {
         signed: true,
         signatureImg: getCanvasDataURL('bulkSignCanvas'),
         signedDate: now.toISOString(),
-        issuedBy: issuerName,
+        issuedBy: issuerFullName,
+        issuerFirstName: issuerFirstName,
+        issuerLastName: issuerLastName,
+        signingUnit: signingUnit,
         issuerSignatureImg: getCanvasDataURL('issuerSignCanvas')
     };
 
@@ -5174,6 +5605,16 @@ function generatePakalPDF(soldierId) {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!pe || !sol) { showToast('לא נמצא', 'error'); return; }
 
+    // Ensure pe.items exists and is an array
+    if (!pe.items || !Array.isArray(pe.items)) {
+        pe.items = [];
+    }
+
+    // Ensure pe.bulkSignature exists
+    if (!pe.bulkSignature) {
+        pe.bulkSignature = { signed: false };
+    }
+
     const compName = companyData[sol.company]?.name || sol.company;
     const dateStr = pe.bulkSignature.signedDate
         ? new Date(pe.bulkSignature.signedDate).toLocaleDateString('he-IL')
@@ -5226,6 +5667,7 @@ function generatePakalPDF(soldierId) {
             ${pe.bulkSignature.issuerSignatureImg ? `<img src="${pe.bulkSignature.issuerSignatureImg}">` : ''}
             <div class="sig-label">חתימת מנפיק</div>
             <div style="font-size:12px;">${pe.bulkSignature.issuedBy || ''}</div>
+            ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;">${pe.bulkSignature.signingUnit}</div>` : ''}
         </div>
     </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
     <div class="footer">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>

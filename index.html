@@ -127,7 +127,7 @@
         </button>
         <button class="sidebar-item tab-equipment" onclick="switchTab('equipment')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-            <span>צל"מ</span>
+            <span>צל"מ וציוד</span>
         </button>
         <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -281,6 +281,10 @@
                 <option value="hq">חפ"ק מג"ד</option>
                 <option value="palsam">פלס"ם</option>
             </select>
+            <button class="btn btn-primary" onclick="exportCalendarToPDF()" title="הורד לוח שבועי כ-PDF">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
+                PDF
+            </button>
         </div>
         <div class="cal-grid" id="calGrid"></div>
     </div>
@@ -385,7 +389,7 @@
     <div class="main-content">
         <!-- Sub-tab navigation -->
         <div class="pakal-subtabs" id="equipmentSubTabs">
-            <button class="subtab-btn active" onclick="switchEquipmentSubTab('items')">ציוד בודד (צל"מ)</button>
+            <button class="subtab-btn active" onclick="switchEquipmentSubTab('items')">צל"מ וציוד</button>
             <button class="subtab-btn" onclick="switchEquipmentSubTab('pakal')">פק"ל אישי</button>
             <button class="subtab-btn" onclick="switchEquipmentSubTab('dashboard')">דשבורד פלס"ם</button>
         </div>
@@ -519,8 +523,20 @@
             <div id="bulkSignSoldierInfo"></div>
             <div id="bulkSignItemsList"></div>
             <div class="form-group" style="margin-top:16px;">
-                <label>שם מנפיק (פלס"ם)</label>
-                <input type="text" id="bulkSignIssuer" placeholder="שם הפלס&quot;ם המנפיק">
+                <label>גוף מחתים</label>
+                <select id="bulkSignUnit">
+                    <option value="פלוגת פלס&quot;ם">פלוגת פלס"ם</option>
+                    <option value="פלוגה א">פלוגה א</option>
+                    <option value="פלוגה ב">פלוגה ב</option>
+                    <option value="פלוגה ג">פלוגה ג</option>
+                    <option value="פלוגה ד">פלוגה ד</option>
+                    <option value="חפ&quot;ק מג&quot;ד">חפ"ק מג"ד</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>שם מלא של המחתים</label>
+                <input type="text" id="bulkSignIssuerFirstName" placeholder="שם פרטי" style="width:48%;display:inline-block;margin-left:4%;">
+                <input type="text" id="bulkSignIssuerLastName" placeholder="שם משפחה" style="width:48%;display:inline-block;">
             </div>
             <div class="form-group">
                 <label>חתימת חייל מקבל</label>
@@ -534,7 +550,10 @@
                 <div style="border:2px solid var(--border);border-radius:8px;padding:4px;background:#fff;">
                     <canvas id="issuerSignCanvas" style="width:100%;height:150px;display:block;cursor:crosshair;touch-action:none;"></canvas>
                 </div>
-                <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearCanvasById('issuerSignCanvas')">נקה חתימה</button>
+                <div style="margin-top:6px;display:flex;gap:8px;">
+                    <button class="btn btn-sm" style="background:var(--bg);" onclick="clearCanvasById('issuerSignCanvas')">נקה חתימה</button>
+                    <button class="btn btn-sm btn-primary" onclick="loadSavedSignature()">טען חתימה שמורה</button>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -982,9 +1001,15 @@
                     </select>
                 </div>
             </div>
-            <div class="form-group">
-                <label>הערות</label>
-                <input type="text" id="equipNotes" placeholder="הערות נוספות">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>כמות ברירת מחדל</label>
+                    <input type="number" id="equipDefaultQty" min="1" value="1" style="width:80px;">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>הערות</label>
+                    <input type="text" id="equipNotes" placeholder="הערות נוספות">
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -1002,14 +1027,13 @@
             <button class="modal-close" onclick="closeModal('signEquipmentModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <input type="hidden" id="signEquipId" value="">
             <div class="form-group" id="signEquipSelectGroup">
-                <label>בחר פריט ציוד</label>
-                <select id="signEquipSelect" onchange="onSignEquipSelect()">
-                    <option value="">-- בחר פריט --</option>
-                </select>
+                <label>בחר פריטי ציוד <span id="signEquipSelectedCount" style="color:var(--success);font-weight:700;"></span></label>
+                <input type="text" id="signEquipSearch" placeholder="&#128269; חיפוש לפי שם פריט או מספר סידורי..." oninput="filterSignEquipCheckboxes()" style="margin-bottom:8px;">
+                <div id="signEquipCheckboxList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px;background:var(--bg);">
+                </div>
             </div>
-            <div id="signEquipInfo" style="display:none;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;">
+            <div id="signEquipInfo" style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;display:none;">
             </div>
             <div class="form-group">
                 <label>סנן לפי פלוגה</label>
@@ -1040,7 +1064,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-success" onclick="confirmSignEquipment()">&#9998; אשר חתימה ושמור PDF</button>
+            <button class="btn btn-success" onclick="confirmSignEquipment()">&#9998; אשר חתימה</button>
             <button class="btn" style="background:var(--bg)" onclick="closeModal('signEquipmentModal')">ביטול</button>
         </div>
     </div>
