@@ -3009,27 +3009,50 @@ function generateLeavesReport() {
 
 // ==================== PDF / EXCEL EXPORT ====================
 function exportReportPDF(type) {
-    if (typeof jspdf === 'undefined') { showToast('ספריית PDF לא נטענה', 'error'); return; }
     const todayStr = new Date().toISOString().split('T')[0];
     let html = buildReportHTML(type);
     if (!html) return;
 
-    // Create a temporary hidden div for rendering
+    const titles = { daily: 'דוח_יומי', company: 'דוח_פלוגות', shifts: 'דוח_שיבוצים', leaves: 'דוח_יציאות' };
+    const filename = `${titles[type] || 'דוח'}_${todayStr}`;
+
+    // html2pdf.js - pixel-perfect rendering with RTL support
     const tmp = document.createElement('div');
-    tmp.style.cssText = 'position:fixed;top:-9999px;right:0;width:210mm;direction:rtl;font-family:Arial,sans-serif;font-size:12px;padding:15mm;';
+    tmp.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:210mm;direction:rtl;font-family:Segoe UI,Arial,sans-serif;font-size:12px;padding:15mm;background:#fff;';
     tmp.innerHTML = html;
     document.body.appendChild(tmp);
 
-    const doc = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    doc.html(tmp, {
-        callback: function(doc) {
-            const titles = { daily: 'דוח_יומי', company: 'דוח_פלוגות', shifts: 'דוח_שיבוצים', leaves: 'דוח_יציאות' };
-            doc.save(`${titles[type] || 'דוח'}_${todayStr}.pdf`);
-            document.body.removeChild(tmp);
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set({
+            margin: [10, 10, 10, 10],
+            filename: filename + '.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        }).from(tmp).save().then(() => {
+            tmp.remove();
             showToast('PDF נוצר בהצלחה');
-        },
-        x: 10, y: 10, width: 190, windowWidth: 800
-    });
+        }).catch(err => {
+            console.error('PDF export error:', err);
+            tmp.remove();
+            showToast('שגיאה ביצירת PDF', 'error');
+        });
+    } else if (typeof jspdf !== 'undefined') {
+        // Fallback to jsPDF.html
+        const doc = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        doc.html(tmp, {
+            callback: function(doc) {
+                doc.save(filename + '.pdf');
+                tmp.remove();
+                showToast('PDF נוצר בהצלחה');
+            },
+            x: 10, y: 10, width: 190, windowWidth: 800
+        });
+    } else {
+        tmp.remove();
+        showToast('ספריית PDF לא נטענה', 'error');
+    }
 }
 
 function buildReportHTML(type) {
@@ -3809,31 +3832,45 @@ function generateReturnPDF(logEntry, eq) {
 }
 
 function downloadPDF(htmlContent, filename) {
-    // Use browser print-to-PDF via hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    iframe.style.width = '800px';
-    iframe.style.height = '600px';
-    document.body.appendChild(iframe);
+    // html2pdf.js - pixel-perfect DOM-to-PDF with RTL/Hebrew support
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:210mm;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;';
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
 
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set({
+            margin: [10, 10, 10, 10],
+            filename: (filename || 'document') + '.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        }).from(container).save().then(() => {
+            container.remove();
+            showToast('PDF הורד בהצלחה');
+        }).catch(err => {
+            console.error('PDF error:', err);
+            container.remove();
+            _downloadPdfPrintFallback(htmlContent, filename);
+        });
+    } else {
+        container.remove();
+        _downloadPdfPrintFallback(htmlContent, filename);
+    }
+}
+
+function _downloadPdfPrintFallback(htmlContent, filename) {
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:800px;height:600px;';
+    document.body.appendChild(iframe);
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     doc.open();
     doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${filename}</title>
-        <style>
-            @page { size: A4; margin: 15mm; }
-            body { margin: 0; }
-            table { border-collapse: collapse; }
-            td { border: 1px solid #dfe6e9; }
-        </style>
+        <style>@page{size:A4;margin:15mm;}body{margin:0;}table{border-collapse:collapse;}td{border:1px solid #dfe6e9;}</style>
     </head><body>${htmlContent}</body></html>`);
     doc.close();
-
-    setTimeout(() => {
-        iframe.contentWindow.print();
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-    }, 300);
+    setTimeout(() => { iframe.contentWindow.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 300);
 }
 
 // --- Equipment CSV Export ---
