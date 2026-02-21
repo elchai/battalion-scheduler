@@ -1635,8 +1635,18 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 
 @media (max-width: 768px) {
     .signature-container canvas { height: 150px; }
-    .sig-history-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .sig-history-card { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
     .sig-history-card .sig-preview { width: 100%; height: 60px; }
+    .sig-history-card .sig-actions { flex-direction: column; align-items: stretch; gap: 6px; }
+    .sig-history-card .sig-actions > div { justify-content: center; }
+    /* Checkbox list items - bigger touch targets */
+    .sign-equip-checkbox-item { padding: 10px 6px !important; min-height: 44px; }
+    .sign-equip-checkbox-item input[type="checkbox"] { width: 20px; height: 20px; }
+    /* Equipment sets editor */
+    #equipmentSetsEditor table { font-size: 0.78em; }
+    #equipmentSetsEditor input[type="text"] { min-width: 80px; }
+    #equipmentSetsEditor input[type="number"] { width: 50px !important; }
+    #equipmentSetsEditor select { font-size: 0.8em; max-width: 80px; }
 }
 
 /* ==================== WEAPONS PROJECT ==================== */
