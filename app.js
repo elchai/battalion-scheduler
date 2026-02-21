@@ -2818,17 +2818,9 @@ function renderSettingsTab() {
         <div id="taskEditorContainer"></div>
     </div>
 
-    <!-- Equipment Sets Management -->
-    <div class="settings-card" style="grid-column: 1 / -1;">
-        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg> ניהול סט ציוד ללוחם</h3>
-        <p style="font-size:0.83em;color:var(--text-light);margin-bottom:16px;">
-            הגדר סט ציוד ללוחם (לכל חייל). שינויים כאן לא ישפיעו על פק"לים שכבר נוצרו.
-        </p>
-        <div id="equipmentSetsEditor"></div>
-    </div>`;
+    `;
 
     renderTaskEditor();
-    renderEquipmentSetsSettings();
 }
 
 function renderTaskEditor() {
@@ -3959,6 +3951,8 @@ function renderEquipmentTab() {
 
     // Signature History
     renderSignatureHistory();
+    // Equipment Sets (סט ציוד ללוחם)
+    renderEquipmentSetsSettings();
 }
 
 function renderSignatureHistory() {
