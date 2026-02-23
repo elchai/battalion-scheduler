@@ -158,7 +158,7 @@ function applyUnitFilter() {
     const isCompanyCommander = ['a','b','c','d'].includes(unit);
     document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = (isGdudi || isCompanyCommander) ? '' : 'none');
     const addRotBtn = document.getElementById('addRotGroupBtn');
-    if (addRotBtn) addRotBtn.style.display = isGdudi ? '' : 'none';
+    if (addRotBtn) addRotBtn.style.display = (isGdudi || isAdmin()) ? '' : 'none';
 
     // Hide section labels if all items in section are hidden
     document.querySelectorAll('.sidebar-section-label').forEach(label => {
@@ -1373,7 +1373,11 @@ function renderRotationGroups() {
     const visibleGroups = getVisibleRotGroups();
     const canManage = !currentUser || currentUser.unit === 'gdudi' || isAdmin();
     if (visibleGroups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><p>לחץ "קבוצת רוטציה חדשה" ליצור קבוצה</p></div>';
+        container.innerHTML = `<div class="empty-state">
+            <div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+            <p>טרם נוצרו קבוצות רוטציה</p>
+            ${canManage ? '<button class="btn btn-primary" style="margin-top:10px;" onclick="openModal(\'addRotationGroupModal\')">+ צור קבוצה ראשונה</button>' : '<p style="font-size:0.83em;color:var(--text-light);">הקבוצות ייצרו ע"י הגדודי</p>'}
+        </div>`;
         return;
     }
 
@@ -1875,12 +1879,6 @@ function switchCommanderCompany(compKey) {
     renderCommanderDashboard();
 }
 
-// ==================== SMOOV LINK (EXTERNAL SIGNATURE SYSTEM) ====================
-function openDocsMove() {
-    window.open('https://elchai.github.io/smoov/', '_blank');
-}
-
-// (Signature system moved to standalone Smoov app - see https://elchai.github.io/smoov/)
 
 // ==================== WHATSAPP NOTIFICATION CENTER ====================
 let whatsappFilterType = 'all';
@@ -2086,7 +2084,7 @@ function switchTab(tab) {
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'commander') renderCommanderDashboard();
     if (tab === 'whatsapp') renderWhatsAppCenter();
-    if (tab === 'digsign') openDocsMove();
+
 
     // Close sidebar on mobile after tab switch
     if (window.innerWidth <= 768) {
@@ -4185,45 +4183,56 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
     `).join('');
 
     const html = `
-    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:auto;padding:30px;">
-        <div style="text-align:center;margin-bottom:20px;">
+    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;">
+        <!-- Header -->
+        <div style="text-align:center;margin-bottom:22px;">
             ${logoHtml}
-            <h1 style="color:#1a3a5c;margin:0;font-size:1.4em;">טופס חתימה על ציוד מבוקר</h1>
-            <p style="color:#7f8c8d;margin:4px 0;">מערכת ניהול גדודי - צל"מ</p>
-            <hr style="border:1px solid #1a3a5c;margin:12px 0;">
+            <h1 style="color:#1a3a5c;margin:6px 0 2px;font-size:1.45em;letter-spacing:0.3px;">טופס קבלת ציוד מבוקר</h1>
+            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">מערכת ניהול גדודי — צל"מ</p>
         </div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-            <tr><td style="padding:8px;font-weight:700;width:140px;background:#f0f2f5;">תאריך:</td><td style="padding:8px;">${dateStr}</td>
-                <td style="padding:8px;font-weight:700;width:140px;background:#f0f2f5;">שעה:</td><td style="padding:8px;">${timeStr}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#f0f2f5;">שם מלא:</td><td style="padding:8px;">${sol.name}</td>
-                <td style="padding:8px;font-weight:700;background:#f0f2f5;">מספר אישי:</td><td style="padding:8px;">${sol.personalId || '-'}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#f0f2f5;">טלפון:</td><td style="padding:8px;direction:ltr;">${sol.phone || '-'}</td>
-                <td style="padding:8px;font-weight:700;background:#f0f2f5;">סוג פעולה:</td><td style="padding:8px;color:#2E7D32;font-weight:700;">חתימה / קבלת ציוד</td></tr>
-        </table>
-        <div style="font-weight:700;margin-bottom:8px;font-size:1.05em;">פריטי ציוד (${items.length}):</div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+        <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 20px;">
+
+        <!-- Soldier details - centered 2-column grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;border-bottom:1px solid #d0d7de;">שם מלא</div>
+            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${sol.name}</div>
+            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;border-bottom:1px solid #d0d7de;">מספר אישי</div>
+            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${sol.personalId || '-'}</div>
+            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;border-bottom:1px solid #d0d7de;">טלפון</div>
+            <div style="padding:9px 14px;direction:ltr;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${sol.phone || '-'}</div>
+            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;">תאריך ושעה</div>
+            <div style="padding:9px 14px;border-right:1px solid #d0d7de;">${dateStr} | ${timeStr}</div>
+        </div>
+
+        <!-- Equipment items -->
+        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">פריטי ציוד (${items.length}):</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.93em;">
             <thead>
-                <tr style="background:#1a3a5c;color:white;">
-                    <th style="padding:8px;border:1px solid #dfe6e9;width:40px;">#</th>
-                    <th style="padding:8px;border:1px solid #dfe6e9;text-align:right;">שם פריט</th>
-                    <th style="padding:8px;border:1px solid #dfe6e9;">מספר צ'</th>
-                    <th style="padding:8px;border:1px solid #dfe6e9;width:60px;">כמות</th>
+                <tr style="background:#1a3a5c;color:white;text-align:center;">
+                    <th style="padding:9px 6px;border:1px solid #1a3a5c;width:36px;">#</th>
+                    <th style="padding:9px 12px;border:1px solid #1a3a5c;text-align:right;">שם פריט</th>
+                    <th style="padding:9px 12px;border:1px solid #1a3a5c;">מספר צ'</th>
+                    <th style="padding:9px 6px;border:1px solid #1a3a5c;width:56px;">כמות</th>
                 </tr>
             </thead>
             <tbody>${itemRows}</tbody>
         </table>
-        <div style="margin-bottom:10px;font-weight:700;">הצהרה:</div>
-        <div style="background:#f0f2f5;padding:12px;border-radius:8px;font-size:0.9em;margin-bottom:20px;">
-            אני הח"מ מאשר/ת שקיבלתי לידי את הציוד המפורט לעיל במצב תקין, ואני מתחייב/ת לשמור עליו
-            ולהחזירו במצבו כפי שקיבלתי אותו.
+
+        <!-- Declaration -->
+        <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:12px 16px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:24px;line-height:1.6;">
+            אני הח"מ מאשר/ת שקיבלתי לידי את הציוד המפורט לעיל במצב תקין, ואני מתחייב/ת לשמור עליו ולהחזירו במצבו כפי שקיבלתי אותו.
         </div>
-        <div style="text-align:center;margin-bottom:10px;font-weight:700;">חתימה:</div>
+
+        <!-- Signature -->
         <div style="text-align:center;">
-            <img src="${logEntry.signatureImg}" style="max-width:400px;height:120px;border:1px solid #dfe6e9;border-radius:8px;">
+            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">חתימת המקבל/ת:</div>
+            <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
+            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${sol.name} | ${dateStr}</div>
         </div>
-        <hr style="border:1px solid #dfe6e9;margin:20px 0;">
-        <div style="text-align:center;font-size:0.75em;color:#7f8c8d;">
-            מסמך זה הופק אוטומטית ממערכת ניהול גדודי | ${dateStr} ${timeStr}
+
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
+        <div style="text-align:center;font-size:0.72em;color:#aaa;">
+            מסמך זה הופק אוטומטית ממערכת ניהול גדודי &nbsp;|&nbsp; ${dateStr} ${timeStr}
         </div>
     </div>`;
 
