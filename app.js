@@ -142,7 +142,7 @@ function applyUnitFilter() {
     const isGdudi = unit === 'gdudi';
 
     // Show/hide sidebar items based on access level
-    document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = isGdudi ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-a').forEach(el => el.style.display = (isGdudi || unit === 'a') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-b').forEach(el => el.style.display = (isGdudi || unit === 'b') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-c').forEach(el => el.style.display = (isGdudi || unit === 'c') ? '' : 'none');
@@ -150,13 +150,15 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-hq').forEach(el => el.style.display = (isGdudi || unit === 'hq') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-palsam').forEach(el => el.style.display = (isGdudi || unit === 'palsam') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-calendar').forEach(el => el.style.display = '');
-    document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = isGdudi ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = isGdudi ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
     const isCompanyCommander = ['a','b','c','d'].includes(unit);
     document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = (isGdudi || isCompanyCommander) ? '' : 'none');
+    const addRotBtn = document.getElementById('addRotGroupBtn');
+    if (addRotBtn) addRotBtn.style.display = isGdudi ? '' : 'none';
 
     // Hide section labels if all items in section are hidden
     document.querySelectorAll('.sidebar-section-label').forEach(label => {
@@ -671,7 +673,12 @@ function renderOverview() {
         const onLeave = state.leaves.filter(l => l.company === key && isCurrentlyOnLeave(l)).length;
         const card = document.createElement('div');
         card.className = `company-card ${comp.colorClass}`;
-        card.onclick = () => switchTab(key);
+        if (canView(key)) {
+            card.onclick = () => switchTab(key);
+        } else {
+            card.style.cursor = 'default';
+            card.style.opacity = '0.55';
+        }
         card.innerHTML = `
             <div class="company-card-header">
                 <h3>${comp.name}</h3>
@@ -1102,7 +1109,7 @@ function renderSoldiersGrid(compKey) {
         if (rotGroup && rotStatus) {
             rotInfo = `<div class="meta">רוטציה: ${rotGroup.name} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/10 בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/4 בבית'}</div>`;
         }
-        return `<div class="person-card ${cls}">
+        return `<div class="person-card ${cls}" data-soldier-id="${s.id}">
             <div class="person-info">
                 <h4>${s.name}</h4>
                 <div class="meta">${s.role}${s.unit ? ' | '+s.unit : ''}${s.personalId ? ' | '+s.personalId : ''}</div>
@@ -1297,9 +1304,20 @@ function renderRotationTab() {
     renderRotationGroups();
 }
 
+function getVisibleRotGroups() {
+    if (!currentUser || currentUser.unit === 'gdudi' || isAdmin()) return state.rotationGroups;
+    return state.rotationGroups.filter(g =>
+        g.soldiers.some(sid => {
+            const sol = state.soldiers.find(s => s.id === sid);
+            return sol && sol.company === currentUser.unit;
+        })
+    );
+}
+
 function renderRotationCalendar() {
     const container = document.getElementById('rotationCalendar');
-    if (state.rotationGroups.length === 0) {
+    const visibleGroups = getVisibleRotGroups();
+    if (visibleGroups.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg></div><p>צור קבוצות רוטציה כדי לראות את לוח הזמנים</p></div>';
         return;
     }
@@ -1331,7 +1349,7 @@ function renderRotationCalendar() {
     html += '</div></div>';
 
     // One row per rotation group
-    state.rotationGroups.forEach(group => {
+    visibleGroups.forEach(group => {
         html += '<div class="rotation-row">';
         html += `<div class="rotation-label">${group.name}<br><small style="color:var(--text-light)">${group.soldiers.length} חיילים</small></div>`;
         html += '<div class="rotation-days">';
@@ -1352,13 +1370,15 @@ function renderRotationCalendar() {
 
 function renderRotationGroups() {
     const container = document.getElementById('rotationGroupsContainer');
-    if (state.rotationGroups.length === 0) {
+    const visibleGroups = getVisibleRotGroups();
+    const canManage = !currentUser || currentUser.unit === 'gdudi' || isAdmin();
+    if (visibleGroups.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><p>לחץ "קבוצת רוטציה חדשה" ליצור קבוצה</p></div>';
         return;
     }
 
     const now = new Date();
-    container.innerHTML = state.rotationGroups.map(group => {
+    container.innerHTML = visibleGroups.map(group => {
         const status = getRotationStatus(group, now);
         const headerClass = status.inBase ? 'in-base' : 'at-home';
         const statusText = status.inBase ?
@@ -1388,9 +1408,9 @@ function renderRotationGroups() {
                     מחזור: ${group.daysIn} בבסיס / ${group.daysOut} בבית | ${soldierNames.length} חיילים
                 </div>
                 <ul>${soldierNames.map(n => `<li>${n}</li>`).join('')}</ul>
-                <div style="margin-top:8px;text-align:left;">
+                ${canManage ? `<div style="margin-top:8px;text-align:left;">
                     <button class="btn btn-danger btn-sm" onclick="deleteRotGroup('${group.id}')">&#10005; מחק קבוצה</button>
-                </div>
+                </div>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -1877,7 +1897,7 @@ function renderWhatsAppCenter() {
     container.innerHTML = `
         <div class="section-title">
             <div class="icon" style="background:#e8f5e9;color:#25D366;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </div>
             מרכז התראות WhatsApp
         </div>
@@ -1885,11 +1905,39 @@ function renderWhatsAppCenter() {
             <span class="info-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
             <div>לחיצה על "שלח" תפתח את WhatsApp עם הודעה מוכנה. ניתן לערוך לפני שליחה.</div>
         </div>
-        <div class="filter-buttons" style="margin:14px 0;">
-            <button class="filter-btn ${whatsappFilterType==='all'?'active':''}" onclick="filterWhatsApp('all')">הכל (${counts.all})</button>
-            <button class="filter-btn ${whatsappFilterType==='shift'?'active':''}" onclick="filterWhatsApp('shift')">משמרות (${counts.shift})</button>
-            <button class="filter-btn ${whatsappFilterType==='leave'?'active':''}" onclick="filterWhatsApp('leave')">יציאות (${counts.leave})</button>
-            <button class="filter-btn ${whatsappFilterType==='rotation'?'active':''}" onclick="filterWhatsApp('rotation')">רוטציה (${counts.rotation})</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:14px 0 10px;">
+            <div class="filter-buttons" style="margin:0;">
+                <button class="filter-btn ${whatsappFilterType==='all'?'active':''}" onclick="filterWhatsApp('all')">הכל (${counts.all})</button>
+                <button class="filter-btn ${whatsappFilterType==='shift'?'active':''}" onclick="filterWhatsApp('shift')">משמרות (${counts.shift})</button>
+                <button class="filter-btn ${whatsappFilterType==='leave'?'active':''}" onclick="filterWhatsApp('leave')">יציאות (${counts.leave})</button>
+                <button class="filter-btn ${whatsappFilterType==='rotation'?'active':''}" onclick="filterWhatsApp('rotation')">רוטציה (${counts.rotation})</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="toggleWhatsAppCompose()" id="waComposeBtn" style="background:#25D366;border-color:#25D366;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                כתיבת הודעה
+            </button>
+        </div>
+        <div id="waComposeBox" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+            <div style="font-weight:600;margin-bottom:10px;font-size:0.9em;">הודעה חדשה</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                <select id="waComposeSoldier" style="flex:1;min-width:180px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:0.85em;" onchange="waFillPhone()" dir="rtl">
+                    <option value="">בחר חייל...</option>
+                    ${state.soldiers.filter(s => canView(s.company) && s.phone).map(s =>
+                        `<option value="${s.phone}">${s.name} | ${s.phone}</option>`
+                    ).join('')}
+                </select>
+                <input type="tel" id="waComposePhone" placeholder="מספר טלפון" dir="ltr"
+                    style="width:160px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:0.85em;">
+            </div>
+            <textarea id="waComposeMsg" rows="3" dir="rtl" placeholder="כתוב את ההודעה..."
+                style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:0.85em;resize:vertical;box-sizing:border-box;"></textarea>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+                <button class="btn btn-sm" onclick="toggleWhatsAppCompose()" style="background:var(--bg);">ביטול</button>
+                <button class="btn btn-sm" onclick="sendWhatsAppCompose()" style="background:#25D366;color:white;border-color:#25D366;display:flex;align-items:center;gap:6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg>
+                    שלח ב-WhatsApp
+                </button>
+            </div>
         </div>
         <div id="whatsappNotifList">
             ${filtered.length === 0 ? '<div style="text-align:center;padding:30px;color:var(--text-light);">אין התראות כרגע</div>' :
@@ -1901,6 +1949,29 @@ function renderWhatsAppCenter() {
 function filterWhatsApp(type) {
     whatsappFilterType = type;
     renderWhatsAppCenter();
+}
+
+function toggleWhatsAppCompose() {
+    const box = document.getElementById('waComposeBox');
+    if (!box) return;
+    const visible = box.style.display !== 'none';
+    box.style.display = visible ? 'none' : 'block';
+    if (!visible) document.getElementById('waComposeMsg').focus();
+}
+
+function waFillPhone() {
+    const sel = document.getElementById('waComposeSoldier');
+    const phoneInput = document.getElementById('waComposePhone');
+    if (sel && phoneInput && sel.value) phoneInput.value = sel.value;
+}
+
+function sendWhatsAppCompose() {
+    const phone = document.getElementById('waComposePhone').value.trim().replace(/[^0-9]/g, '');
+    const msg = document.getElementById('waComposeMsg').value.trim();
+    if (!phone) { showToast('יש להזין מספר טלפון', 'error'); return; }
+    if (!msg) { showToast('יש לכתוב הודעה', 'error'); return; }
+    const intl = phone.startsWith('0') ? '972' + phone.substring(1) : phone;
+    window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function generateWhatsAppNotifications() {
@@ -5688,6 +5759,71 @@ function exportPakalCSV() {
     a.download = `פקל_גדודי_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
 }
+
+// ==================== GLOBAL SEARCH ====================
+let searchFocusIndex = -1;
+
+function onGlobalSearch(query) {
+    const results = document.getElementById('globalSearchResults');
+    query = query.trim();
+    if (query.length < 2) { results.classList.remove('open'); return; }
+
+    const matches = state.soldiers.filter(s =>
+        canView(s.company) &&
+        (s.name.includes(query) || (s.personalId && s.personalId.includes(query)))
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+        results.innerHTML = '<div class="search-no-results">לא נמצאו תוצאות</div>';
+    } else {
+        results.innerHTML = matches.map((s, i) => {
+            const comp = companyData[s.company];
+            return `<div class="search-result-item" data-company="${s.company}" data-id="${s.id}" onclick="selectSearchResult('${s.company}','${s.id}')">
+                <span class="search-result-name">${s.name}</span>
+                <span class="search-result-meta">${s.rank || ''} · ${comp ? comp.name : ''}</span>
+            </div>`;
+        }).join('');
+    }
+    searchFocusIndex = -1;
+    results.classList.add('open');
+}
+
+function onSearchKeydown(e) {
+    const results = document.getElementById('globalSearchResults');
+    const items = results.querySelectorAll('.search-result-item');
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        searchFocusIndex = Math.min(searchFocusIndex + 1, items.length - 1);
+        items.forEach((el, i) => el.classList.toggle('focused', i === searchFocusIndex));
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        searchFocusIndex = Math.max(searchFocusIndex - 1, 0);
+        items.forEach((el, i) => el.classList.toggle('focused', i === searchFocusIndex));
+    } else if (e.key === 'Enter' && searchFocusIndex >= 0 && items[searchFocusIndex]) {
+        items[searchFocusIndex].click();
+    } else if (e.key === 'Escape') {
+        closeGlobalSearch();
+    }
+}
+
+function selectSearchResult(company, soldierId) {
+    closeGlobalSearch();
+    switchTab(company);
+    setTimeout(() => {
+        const el = document.querySelector(`[data-soldier-id="${soldierId}"]`);
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-row'); setTimeout(() => el.classList.remove('highlight-row'), 1800); }
+    }, 150);
+}
+
+function closeGlobalSearch() {
+    document.getElementById('globalSearchResults').classList.remove('open');
+    document.getElementById('globalSearchInput').value = '';
+}
+
+document.addEventListener('click', e => {
+    const wrap = document.getElementById('topbarSearchWrap');
+    if (wrap && !wrap.contains(e.target)) document.getElementById('globalSearchResults').classList.remove('open');
+});
 
 // Close modals
 document.querySelectorAll('.modal-overlay').forEach(o => {

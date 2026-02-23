@@ -283,6 +283,57 @@ body {
 }
 .topbar-stat-num { font-size: 1.15em; font-weight: 700; color: var(--accent); }
 .topbar-stat-label { font-size: 0.68em; opacity: 0.7; }
+.topbar-search-wrap {
+    position: relative;
+    flex-shrink: 1;
+}
+.topbar-search-input {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.82em;
+    padding: 5px 14px;
+    width: 180px;
+    outline: none;
+    transition: width 0.2s, background 0.2s;
+    font-family: inherit;
+}
+.topbar-search-input::placeholder { color: rgba(255,255,255,0.55); }
+.topbar-search-input:focus {
+    background: rgba(255,255,255,0.22);
+    width: 230px;
+}
+.topbar-search-results {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 260px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    z-index: 2000;
+    overflow: hidden;
+    display: none;
+}
+.topbar-search-results.open { display: block; }
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 0.88em;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover, .search-result-item.focused { background: var(--hover-bg, #f0f4ff); }
+.search-result-name { font-weight: 600; flex: 1; }
+.search-result-meta { font-size: 0.82em; color: var(--text-light); white-space: nowrap; }
+.search-no-results { padding: 12px 14px; color: var(--text-light); font-size: 0.85em; text-align: center; }
 .topbar-left {
     display: flex;
     align-items: center;
@@ -672,8 +723,11 @@ body {
 }
 
 /* ==================== Main Content with Sidebar ==================== */
+#mainApp { display: flex; flex-direction: column; min-height: 100vh; }
 .tab-content { margin-right: 260px; transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.tab-content.active { flex: 1; }
 .tab-content.expanded { margin-right: 0; }
+.app-footer { margin-top: auto; }
 .main-content { padding: 20px 25px; max-width: 1600px; margin: 0 auto; }
 .section-title {
     font-size: 1.15em;
@@ -857,6 +911,7 @@ tbody tr:hover { background: #f8f9ff; }
 .person-card.on-duty { border-right-color: var(--success); }
 .person-card.unassigned { border-right-color: var(--danger); }
 .person-card.reinforcement { border-right-color: var(--pluga-d); background: #f3e5f5; }
+.person-card.highlight-row { box-shadow: 0 0 0 3px var(--accent); transition: box-shadow 0.3s; }
 .person-info h4 { font-size: 0.9em; margin-bottom: 3px; }
 .person-info .meta { font-size: 0.78em; color: var(--text-light); }
 .person-status {
@@ -1156,8 +1211,10 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .topbar-title { font-size: 0.95em; overflow: hidden; text-overflow: ellipsis; }
     .topbar-badge { font-size: 0.62em; padding: 2px 7px; flex-shrink: 0; }
     .topbar-stats { display: none; }
+    .topbar-search-wrap { display: none; }
     .topbar-left { flex-shrink: 0; }
     .tab-content { margin-right: 0; }
+    .app-footer { margin-right: 0 !important; }
 
     /* Content */
     .main-content { padding: 12px 10px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
