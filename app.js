@@ -92,6 +92,7 @@ function doLogin() {
     currentUser = { name, unit };
     sessionStorage.setItem('battalionUser', JSON.stringify(currentUser));
     document.getElementById('loginError').classList.remove('show');
+    document.getElementById('loginPassword').value = '';
     activateApp();
 }
 
@@ -254,7 +255,22 @@ document.getElementById('loginName').addEventListener('keydown', function(e) {
 // ==================== DATA ====================
 const companyData = {
     a: {
-        name: 'פלוגה א', location: 'מבוא חורון', color: 'var(--pluga-a)', colorClass: 'company-a',
+        name: 'פלוגה א', location: 'עתודה', color: 'var(--pluga-a)', colorClass: 'company-a',
+        tasks: [
+            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
+            { name: 'מחסום מכבים', soldiers: 7, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
+            { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 2, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
+            { name: 'בונקר', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
+            { name: 'צוות יזומות', soldiers: 20, commanders: 2, officers: 2, shifts: 1, perShift: { soldiers: 20, commanders: 2, officers: 2 } }
+        ],
+        totals: { soldiers: 48, commanders: 3, officers: 4 }
+    },
+    b: {
+        name: 'פלוגה ב', location: 'מבוא חורון', color: 'var(--pluga-b)', colorClass: 'company-b',
         tasks: [
             { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
             { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
@@ -266,19 +282,6 @@ const companyData = {
             { name: 'ש"ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } }
         ],
         totals: { soldiers: 35, commanders: 4, officers: 2 }
-    },
-    b: {
-        name: 'פלוגה ב', location: '443', color: 'var(--pluga-b)', colorClass: 'company-b',
-        tasks: [
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'מחסום בל', soldiers: 12, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'מחסום מכבים', soldiers: 13, commanders: 2, officers: 2, shifts: 2, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } }
-        ],
-        totals: { soldiers: 42, commanders: 6, officers: 4 }
     },
     c: {
         name: 'פלוגה ג', location: 'חשמונאים', color: 'var(--pluga-c)', colorClass: 'company-c',
@@ -298,19 +301,17 @@ const companyData = {
         totals: { soldiers: 41, commanders: 7, officers: 2 }
     },
     d: {
-        name: 'פלוגה ד', location: 'עתודה', color: 'var(--pluga-d)', colorClass: 'company-d',
+        name: 'פלוגה ד', location: '443', color: 'var(--pluga-d)', colorClass: 'company-d',
         tasks: [
             { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'מחסום מכבים', soldiers: 7, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
-            { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 2, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'מחסום בל', soldiers: 12, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
+            { name: 'מחסום מכבים', soldiers: 13, commanders: 2, officers: 2, shifts: 2, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
             { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
             { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'בונקר', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
             { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 20, commanders: 2, officers: 2, shifts: 1, perShift: { soldiers: 20, commanders: 2, officers: 2 } }
+            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } }
         ],
-        totals: { soldiers: 48, commanders: 3, officers: 4 }
+        totals: { soldiers: 42, commanders: 6, officers: 4 }
     },
     hq: {
         name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: '#607D8B', colorClass: 'company-hq',
