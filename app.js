@@ -1140,8 +1140,8 @@ function renderSoldiersGrid(compKey) {
         }
         return `<div class="person-card ${cls}" data-soldier-id="${s.id}">
             <div class="person-info">
-                <h4>${s.name}</h4>
-                <div class="meta">${s.role}${s.unit ? ' | '+s.unit : ''}${s.personalId ? ' | '+s.personalId : ''}</div>
+                <h4><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a></h4>
+                <div class="meta">${esc(s.role)}${s.unit ? ' | '+esc(s.unit) : ''}${s.personalId ? ' | '+esc(s.personalId) : ''}</div>
                 ${s.phone ? `<div class="meta">${s.phone}</div>` : ''}
                 ${rotInfo}
             </div>
@@ -1240,7 +1240,7 @@ function renderCompanyTab(compKey) {
                     ${shifts.sort((a,b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map(sh => {
                         const names = sh.soldiers.map(sid => {
                             const sol = state.soldiers.find(s => s.id === sid);
-                            return sol ? sol.name : '?';
+                            return sol ? `<a href="#" onclick="event.preventDefault();openSoldierProfile('${sid}')" class="soldier-link">${esc(sol.name)}</a>` : '?';
                         });
                         const taskData = comp.tasks.find(t => t.name === sh.task);
                         const needed = taskData ? taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers : 0;
@@ -1285,7 +1285,7 @@ function renderCompanyTab(compKey) {
                                 const sol = state.soldiers.find(s => s.id === l.soldierId);
                                 const active = isCurrentlyOnLeave(l);
                                 return `<tr class="${active?'leave-row-home':''}">
-                                    <td><strong>${sol ? sol.name : '?'}</strong></td>
+                                    <td><strong>${sol ? `<a href="#" onclick="event.preventDefault();openSoldierProfile('${l.soldierId}')" class="soldier-link">${esc(sol.name)}</a>` : '?'}</strong></td>
                                     <td>${sol ? sol.rank : ''}</td>
                                     <td>${formatDate(l.startDate)}</td><td>${l.startTime}</td>
                                     <td>${formatDate(l.endDate)}</td><td>${l.endTime}</td>
@@ -2139,6 +2139,117 @@ function openAddSoldier(company) {
     document.getElementById('soldierNotes').value = '';
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierName').focus(), 100);
+}
+
+function openSoldierProfile(id) {
+    const sol = state.soldiers.find(s => s.id === id);
+    if (!sol) return;
+    const container = document.getElementById('soldierProfileContent');
+    if (!container) return;
+    document.getElementById('profileTitle').textContent = `כרטיס חייל - ${sol.name}`;
+
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Shifts (recent + upcoming)
+    const solShifts = state.shifts.filter(sh => sh.soldiers.includes(id)).sort((a,b) => b.date.localeCompare(a.date));
+    const recentShifts = solShifts.filter(sh => sh.date <= todayStr).slice(0, 5);
+    const upcomingShifts = solShifts.filter(sh => sh.date > todayStr).slice(0, 5);
+
+    // Leaves
+    const solLeaves = state.leaves.filter(l => l.soldierId === id).sort((a,b) => b.startDate.localeCompare(a.startDate));
+    const activeLeave = solLeaves.find(l => isCurrentlyOnLeave(l));
+
+    // Equipment held
+    const heldEquip = state.equipment.filter(e => e.holderId === id);
+
+    // Weapons data
+    const weaponRec = state.weaponsData.find(w => w.soldierId === id);
+
+    // Personal equipment (pakal)
+    const pakalData = state.personalEquipment.find(pe => pe.soldierId === id);
+
+    // Total shifts count
+    const totalShifts = solShifts.length;
+    const totalLeaves = solLeaves.length;
+
+    let html = `<div class="sp-card">`;
+
+    // Basic info
+    html += `<div class="sp-section sp-info">
+        <div class="sp-info-grid">
+            <div class="sp-info-item"><span class="sp-label">שם</span><span class="sp-value">${esc(sol.name)}</span></div>
+            <div class="sp-info-item"><span class="sp-label">דרגה</span><span class="sp-value">${esc(sol.rank) || '-'}</span></div>
+            <div class="sp-info-item"><span class="sp-label">תפקיד</span><span class="sp-value">${esc(sol.role) || '-'}</span></div>
+            <div class="sp-info-item"><span class="sp-label">מסגרת</span><span class="sp-value">${compNames[sol.company] || '-'}</span></div>
+            <div class="sp-info-item"><span class="sp-label">מ.א.</span><span class="sp-value">${esc(sol.personalId) || '-'}</span></div>
+            <div class="sp-info-item"><span class="sp-label">טלפון</span><span class="sp-value">${sol.phone ? `<a href="tel:${sol.phone}">${esc(sol.phone)}</a>` : '-'}</span></div>
+            ${sol.pakal ? `<div class="sp-info-item"><span class="sp-label">פק"ל</span><span class="sp-value">${esc(sol.pakal)}</span></div>` : ''}
+            ${sol.notes ? `<div class="sp-info-item" style="grid-column:1/-1;"><span class="sp-label">הערות</span><span class="sp-value">${esc(sol.notes)}</span></div>` : ''}
+        </div>
+    </div>`;
+
+    // Status badges
+    html += `<div class="sp-badges">
+        <span class="sp-badge ${activeLeave ? 'danger' : 'success'}">${activeLeave ? 'ביציאה' : 'נוכח'}</span>
+        <span class="sp-badge info">${totalShifts} משמרות</span>
+        <span class="sp-badge">${totalLeaves} יציאות</span>
+        <span class="sp-badge">${heldEquip.length} פריטי ציוד</span>
+        ${weaponRec ? '<span class="sp-badge warning">טופס נשק</span>' : ''}
+    </div>`;
+
+    // Upcoming shifts
+    if (upcomingShifts.length > 0) {
+        html += `<div class="sp-section"><h4>משמרות קרובות</h4><div class="sp-list">`;
+        upcomingShifts.forEach(sh => {
+            html += `<div class="sp-list-item"><span>${formatDate(sh.date)}</span><span>${esc(sh.task)}</span><span>${sh.startTime}-${sh.endTime}</span></div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    // Active leave
+    if (activeLeave) {
+        html += `<div class="sp-section sp-active-leave"><h4>יציאה פעילה</h4>
+            <div class="sp-list-item"><span>${esc(activeLeave.type || 'יציאה')}</span><span>${formatDate(activeLeave.startDate)} - ${formatDate(activeLeave.endDate)}</span></div>
+        </div>`;
+    }
+
+    // Recent leaves
+    if (solLeaves.length > 0) {
+        html += `<details class="sp-section"><summary><h4 style="display:inline;">היסטוריית יציאות (${solLeaves.length})</h4></summary><div class="sp-list">`;
+        solLeaves.slice(0, 10).forEach(l => {
+            const status = isCurrentlyOnLeave(l) ? '<span style="color:var(--danger);">פעיל</span>' : '';
+            html += `<div class="sp-list-item"><span>${esc(l.type || 'יציאה')}</span><span>${formatDate(l.startDate)} - ${formatDate(l.endDate)}</span>${status}</div>`;
+        });
+        html += `</div></details>`;
+    }
+
+    // Equipment held
+    if (heldEquip.length > 0) {
+        html += `<details class="sp-section"><summary><h4 style="display:inline;">ציוד מוחזק (${heldEquip.length})</h4></summary><div class="sp-list">`;
+        heldEquip.forEach(eq => {
+            html += `<div class="sp-list-item"><span>${esc(eq.type)}</span><span>${esc(eq.serial)}</span></div>`;
+        });
+        html += `</div></details>`;
+    }
+
+    // Recent shifts
+    if (recentShifts.length > 0) {
+        html += `<details class="sp-section"><summary><h4 style="display:inline;">משמרות אחרונות (${totalShifts})</h4></summary><div class="sp-list">`;
+        recentShifts.forEach(sh => {
+            html += `<div class="sp-list-item"><span>${formatDate(sh.date)}</span><span>${esc(sh.task)}</span><span>${sh.startTime}-${sh.endTime}</span></div>`;
+        });
+        html += `</div></details>`;
+    }
+
+    html += `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="closeModal('soldierProfileModal');openEditSoldier('${id}')">&#9998; ערוך</button>
+        ${sol.phone ? `<a class="btn btn-sm" style="background:#25D366;color:white;text-decoration:none;" href="https://wa.me/${sol.phone.replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank">&#128172; וואטסאפ</a>` : ''}
+    </div>`;
+
+    html += `</div>`;
+    container.innerHTML = html;
+    openModal('soldierProfileModal');
 }
 
 function openEditSoldier(id) {

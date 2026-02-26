@@ -1061,6 +1061,30 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .mr-summary { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Soldier Profile Card */
+.sp-card { font-size: 0.9em; }
+.sp-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.sp-info-item { display: flex; flex-direction: column; }
+.sp-label { font-size: 0.75em; color: var(--text-light); margin-bottom: 2px; }
+.sp-value { font-weight: 600; }
+.sp-value a { color: var(--primary-light); text-decoration: none; }
+.sp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.sp-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.78em; background: var(--bg); color: var(--text-light); font-weight: 500; }
+.sp-badge.success { background: #e8f5e9; color: #2e7d32; }
+.sp-badge.danger { background: #ffebee; color: #c62828; }
+.sp-badge.warning { background: #fff3e0; color: #e65100; }
+.sp-badge.info { background: #e3f2fd; color: #1565c0; }
+.sp-section { margin-bottom: 12px; padding: 12px; background: var(--bg); border-radius: 8px; }
+.sp-section h4 { margin: 0 0 8px; font-size: 0.9em; color: var(--primary); }
+.sp-section summary { cursor: pointer; }
+.sp-active-leave { background: #fff3e0; border: 1px solid #ffe0b2; }
+.sp-list { display: flex; flex-direction: column; gap: 4px; }
+.sp-list-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: var(--card); border-radius: 6px; font-size: 0.85em; gap: 8px; }
+
+/* Soldier clickable link */
+.soldier-link { color: var(--primary-light); text-decoration: none; cursor: pointer; }
+.soldier-link:hover { text-decoration: underline; }
+
 @keyframes slideIn {
     from { transform: translateX(-100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
