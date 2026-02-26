@@ -372,6 +372,7 @@ function loadState() {
     if (!state.weaponsData) state.weaponsData = [];
     if (!state.personalEquipment) state.personalEquipment = [];
     if (!state.rollCalls) state.rollCalls = [];
+    if (!state.announcements) state.announcements = [];
 
     // Migration v1 already completed — just ensure flag is set for new devices
     if (!localStorage.getItem('migration_clear_v1')) {
@@ -528,6 +529,8 @@ function renderAll() {
         generateMorningReport();
     } else if (activeTab === 'rollcall') {
         renderRollCall();
+    } else if (activeTab === 'announcements') {
+        renderAnnouncements();
     }
 }
 
@@ -2113,6 +2116,7 @@ function switchTab(tab) {
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'morningreport') generateMorningReport();
     if (tab === 'rollcall') renderRollCall();
+    if (tab === 'announcements') renderAnnouncements();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') renderWeaponsTab();
@@ -3016,6 +3020,9 @@ function updateGlobalStats() {
         const el = document.getElementById('sidebarCount-' + k);
         if (el) el.textContent = state.soldiers.filter(s => s.company === k).length;
     });
+
+    // Update announcement badge
+    if (typeof updateAnnouncementBadge === 'function') updateAnnouncementBadge();
 }
 
 // ==================== SETTINGS PAGE ====================
@@ -3282,6 +3289,121 @@ function exportCompanyData(compKey) {
     link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// ==================== ANNOUNCEMENTS ====================
+function renderAnnouncements() {
+    const container = document.getElementById('announcementsContent');
+    if (!container) return;
+    if (!state.announcements || state.announcements.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div><p>אין הודעות עדיין</p></div>';
+        return;
+    }
+
+    const sorted = [...state.announcements].sort((a, b) => {
+        if (a.priority === 'pinned' && b.priority !== 'pinned') return -1;
+        if (b.priority === 'pinned' && a.priority !== 'pinned') return 1;
+        return b.timestamp - a.timestamp;
+    });
+
+    container.innerHTML = sorted.map(ann => {
+        const date = new Date(ann.timestamp);
+        const dateStr = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        const priorityClass = ann.priority === 'urgent' ? 'ann-urgent' : ann.priority === 'pinned' ? 'ann-pinned' : '';
+        const priorityIcon = ann.priority === 'urgent' ? '&#9888; ' : ann.priority === 'pinned' ? '&#128204; ' : '';
+        const isAuthor = currentUser && currentUser.name === ann.author;
+
+        return `<div class="ann-card ${priorityClass}">
+            <div class="ann-header">
+                <h4>${priorityIcon}${esc(ann.title)}</h4>
+                ${isAuthor || isAdmin() ? `<div class="ann-actions">
+                    <button class="btn btn-edit btn-sm" onclick="editAnnouncement('${ann.id}')" title="ערוך">&#9998;</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${ann.id}')" title="מחק">&#10005;</button>
+                </div>` : ''}
+            </div>
+            <div class="ann-body">${esc(ann.body).replace(/\n/g, '<br>')}</div>
+            <div class="ann-footer">${esc(ann.author)} | ${dateStr} ${timeStr}</div>
+        </div>`;
+    }).join('');
+
+    updateAnnouncementBadge();
+}
+
+function openNewAnnouncement() {
+    document.getElementById('announcementEditId').value = '';
+    document.getElementById('announcementTitle').value = '';
+    document.getElementById('announcementBody').value = '';
+    document.getElementById('announcementPriority').value = 'normal';
+    document.getElementById('announcementModalTitle').textContent = 'הודעה חדשה';
+    openModal('newAnnouncementModal');
+}
+
+function editAnnouncement(id) {
+    const ann = state.announcements.find(a => a.id === id);
+    if (!ann) return;
+    document.getElementById('announcementEditId').value = id;
+    document.getElementById('announcementTitle').value = ann.title;
+    document.getElementById('announcementBody').value = ann.body;
+    document.getElementById('announcementPriority').value = ann.priority;
+    document.getElementById('announcementModalTitle').textContent = 'עריכת הודעה';
+    openModal('newAnnouncementModal');
+}
+
+function saveAnnouncement() {
+    const title = document.getElementById('announcementTitle').value.trim();
+    const body = document.getElementById('announcementBody').value.trim();
+    const priority = document.getElementById('announcementPriority').value;
+    const editId = document.getElementById('announcementEditId').value;
+
+    if (!title) { showToast('יש להזין כותרת', 'error'); return; }
+    if (!body) { showToast('יש להזין תוכן', 'error'); return; }
+
+    if (!state.announcements) state.announcements = [];
+
+    if (editId) {
+        const ann = state.announcements.find(a => a.id === editId);
+        if (ann) {
+            ann.title = title;
+            ann.body = body;
+            ann.priority = priority;
+            ann.editedAt = Date.now();
+        }
+    } else {
+        state.announcements.push({
+            id: 'ann_' + Date.now(),
+            title,
+            body,
+            priority,
+            author: currentUser ? currentUser.name : 'מערכת',
+            timestamp: Date.now()
+        });
+    }
+
+    saveState();
+    closeModal('newAnnouncementModal');
+    renderAnnouncements();
+    showToast(editId ? 'הודעה עודכנה' : 'הודעה פורסמה');
+}
+
+async function deleteAnnouncement(id) {
+    if (!await customConfirm('למחוק הודעה זו?')) return;
+    state.announcements = state.announcements.filter(a => a.id !== id);
+    saveState();
+    renderAnnouncements();
+    showToast('הודעה נמחקה');
+}
+
+function updateAnnouncementBadge() {
+    const badge = document.getElementById('announcementBadge');
+    if (!badge) return;
+    const count = state.announcements ? state.announcements.filter(a => a.priority === 'urgent').length : 0;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = '';
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
 // ==================== ROLL CALL (MIFKAD) ====================

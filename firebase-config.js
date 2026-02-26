@@ -59,6 +59,7 @@ async function firebaseLoadState() {
             state.weaponsData = remoteState.weaponsData || state.weaponsData;
             state.personalEquipment = remoteState.personalEquipment || state.personalEquipment;
             state.rollCalls = remoteState.rollCalls || state.rollCalls;
+            state.announcements = remoteState.announcements || state.announcements;
             localStorage.setItem('battalionState_v2', JSON.stringify(state));
             firestoreReady = true;
             return true;
@@ -165,6 +166,7 @@ function setupRealtimeListeners() {
                 state.weaponsData = remoteState.weaponsData || [];
                 state.personalEquipment = remoteState.personalEquipment || [];
                 state.rollCalls = remoteState.rollCalls || [];
+                state.announcements = remoteState.announcements || [];
                 localStorage.setItem('battalionState_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');

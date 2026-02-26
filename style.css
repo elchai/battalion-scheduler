@@ -1114,6 +1114,16 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .rc-summary { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Announcements */
+.ann-card { background: var(--card); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; box-shadow: var(--shadow); border-right: 4px solid var(--border); }
+.ann-card.ann-urgent { border-right-color: var(--danger); background: #fff5f5; }
+.ann-card.ann-pinned { border-right-color: var(--primary); background: #f0f4ff; }
+.ann-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.ann-header h4 { margin: 0; font-size: 1em; color: var(--primary-dark); }
+.ann-actions { display: flex; gap: 4px; }
+.ann-body { font-size: 0.9em; line-height: 1.6; color: var(--text); margin-bottom: 10px; }
+.ann-footer { font-size: 0.78em; color: var(--text-light); }
+
 @keyframes slideIn {
     from { transform: translateX(-100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
