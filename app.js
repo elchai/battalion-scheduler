@@ -2787,9 +2787,9 @@ function saveLeave() {
         const selectedSoldiers = getCheckboxListValues('leaveSoldier');
         if (selectedSoldiers.length === 0) { showToast('יש לבחור חיילים', 'error'); return; }
 
-        selectedSoldiers.forEach(soldierId => {
+        selectedSoldiers.forEach((soldierId, idx) => {
             state.leaves.push({
-                id: 'leave_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+                id: 'leave_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2,5),
                 company, soldierId, startDate, startTime, endDate, endTime, notes
             });
         });
