@@ -1034,6 +1034,33 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 .confirm-msg { font-size: 1em; line-height: 1.6; margin-bottom: 20px; color: var(--text); white-space: pre-line; }
 .confirm-actions { display: flex; gap: 10px; justify-content: center; }
 .confirm-actions .btn { min-width: 90px; }
+
+/* Morning Report */
+.mr-report { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+.mr-header { text-align: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+.mr-header h3 { margin: 0 0 6px; font-size: 1.3em; color: var(--primary); }
+.mr-date { font-size: 0.9em; color: var(--text-light); }
+.mr-author { font-size: 0.8em; color: var(--text-light); margin-top: 4px; }
+.mr-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.mr-stat { text-align: center; padding: 14px 8px; border-radius: 10px; background: var(--bg); }
+.mr-stat-value { display: block; font-size: 1.8em; font-weight: 700; color: var(--primary); }
+.mr-stat-label { font-size: 0.78em; color: var(--text-light); }
+.mr-stat.present .mr-stat-value { color: var(--success); }
+.mr-stat.leave .mr-stat-value { color: var(--danger); }
+.mr-stat.shift .mr-stat-value { color: var(--accent); }
+.mr-table { width: 100%; border-collapse: collapse; }
+.mr-table th { background: var(--primary); color: white; padding: 10px 12px; font-size: 0.85em; }
+.mr-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.88em; }
+.mr-table tbody tr:hover { background: rgba(26,58,92,0.04); }
+.mr-names { font-size: 0.75em; color: var(--text-light); margin-top: 2px; }
+.mr-upcoming { margin-top: 20px; padding: 16px; background: #fffde7; border-radius: 10px; border: 1px solid #fff9c4; }
+.mr-upcoming h4 { margin: 0 0 10px; font-size: 0.95em; color: #f57f17; }
+.mr-upcoming-day { padding: 6px 0; font-size: 0.85em; display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 768px) {
+    .mr-summary { grid-template-columns: repeat(2, 1fr); }
+}
+
 @keyframes slideIn {
     from { transform: translateX(-100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }

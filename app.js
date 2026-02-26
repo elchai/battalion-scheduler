@@ -523,6 +523,8 @@ function renderAll() {
         renderWeaponsTab();
     } else if (activeTab === 'commander') {
         renderCommanderDashboard();
+    } else if (activeTab === 'morningreport') {
+        generateMorningReport();
     }
 }
 
@@ -2106,6 +2108,7 @@ function switchTab(tab) {
     if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reports') { /* Static tab, no render needed */ }
+    if (tab === 'morningreport') generateMorningReport();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') renderWeaponsTab();
@@ -3164,6 +3167,161 @@ function exportCompanyData(compKey) {
     link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// ==================== MORNING REPORT ====================
+function generateMorningReport() {
+    const container = document.getElementById('morningReportContent');
+    if (!container) return;
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeDisplay = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+    const companies = ['a','b','c','d','hq','palsam'];
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    let rows = '';
+    let totalAll = 0, totalPresent = 0, totalLeave = 0, totalShift = 0;
+
+    companies.forEach(k => {
+        const soldiers = state.soldiers.filter(s => s.company === k);
+        const total = soldiers.length;
+        const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
+        const onShift = soldiers.filter(s => state.shifts.some(sh => sh.company === k && sh.date === todayStr && sh.soldiers.includes(s.id)));
+        const leaveCount = onLeave.length;
+        const shiftCount = onShift.length;
+        const present = total - leaveCount;
+
+        totalAll += total;
+        totalPresent += present;
+        totalLeave += leaveCount;
+        totalShift += shiftCount;
+
+        const leaveNames = onLeave.map(s => esc(s.name)).join(', ');
+        const shiftNames = onShift.map(s => esc(s.name)).join(', ');
+
+        rows += `<tr>
+            <td style="font-weight:600;">${compNames[k]}</td>
+            <td>${total}</td>
+            <td style="color:var(--success);font-weight:600;">${present}</td>
+            <td style="color:var(--danger);">${leaveCount}${leaveCount > 0 ? `<div class="mr-names">${leaveNames}</div>` : ''}</td>
+            <td>${shiftCount}${shiftCount > 0 ? `<div class="mr-names">${shiftNames}</div>` : ''}</td>
+        </tr>`;
+    });
+
+    // Upcoming leaves (next 3 days)
+    const upcoming = [];
+    for (let d = 1; d <= 3; d++) {
+        const futureDate = new Date(now);
+        futureDate.setDate(futureDate.getDate() + d);
+        const fStr = futureDate.toISOString().split('T')[0];
+        const leaving = state.leaves.filter(l => l.startDate === fStr);
+        const returning = state.leaves.filter(l => l.endDate === fStr);
+        if (leaving.length > 0 || returning.length > 0) {
+            const dayName = futureDate.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' });
+            upcoming.push({ dayName, leaving, returning });
+        }
+    }
+
+    let upcomingHtml = '';
+    if (upcoming.length > 0) {
+        upcomingHtml = `<div class="mr-upcoming">
+            <h4>תנועת חיילים - 3 ימים קרובים</h4>
+            ${upcoming.map(u => {
+                const lNames = u.leaving.map(l => { const s = state.soldiers.find(x => x.id === l.soldierId); return s ? esc(s.name) : '?'; }).join(', ');
+                const rNames = u.returning.map(l => { const s = state.soldiers.find(x => x.id === l.soldierId); return s ? esc(s.name) : '?'; }).join(', ');
+                return `<div class="mr-upcoming-day">
+                    <strong>${u.dayName}:</strong>
+                    ${u.leaving.length > 0 ? `<span style="color:var(--danger);">&#8592; יוצאים (${u.leaving.length}): ${lNames}</span>` : ''}
+                    ${u.returning.length > 0 ? `<span style="color:var(--success);">&#8594; חוזרים (${u.returning.length}): ${rNames}</span>` : ''}
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
+    container.innerHTML = `
+        <div class="mr-report" id="morningReportPrint">
+            <div class="mr-header">
+                <h3>דו"ח בוקר - גדוד יהודה</h3>
+                <div class="mr-date">${dateDisplay} | שעה ${timeDisplay}</div>
+                <div class="mr-author">הופק ע"י: ${esc(currentUser ? currentUser.name : 'מערכת')}</div>
+            </div>
+            <div class="mr-summary">
+                <div class="mr-stat"><span class="mr-stat-value">${totalAll}</span><span class="mr-stat-label">כוח סה"כ</span></div>
+                <div class="mr-stat present"><span class="mr-stat-value">${totalPresent}</span><span class="mr-stat-label">נוכחים</span></div>
+                <div class="mr-stat leave"><span class="mr-stat-value">${totalLeave}</span><span class="mr-stat-label">ביציאות</span></div>
+                <div class="mr-stat shift"><span class="mr-stat-value">${totalShift}</span><span class="mr-stat-label">במשמרות היום</span></div>
+            </div>
+            <div class="table-scroll">
+                <table class="mr-table">
+                    <thead><tr><th>מסגרת</th><th>סה"כ</th><th>נוכחים</th><th>ביציאה</th><th>במשמרת</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot><tr style="font-weight:700;background:var(--bg);">
+                        <td>סה"כ גדוד</td><td>${totalAll}</td><td>${totalPresent}</td><td>${totalLeave}</td><td>${totalShift}</td>
+                    </tr></tfoot>
+                </table>
+            </div>
+            ${upcomingHtml}
+        </div>`;
+}
+
+function getMorningReportText() {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeDisplay = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const companies = ['a','b','c','d','hq','palsam'];
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+
+    let text = `*דו"ח בוקר - גדוד יהודה*\n${dateDisplay} | ${timeDisplay}\n\n`;
+    let totalAll = 0, totalPresent = 0;
+
+    companies.forEach(k => {
+        const soldiers = state.soldiers.filter(s => s.company === k);
+        const total = soldiers.length;
+        const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
+        const present = total - onLeave.length;
+        totalAll += total;
+        totalPresent += present;
+
+        text += `*${compNames[k]}:* ${present}/${total}`;
+        if (onLeave.length > 0) {
+            text += ` (ביציאה: ${onLeave.map(s => s.name).join(', ')})`;
+        }
+        text += '\n';
+    });
+
+    text += `\n*סה"כ גדוד:* ${totalPresent}/${totalAll} נוכחים`;
+    return text;
+}
+
+function copyMorningReportText() {
+    const text = getMorningReportText();
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('דו"ח הועתק ללוח - הדבק בוואטסאפ');
+    }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('דו"ח הועתק ללוח');
+    });
+}
+
+function exportMorningReportPDF() {
+    const el = document.getElementById('morningReportPrint');
+    if (!el) { showToast('יש להפיק דו"ח קודם', 'error'); return; }
+    if (typeof html2pdf === 'undefined') { showToast('ספריית PDF לא נטענה', 'error'); return; }
+    html2pdf().set({
+        margin: 10,
+        filename: `דוח_בוקר_${new Date().toISOString().split('T')[0]}.pdf`,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(el).save();
+    showToast('PDF נוצר בהצלחה');
 }
 
 // ==================== REPORTS ====================

@@ -109,6 +109,10 @@
         </button>
 
         <div class="sidebar-section-label">כלים</div>
+        <button class="sidebar-item tab-morningreport" onclick="switchTab('morningreport')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>דו"ח בוקר</span>
+        </button>
         <button class="sidebar-item tab-reports" onclick="switchTab('reports')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             <span>דוחות</span>
@@ -300,6 +304,22 @@
             </button>
         </div>
         <div class="cal-grid" id="calGrid"></div>
+    </div>
+</div>
+
+<!-- ====== TAB: MORNING REPORT ====== -->
+<div class="tab-content" id="tab-morningreport">
+    <div class="main-content">
+        <div class="section-title">
+            <div class="icon" style="background:#fff3e0;color:#e65100;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <h2>דו"ח בוקר</h2>
+        </div>
+        <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="generateMorningReport()">&#128337; הפק דו"ח בוקר</button>
+            <button class="btn btn-secondary" onclick="copyMorningReportText()">&#128203; העתק לוואטסאפ</button>
+            <button class="btn btn-secondary" onclick="exportMorningReportPDF()">&#128196; ייצא PDF</button>
+        </div>
+        <div id="morningReportContent"></div>
     </div>
 </div>
 
