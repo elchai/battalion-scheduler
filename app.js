@@ -257,6 +257,7 @@ const companyData = {
     a: {
         name: 'פלוגה א', location: 'עתודה', color: 'var(--pluga-a)', colorClass: 'company-a',
         tasks: [
+            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
             { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
             { name: 'מחסום מכבים', soldiers: 7, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
             { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 2, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
@@ -272,6 +273,7 @@ const companyData = {
     b: {
         name: 'פלוגה ב', location: 'מבוא חורון', color: 'var(--pluga-b)', colorClass: 'company-b',
         tasks: [
+            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
             { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
             { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
             { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
@@ -286,6 +288,7 @@ const companyData = {
     c: {
         name: 'פלוגה ג', location: 'חשמונאים', color: 'var(--pluga-c)', colorClass: 'company-c',
         tasks: [
+            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
             { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
             { name: 'סיור דרום', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
             { name: 'סיור צפון', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
@@ -303,6 +306,7 @@ const companyData = {
     d: {
         name: 'פלוגה ד', location: '443', color: 'var(--pluga-d)', colorClass: 'company-d',
         tasks: [
+            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
             { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
             { name: 'מחסום בל', soldiers: 12, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
             { name: 'מחסום מכבים', soldiers: 13, commanders: 2, officers: 2, shifts: 2, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
@@ -2105,6 +2109,8 @@ function openAddSoldier(company) {
     document.getElementById('soldierPhone').value = '';
     document.getElementById('soldierRank').value = 'טוראי';
     document.getElementById('soldierRole').value = 'לוחם';
+    document.getElementById('soldierPakal').value = '';
+    document.getElementById('soldierNotes').value = '';
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierName').focus(), 100);
 }
@@ -2120,6 +2126,8 @@ function openEditSoldier(id) {
     document.getElementById('soldierCompany').value = sol.company;
     document.getElementById('soldierRole').value = sol.role || 'לוחם';
     document.getElementById('soldierPhone').value = sol.phone || '';
+    document.getElementById('soldierPakal').value = sol.pakal || '';
+    document.getElementById('soldierNotes').value = sol.notes || '';
     openModal('addSoldierModal');
 }
 
@@ -2141,6 +2149,8 @@ function saveSoldier() {
             sol.company = company;
             sol.role = document.getElementById('soldierRole').value;
             sol.phone = document.getElementById('soldierPhone').value.trim();
+            sol.pakal = document.getElementById('soldierPakal').value;
+            sol.notes = document.getElementById('soldierNotes').value.trim();
             saveState();
             closeModal('addSoldierModal');
             renderCompanyTab(company);
@@ -2157,7 +2167,9 @@ function saveSoldier() {
             rank: document.getElementById('soldierRank').value,
             company,
             role: document.getElementById('soldierRole').value,
-            phone: document.getElementById('soldierPhone').value.trim()
+            phone: document.getElementById('soldierPhone').value.trim(),
+            pakal: document.getElementById('soldierPakal').value,
+            notes: document.getElementById('soldierNotes').value.trim()
         };
         state.soldiers.push(soldier);
         saveState();
@@ -2961,6 +2973,13 @@ function loadTasksFromStorage() {
             if (tasksData[k]) companyData[k].tasks = tasksData[k];
         });
     }
+    // Ensure מפל"ג task exists in combat companies
+    ['a','b','c','d'].forEach(k => {
+        if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
+            companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } });
+            saveTasksToStorage();
+        }
+    });
 }
 
 function updatePreset(key, field, value) {

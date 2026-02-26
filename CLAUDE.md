@@ -20,25 +20,30 @@ The app is fully client-side. Firebase sync works from any origin.
 
 ## Architecture
 
-### Single-file structure
+### File structure
 | File | Purpose |
 |------|---------|
-| `app.js` | ~5700 lines — all business logic, rendering, state, auth |
-| `index.html` | ~1340 lines — UI shell, sidebar, all modals |
-| `style.css` | ~1910 lines — RTL Hebrew layout, dark mode, responsive |
+| `app.js` | ~5845 lines — all business logic, rendering, state, auth |
+| `index.html` | ~1346 lines — UI shell, sidebar, all modals |
+| `style.css` | ~1966 lines — RTL Hebrew layout, dark mode, responsive |
 | `firebase-config.js` | Firebase Firestore init + realtime listeners |
 | `sw.js` | Service Worker PWA caching (cache name: `battalion-v9`) |
 | `doc-logo.png` | Logo used in generated PDFs |
+| `manifest.json` | PWA manifest |
 
-### State management
-Single `state` object (soldiers, shifts, leaves, rotationGroups, equipment, signatureLog, weaponsData, personalEquipment). Always persist via:
+### State vs Settings
+Two separate persistence roots:
+
+**`state`** — operational data, key `battalionState_v2`:
 ```js
-saveState(); // writes localStorage + debounced Firestore push
+{ soldiers, shifts, leaves, rotationGroups, equipment, signatureLog, weaponsData, personalEquipment }
 ```
-localStorage key: `battalionState_v2`. Settings key: `battalionSettings`.
+Always persist with `saveState()` (writes localStorage + debounced Firestore).
+
+**`settings`** — configuration, key `battalionSettings`. Defined as `DEFAULT_SETTINGS` at top of `app.js`. Contains: `adminName`, `password`, `shiftPresets`, `rotationDaysIn/Out`, `sheetId`, `equipmentSets` (base set + role sets + saved signatures). Persist with `saveSettings()`.
 
 ### Companies
-Six hardcoded units in `companyData`: `a`, `b`, `c`, `d`, `hq`, `palsam`. The constant `ALL_COMPANIES` lists all six. Company tasks are editable via Settings and synced to Firestore `battalion/tasks`.
+Six hardcoded units in `companyData`: `a`, `b`, `c`, `d`, `hq`, `palsam`. The constant `ALL_COMPANIES` lists all six. The `deptToCompany` map converts Hebrew department names (from Google Sheets) to company keys. Company tasks are editable via Settings and synced to Firestore `battalion/tasks`.
 
 ### Permission system
 Three levels controlled by `currentUser = { name, unit }` (stored in sessionStorage):
@@ -51,8 +56,17 @@ Three levels controlled by `currentUser = { name, unit }` (stored in sessionStor
 ### Tab navigation
 `switchTab(tab)` → sets `.active` on tab content div + calls the matching `render*()` function. Company tabs call `renderCompanyTab(compKey)`. The active tab is `#tab-{name}`.
 
+### Google Sheets sync
+`syncFromGoogleSheets(silent)` fetches CSV from a public Google Sheet (ID stored in `settings.sheetId`) to import soldiers. Each sheet tab maps to a company via `deptToCompany`. Soldiers imported from sheets have `fromSheets: true` and are cleared on version bump in `init()`.
+
+### Pakal (personal equipment sets)
+`settings.equipmentSets` defines a `baseSet` (items every soldier gets) and `roleSets` (additional items per role). `generatePersonalEquipment(soldierId)` creates a `personalEquipment` entry in `state`. Bulk generation, bulk signing with canvas signature, and PDF export are all supported. Sub-tabs managed by `switchEquipmentSubTab()`.
+
+### Weapons management
+`openWeaponsForm(soldierId)` opens a multi-step wizard modal. Form data collected by `collectWeaponsFormData()` and saved to `state.weaponsData`. Generates a signed PDF via `generateWeaponsPDF(soldierId)`. Canvas-based signature via `initWpSignatureCanvas()`.
+
 ### PDF generation
-`downloadPDF(htmlContent, filename)` uses `html2pdf.js` (CDN, loaded in index.html). Fully client-side — no server needed. Logo loaded at startup into `DOC_LOGO_BASE64` from `doc-logo.png`.
+`downloadPDF(htmlContent, filename)` uses `html2pdf.js` (CDN). Logo loaded at startup into `DOC_LOGO_BASE64` from `doc-logo.png`. Fallback: `_downloadPdfPrintFallback()`.
 
 ### Firebase Firestore
 Three documents in collection `battalion`: `state`, `settings`, `tasks`. Realtime listeners in `firebase-config.js` call `renderAll()` on remote changes. Writes are debounced 800ms. Toggle with `FIREBASE_ENABLED` in `firebase-config.js`.
@@ -62,12 +76,14 @@ When adding new cached assets, increment `CACHE_NAME` in `sw.js` (currently `bat
 
 ## Key Conventions
 
-- All render functions named `render*()` — they read from `state` and rebuild DOM innerHTML
+- All render functions named `render*()` — they read from `state`/`settings` and rebuild DOM innerHTML
+- `renderAll()` calls every active render function; called after Firebase remote updates
 - New UI elements that need permission gating: add to `applyUnitFilter()` with `isGdudi || isAdmin()` pattern
-- Empty states for admin-managed features should include an action button only when `canManage = currentUser.unit === 'gdudi' || isAdmin()`
+- Empty states for admin-managed features: include action button only when `canManage = currentUser.unit === 'gdudi' || isAdmin()`
 - RTL direction is set at the document level; all CSS uses `right`/`left` accordingly
 - `showToast(msg, type)` for user feedback (`type`: `'success'|'error'|'info'`)
 - `openModal(id)` / `closeModal(id)` for all modals
+- Global search entry point: `onGlobalSearch(query)` → `selectSearchResult(company, soldierId)`
 
 ## External Dependencies (CDN)
 - Firebase SDK 10.12.0 (Firestore)
