@@ -516,7 +516,15 @@ function renderAll() {
 }
 
 // ==================== GOOGLE SHEETS SYNC ====================
+let syncInProgress = false;
 function syncFromGoogleSheets(silent) {
+    if (syncInProgress) { if (!silent) showToast('סנכרון כבר פעיל, אנא המתן...', 'info'); return; }
+    syncInProgress = true;
+
+    // Show spinner on sync button
+    const syncBtns = document.querySelectorAll('[onclick*="syncFromGoogleSheets"]');
+    syncBtns.forEach(btn => { btn._origHTML = btn.innerHTML; btn.innerHTML = '<span class="sync-spinner"></span> מסנכרן...'; btn.disabled = true; });
+
     if (!silent) showToast('מסנכרן מגוגל שיטס...', 'success');
 
     const fetches = Object.entries(getSheetUrls()).map(([key, url]) =>
@@ -551,6 +559,12 @@ function syncFromGoogleSheets(silent) {
     }).catch(err => {
         console.error('Sync error:', err);
         if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
+    }).finally(() => {
+        syncInProgress = false;
+        syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = false; });
+        // Cooldown: disable for 15 seconds
+        syncBtns.forEach(btn => { btn.disabled = true; });
+        setTimeout(() => syncBtns.forEach(btn => { btn.disabled = false; }), 15000);
     });
 }
 
