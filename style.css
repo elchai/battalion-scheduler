@@ -1085,6 +1085,35 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 .soldier-link { color: var(--primary-light); text-decoration: none; cursor: pointer; }
 .soldier-link:hover { text-decoration: underline; }
 
+/* Roll Call */
+.rc-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+.rc-stat { text-align: center; padding: 12px 8px; border-radius: 10px; background: var(--bg); }
+.rc-stat span:first-child { display: block; font-size: 1.6em; font-weight: 700; }
+.rc-stat span:last-child { font-size: 0.78em; color: var(--text-light); }
+.rc-stat.present span:first-child { color: var(--success); }
+.rc-stat.absent span:first-child { color: var(--danger); }
+.rc-stat.leave span:first-child { color: var(--warning); }
+.rc-stat.unknown span:first-child { color: var(--text-light); }
+.rc-grid { display: flex; flex-direction: column; gap: 4px; }
+.rc-soldier { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--card); border-radius: 8px; border-right: 4px solid var(--border); transition: all 0.2s; }
+.rc-soldier.rc-present { border-right-color: var(--success); background: #f1f8e9; }
+.rc-soldier.rc-absent { border-right-color: var(--danger); background: #ffebee; }
+.rc-soldier.rc-leave { border-right-color: var(--warning); background: #fff8e1; }
+.rc-soldier-info { display: flex; flex-direction: column; gap: 2px; }
+.rc-role { font-size: 0.78em; color: var(--text-light); }
+.rc-buttons { display: flex; gap: 4px; }
+.rc-btn { width: 36px; height: 36px; border: 2px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; font-size: 1em; transition: all 0.15s; }
+.rc-btn:hover { background: var(--bg); }
+.rc-btn.active { background: var(--success); color: white; border-color: var(--success); }
+.rc-btn.rc-absent.active { background: var(--danger); border-color: var(--danger); }
+.rc-btn.rc-leave.active { background: var(--warning); border-color: var(--warning); }
+.rc-history-item { padding: 10px; background: var(--card); border-radius: 8px; margin-bottom: 6px; }
+.rc-history-counts { display: flex; gap: 12px; font-size: 0.85em; margin-top: 4px; }
+
+@media (max-width: 768px) {
+    .rc-summary { grid-template-columns: repeat(2, 1fr); }
+}
+
 @keyframes slideIn {
     from { transform: translateX(-100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }

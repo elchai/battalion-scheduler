@@ -371,6 +371,7 @@ function loadState() {
     if (!state.signatureLog) state.signatureLog = [];
     if (!state.weaponsData) state.weaponsData = [];
     if (!state.personalEquipment) state.personalEquipment = [];
+    if (!state.rollCalls) state.rollCalls = [];
 
     // Migration v1 already completed — just ensure flag is set for new devices
     if (!localStorage.getItem('migration_clear_v1')) {
@@ -525,6 +526,8 @@ function renderAll() {
         renderCommanderDashboard();
     } else if (activeTab === 'morningreport') {
         generateMorningReport();
+    } else if (activeTab === 'rollcall') {
+        renderRollCall();
     }
 }
 
@@ -2109,6 +2112,7 @@ function switchTab(tab) {
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'morningreport') generateMorningReport();
+    if (tab === 'rollcall') renderRollCall();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') renderWeaponsTab();
@@ -3278,6 +3282,166 @@ function exportCompanyData(compKey) {
     link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// ==================== ROLL CALL (MIFKAD) ====================
+let rollCallStatus = {};
+
+function renderRollCall() {
+    const compKey = document.getElementById('rollcallCompany').value;
+    const container = document.getElementById('rollcallContent');
+    if (!container) return;
+
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    if (soldiers.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>אין חיילים בפלוגה זו</p></div>';
+        return;
+    }
+
+    // Initialize status for all soldiers if not set
+    soldiers.forEach(s => {
+        if (!rollCallStatus[s.id]) {
+            const onLeave = state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
+            rollCallStatus[s.id] = onLeave ? 'leave' : 'unknown';
+        }
+    });
+
+    const counts = { present: 0, absent: 0, leave: 0, unknown: 0 };
+    soldiers.forEach(s => counts[rollCallStatus[s.id] || 'unknown']++);
+
+    container.innerHTML = `
+        <div class="rc-summary">
+            <div class="rc-stat present"><span>${counts.present}</span><span>נוכח</span></div>
+            <div class="rc-stat absent"><span>${counts.absent}</span><span>חסר</span></div>
+            <div class="rc-stat leave"><span>${counts.leave}</span><span>ביציאה</span></div>
+            <div class="rc-stat unknown"><span>${counts.unknown}</span><span>לא נבדק</span></div>
+        </div>
+        <div class="rc-grid">
+            ${soldiers.map(s => {
+                const st = rollCallStatus[s.id] || 'unknown';
+                return `<div class="rc-soldier rc-${st}" data-id="${s.id}">
+                    <div class="rc-soldier-info">
+                        <strong><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a></strong>
+                        <span class="rc-role">${esc(s.role)}</span>
+                    </div>
+                    <div class="rc-buttons">
+                        <button class="rc-btn ${st==='present'?'active':''}" onclick="setRollCallStatus('${s.id}','present')" title="נוכח">&#10003;</button>
+                        <button class="rc-btn rc-absent ${st==='absent'?'active':''}" onclick="setRollCallStatus('${s.id}','absent')" title="חסר">&#10007;</button>
+                        <button class="rc-btn rc-leave ${st==='leave'?'active':''}" onclick="setRollCallStatus('${s.id}','leave')" title="ביציאה">&#127968;</button>
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`;
+
+    renderRollCallHistory(compKey);
+}
+
+function setRollCallStatus(soldierId, status) {
+    rollCallStatus[soldierId] = status;
+    renderRollCall();
+}
+
+function markAllPresent() {
+    const compKey = document.getElementById('rollcallCompany').value;
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    soldiers.forEach(s => {
+        const onLeave = state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
+        rollCallStatus[s.id] = onLeave ? 'leave' : 'present';
+    });
+    renderRollCall();
+}
+
+function saveRollCall() {
+    const compKey = document.getElementById('rollcallCompany').value;
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const now = new Date();
+    const record = {
+        id: 'rc_' + Date.now(),
+        company: compKey,
+        date: now.toISOString().split('T')[0],
+        time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        author: currentUser ? currentUser.name : 'מערכת',
+        entries: {}
+    };
+    soldiers.forEach(s => {
+        record.entries[s.id] = rollCallStatus[s.id] || 'unknown';
+    });
+
+    if (!state.rollCalls) state.rollCalls = [];
+    state.rollCalls.push(record);
+    saveState();
+    rollCallStatus = {};
+    renderRollCall();
+    showToast('מפקד נשמר בהצלחה');
+}
+
+function renderRollCallHistory(compKey) {
+    const container = document.getElementById('rollcallHistory');
+    if (!container) return;
+    if (!state.rollCalls || state.rollCalls.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const history = state.rollCalls.filter(rc => rc.company === compKey).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
+    if (history.length === 0) { container.innerHTML = ''; return; }
+
+    container.innerHTML = `
+        <details class="sp-section">
+            <summary><h4 style="display:inline;">היסטוריית מפקדים (${history.length})</h4></summary>
+            <div class="rc-history-list">
+                ${history.map(rc => {
+                    const entries = Object.values(rc.entries);
+                    const present = entries.filter(e => e === 'present').length;
+                    const absent = entries.filter(e => e === 'absent').length;
+                    const leave = entries.filter(e => e === 'leave').length;
+                    return `<div class="rc-history-item">
+                        <div><strong>${formatDate(rc.date)}</strong> ${rc.time} | ${esc(rc.author)}</div>
+                        <div class="rc-history-counts">
+                            <span style="color:var(--success);">&#10003; ${present}</span>
+                            <span style="color:var(--danger);">&#10007; ${absent}</span>
+                            <span style="color:var(--warning);">&#127968; ${leave}</span>
+                            <span>סה"כ: ${entries.length}</span>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </details>`;
+}
+
+function copyRollCallText() {
+    const compKey = document.getElementById('rollcallCompany').value;
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const now = new Date();
+
+    let text = `*מפקד ${compNames[compKey]}*\n`;
+    text += `${now.toLocaleDateString('he-IL')} ${now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}\n\n`;
+
+    const statusLabels = { present: 'נוכח', absent: 'חסר', leave: 'ביציאה', unknown: 'לא נבדק' };
+    const groups = { present: [], absent: [], leave: [], unknown: [] };
+    soldiers.forEach(s => {
+        const st = rollCallStatus[s.id] || 'unknown';
+        groups[st].push(s.name);
+    });
+
+    if (groups.present.length > 0) text += `*נוכחים (${groups.present.length}):*\n${groups.present.join(', ')}\n\n`;
+    if (groups.absent.length > 0) text += `*חסרים (${groups.absent.length}):*\n${groups.absent.join(', ')}\n\n`;
+    if (groups.leave.length > 0) text += `*ביציאה (${groups.leave.length}):*\n${groups.leave.join(', ')}\n\n`;
+
+    text += `*סה"כ:* ${groups.present.length}/${soldiers.length} נוכחים`;
+
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('מפקד הועתק ללוח');
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('מפקד הועתק ללוח');
+    });
 }
 
 // ==================== MORNING REPORT ====================
