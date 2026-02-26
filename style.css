@@ -1027,6 +1027,13 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 }
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
+
+/* Custom confirm dialog */
+.confirm-dialog { max-width: 360px; text-align: center; padding: 30px 24px 24px; }
+.confirm-icon { font-size: 2.5em; margin-bottom: 12px; color: var(--warning); }
+.confirm-msg { font-size: 1em; line-height: 1.6; margin-bottom: 20px; color: var(--text); white-space: pre-line; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.confirm-actions .btn { min-width: 90px; }
 @keyframes slideIn {
     from { transform: translateX(-100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }

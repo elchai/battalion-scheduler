@@ -1740,7 +1740,7 @@ function renderCommanderDashboard() {
     if (!container) return;
 
     // Determine which company to show
-    let compKey = commanderViewCompany || currentUser.unit;
+    let compKey = commanderViewCompany || (currentUser && currentUser.unit) || 'a';
     if (compKey === 'gdudi') compKey = 'a';
     const comp = companyData[compKey];
     if (!comp) return;
@@ -1782,7 +1782,7 @@ function renderCommanderDashboard() {
     });
 
     // Company selector for gdudi users
-    const compSelector = currentUser.unit === 'gdudi' ? `
+    const compSelector = (currentUser && currentUser.unit) === 'gdudi' ? `
         <select id="cmdCompanySelect" onchange="switchCommanderCompany(this.value)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
             ${['a','b','c','d','hq','palsam'].map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
         </select>` : '';
@@ -2204,10 +2204,10 @@ function saveSoldier() {
     }
 }
 
-function deleteSoldier(id) {
+async function deleteSoldier(id) {
     const sol = state.soldiers.find(s => s.id === id);
     if (sol && !canEdit(sol.company)) { showToast('אין הרשאה', 'error'); return; }
-    if (!confirm('למחוק חייל זה?')) return;
+    if (!await customConfirm('למחוק חייל זה?')) return;
     state.soldiers = state.soldiers.filter(s => s.id !== id);
     state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
     state.leaves = state.leaves.filter(l => l.soldierId !== id);
@@ -2240,8 +2240,8 @@ function openTransferSoldier(soldierId) {
     const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
     document.getElementById('transferFromCompany').value = compNames[sol.company] || sol.company;
     document.getElementById('transferSoldierInfo').innerHTML = `
-        <h4 style="margin:0 0 4px;">${sol.name}</h4>
-        <div style="font-size:0.85em;color:var(--text-light);">${sol.rank || ''} | ${sol.role || ''} ${sol.personalId ? '| מ.א. ' + sol.personalId : ''}</div>`;
+        <h4 style="margin:0 0 4px;">${esc(sol.name)}</h4>
+        <div style="font-size:0.85em;color:var(--text-light);">${esc(sol.rank)} | ${esc(sol.role)} ${sol.personalId ? '| מ.א. ' + esc(sol.personalId) : ''}</div>`;
 
     const toSelect = document.getElementById('transferToCompany');
     toSelect.value = sol.company === 'a' ? 'd' : sol.company === 'd' ? 'a' : '';
@@ -2269,7 +2269,7 @@ function updateTransferWarnings(soldierId) {
     }
 }
 
-function confirmTransferSoldier() {
+async function confirmTransferSoldier() {
     const soldierId = document.getElementById('transferSoldierId').value;
     const toCompany = document.getElementById('transferToCompany').value;
     const notes = document.getElementById('transferNotes').value.trim();
@@ -2288,7 +2288,7 @@ function confirmTransferSoldier() {
     }
 
     const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
-    if (!confirm(`להעביר את ${sol.name} מ${compNames[fromCompany]} ל${compNames[toCompany]}?`)) return;
+    if (!await customConfirm(`להעביר את ${sol.name} מ${compNames[fromCompany]} ל${compNames[toCompany]}?`)) return;
 
     // Cascade: remove from shifts in old company
     state.shifts.forEach(sh => {
@@ -2484,7 +2484,7 @@ function hasTimeOverlap(soldierId, date, startTime, endTime, excludeShiftId) {
     );
 }
 
-function saveShift() {
+async function saveShift() {
     const company = document.getElementById('shiftCompany').value;
     if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
     const taskRaw = document.getElementById('shiftTask').value;
@@ -2536,7 +2536,7 @@ function saveShift() {
     });
     if (selectedCmds.length > 1) {
         const cmdNames = selectedCmds.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
-        if (!confirm(`שים לב! שיבצת ${selectedCmds.length} מפקדים למשמרת:\n${cmdNames}\n\nהאם אתה בטוח?`)) return;
+        if (!await customConfirm(`שים לב! שיבצת ${selectedCmds.length} מפקדים למשמרת:\n${cmdNames}\n\nהאם אתה בטוח?`)) return;
     }
 
     if (editId) {
@@ -2570,10 +2570,10 @@ function saveShift() {
     }
 }
 
-function deleteShift(id) {
+async function deleteShift(id) {
     const sh = state.shifts.find(s => s.id === id);
     if (sh && !canEdit(sh.company)) { showToast('אין הרשאה', 'error'); return; }
-    if (!confirm('למחוק משמרת?')) return;
+    if (!await customConfirm('למחוק משמרת?')) return;
     state.shifts = state.shifts.filter(s => s.id !== id);
     saveState();
     if (sh) renderCompanyTab(sh.company);
@@ -2679,10 +2679,10 @@ function saveLeave() {
     }
 }
 
-function deleteLeave(id) {
+async function deleteLeave(id) {
     const l = state.leaves.find(x => x.id === id);
     if (l && !canEdit(l.company)) { showToast('אין הרשאה', 'error'); return; }
-    if (!confirm('למחוק יציאה?')) return;
+    if (!await customConfirm('למחוק יציאה?')) return;
     state.leaves = state.leaves.filter(x => x.id !== id);
     saveState();
     if (l) renderCompanyTab(l.company);
@@ -2730,8 +2730,8 @@ function saveRotationGroup() {
     showToast(`קבוצת רוטציה "${name}" נוצרה`);
 }
 
-function deleteRotGroup(id) {
-    if (!confirm('למחוק קבוצת רוטציה?')) return;
+async function deleteRotGroup(id) {
+    if (!await customConfirm('למחוק קבוצת רוטציה?')) return;
     state.rotationGroups = state.rotationGroups.filter(g => g.id !== id);
     saveState();
     renderRotationTab();
@@ -2805,6 +2805,37 @@ function showToast(msg, type='success') {
     t.innerHTML = `${type==='success'?'&#10003;':'&#10007;'} ${msg}`;
     c.appendChild(t);
     setTimeout(() => t.remove(), 3000);
+}
+
+function customConfirm(msg) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('confirmDialog');
+        document.getElementById('confirmMsg').textContent = msg;
+        overlay.classList.add('active');
+        document.body.classList.add('modal-open');
+        const yesBtn = document.getElementById('confirmYes');
+        const noBtn = document.getElementById('confirmNo');
+        function cleanup(result) {
+            overlay.classList.remove('active');
+            if (!document.querySelector('.modal-overlay.active')) document.body.classList.remove('modal-open');
+            yesBtn.removeEventListener('click', onYes);
+            noBtn.removeEventListener('click', onNo);
+            overlay.removeEventListener('click', onOverlay);
+            resolve(result);
+        }
+        function onYes() { cleanup(true); }
+        function onNo() { cleanup(false); }
+        function onOverlay(e) { if (e.target === overlay) cleanup(false); }
+        yesBtn.addEventListener('click', onYes);
+        noBtn.addEventListener('click', onNo);
+        overlay.addEventListener('click', onOverlay);
+    });
+}
+
+function esc(text) {
+    if (!text) return '';
+    const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+    return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 function updateGlobalStats() {
@@ -3022,8 +3053,8 @@ function addTask(compKey) {
     renderTaskEditor();
 }
 
-function deleteTask(compKey, index) {
-    if (!confirm('למחוק משימה?')) return;
+async function deleteTask(compKey, index) {
+    if (!await customConfirm('למחוק משימה?')) return;
     companyData[compKey].tasks.splice(index, 1);
     saveTasksToStorage();
     renderTaskEditor();
@@ -3096,9 +3127,9 @@ function importAllData(input) {
     input.value = '';
 }
 
-function resetAllData() {
-    if (!confirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
-    if (!confirm('אישור סופי - למחוק הכל?')) return;
+async function resetAllData() {
+    if (!await customConfirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
+    if (!await customConfirm('אישור סופי - למחוק הכל?')) return;
     state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [] };
     saveState();
     localStorage.removeItem('battalionTasks');
@@ -3567,6 +3598,8 @@ function setupSignatureCanvas(canvasId) {
         }
     }
 
+    // Remove old listeners to prevent stacking
+    if (canvas._sigCleanup) canvas._sigCleanup();
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mousemove', move);
     canvas.addEventListener('mouseup', stop);
@@ -3574,6 +3607,15 @@ function setupSignatureCanvas(canvasId) {
     canvas.addEventListener('touchstart', start, { passive: false });
     canvas.addEventListener('touchmove', move, { passive: false });
     canvas.addEventListener('touchend', stop);
+    canvas._sigCleanup = () => {
+        canvas.removeEventListener('mousedown', start);
+        canvas.removeEventListener('mousemove', move);
+        canvas.removeEventListener('mouseup', stop);
+        canvas.removeEventListener('mouseleave', stop);
+        canvas.removeEventListener('touchstart', start);
+        canvas.removeEventListener('touchmove', move);
+        canvas.removeEventListener('touchend', stop);
+    };
 
     return ctx;
 }
@@ -3692,13 +3734,13 @@ function saveEquipment() {
     renderEquipmentTab();
 }
 
-function deleteEquipment(id) {
+async function deleteEquipment(id) {
     const eq = state.equipment.find(e => e.id === id);
     if (!eq) return;
     if (eq.holderId) {
-        if (!confirm(`הציוד מוחזק ע"י ${eq.holderName}. למחוק בכל זאת?`)) return;
+        if (!await customConfirm(`הציוד מוחזק ע"י ${eq.holderName}. למחוק בכל זאת?`)) return;
     } else {
-        if (!confirm('למחוק פריט ציוד?')) return;
+        if (!await customConfirm('למחוק פריט ציוד?')) return;
     }
     state.equipment = state.equipment.filter(e => e.id !== id);
     saveState();
@@ -3852,7 +3894,7 @@ function onSignSoldierSelect() {
     const sol = state.soldiers.find(s => s.id === id);
     if (!sol) return;
     info.style.display = '';
-    info.innerHTML = `<strong>${sol.name}</strong> | ${sol.role} | ${sol.personalId || ''} | ${sol.phone || 'אין טלפון'}`;
+    info.innerHTML = `<strong>${esc(sol.name)}</strong> | ${esc(sol.role)} | ${esc(sol.personalId)} | ${esc(sol.phone) || 'אין טלפון'}`;
 }
 
 function confirmSignEquipment() {
@@ -4176,8 +4218,8 @@ function redownloadPDF(logId) {
     }
 }
 
-function deleteSignatureLog(logId) {
-    if (!confirm('למחוק חתימה זו?')) return;
+async function deleteSignatureLog(logId) {
+    if (!await customConfirm('למחוק חתימה זו?')) return;
     const log = state.signatureLog.find(l => l.id === logId);
     if (!log) return;
 
@@ -5093,8 +5135,8 @@ function addRoleSet() {
     settings.equipmentSets.roleSets.push({ id, name: 'סט חדש', roles: [], items: [] });
     saveSettings(); renderEquipmentSetsSettings();
 }
-function deleteRoleSet(ri) {
-    if (!confirm('למחוק את הסט?')) return;
+async function deleteRoleSet(ri) {
+    if (!await customConfirm('למחוק את הסט?')) return;
     settings.equipmentSets.roleSets.splice(ri, 1);
     saveSettings(); renderEquipmentSetsSettings();
 }
@@ -5377,8 +5419,8 @@ function renderPakalCard(pe) {
     </div>`;
 }
 
-function deletePakal(soldierId) {
-    if (!confirm('למחוק את הפק"ל של חייל זה?')) return;
+async function deletePakal(soldierId) {
+    if (!await customConfirm('למחוק את הפק"ל של חייל זה?')) return;
     state.personalEquipment = state.personalEquipment.filter(pe => pe.soldierId !== soldierId);
     saveState();
     renderPakalSubTab();
