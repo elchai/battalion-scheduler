@@ -2701,14 +2701,17 @@ function deleteRotGroup(id) {
 // ==================== HELPERS ====================
 function isCurrentlyOnLeave(leave) {
     const now = new Date();
-    const start = new Date(`${leave.startDate}T${leave.startTime}`);
-    const end = new Date(`${leave.endDate}T${leave.endTime}`);
+    const start = new Date(`${leave.startDate}T${leave.startTime || '00:00'}`);
+    const end = new Date(`${leave.endDate}T${leave.endTime || '23:59'}`);
+    if (isNaN(start) || isNaN(end)) return false;
     return now >= start && now <= end;
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const d = new Date(dateStr);
+    // Use T12:00 to avoid UTC midnight off-by-one in Israel timezone
+    const d = new Date(dateStr + 'T12:00:00');
+    if (isNaN(d)) return dateStr;
     return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
