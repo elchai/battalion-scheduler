@@ -366,18 +366,9 @@ function loadState() {
     if (!state.weaponsData) state.weaponsData = [];
     if (!state.personalEquipment) state.personalEquipment = [];
 
-    // One-time migration: clear shifts and equipment assignments
+    // Migration v1 already completed — just ensure flag is set for new devices
     if (!localStorage.getItem('migration_clear_v1')) {
-        state.shifts = [];
-        state.signatureLog = [];
-        state.equipment.forEach(e => {
-            delete e.holderId;
-            delete e.holderName;
-            delete e.holderPhone;
-            delete e.signatureData;
-        });
         localStorage.setItem('migration_clear_v1', '1');
-        saveState();
     }
 
     seedTestSoldier();
