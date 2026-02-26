@@ -154,12 +154,15 @@ function setupRealtimeListeners() {
             const localJSON = JSON.stringify(state);
             const remoteJSON = JSON.stringify(remoteState);
             if (localJSON !== remoteJSON) {
-                state = remoteState;
-                if (!state.rotationGroups) state.rotationGroups = [];
-                if (!state.equipment) state.equipment = [];
-                if (!state.signatureLog) state.signatureLog = [];
-                if (!state.weaponsData) state.weaponsData = [];
-                if (!state.personalEquipment) state.personalEquipment = [];
+                // Merge fields individually instead of replacing reference
+                state.soldiers = remoteState.soldiers || state.soldiers;
+                state.shifts = remoteState.shifts || state.shifts;
+                state.leaves = remoteState.leaves || state.leaves;
+                state.rotationGroups = remoteState.rotationGroups || [];
+                state.equipment = remoteState.equipment || [];
+                state.signatureLog = remoteState.signatureLog || [];
+                state.weaponsData = remoteState.weaponsData || [];
+                state.personalEquipment = remoteState.personalEquipment || [];
                 localStorage.setItem('battalionState_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');
