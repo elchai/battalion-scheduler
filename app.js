@@ -237,9 +237,13 @@ function closeSidebarMobile() {
 function checkSession() {
     const saved = sessionStorage.getItem('battalionUser');
     if (saved) {
-        currentUser = JSON.parse(saved);
-        activateApp();
-        return true;
+        try {
+            currentUser = JSON.parse(saved);
+            activateApp();
+            return true;
+        } catch {
+            sessionStorage.removeItem('battalionUser');
+        }
     }
     return false;
 }
@@ -359,7 +363,9 @@ function getSearchState(compKey) {
 
 function loadState() {
     const saved = localStorage.getItem('battalionState_v2');
-    if (saved) state = JSON.parse(saved);
+    if (saved) {
+        try { state = JSON.parse(saved); } catch { localStorage.removeItem('battalionState_v2'); }
+    }
     if (!state.rotationGroups) state.rotationGroups = [];
     if (!state.equipment) state.equipment = [];
     if (!state.signatureLog) state.signatureLog = [];
@@ -2967,13 +2973,14 @@ function loadTasksFromStorage() {
             if (tasksData[k]) companyData[k].tasks = tasksData[k];
         });
     }
-    // Ensure מפל"ג task exists in combat companies
-    ['a','b','c','d'].forEach(k => {
-        if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
-            companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } });
-            saveTasksToStorage();
-        }
-    });
+    // Add מפל"ג to combat companies only if no saved tasks exist yet
+    if (!saved) {
+        ['a','b','c','d'].forEach(k => {
+            if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
+                companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } });
+            }
+        });
+    }
 }
 
 function updatePreset(key, field, value) {
