@@ -506,13 +506,24 @@ async function init() {
     }
 }
 
+let activeTab = 'all';
 function renderAll() {
-    renderOverview();
-    renderDashboard();
-    ALL_COMPANIES.forEach(renderCompanyTab);
-    renderRotationTab();
     updateGlobalStats();
     updateNotifications();
+    // Only render the active tab + overview/dashboard which are always needed
+    renderOverview();
+    renderDashboard();
+    if (['a','b','c','d','hq','palsam'].includes(activeTab)) {
+        renderCompanyTab(activeTab);
+    } else if (activeTab === 'rotation') {
+        renderRotationTab();
+    } else if (activeTab === 'equipment') {
+        renderEquipmentTab();
+    } else if (activeTab === 'weapons') {
+        renderWeaponsTab();
+    } else if (activeTab === 'commander') {
+        renderCommanderDashboard();
+    }
 }
 
 // ==================== GOOGLE SHEETS SYNC ====================
@@ -2079,6 +2090,7 @@ function renderWhatsAppCard(n) {
 
 // ==================== TAB NAVIGATION ====================
 function switchTab(tab) {
+    activeTab = tab;
     // Update sidebar active state
     document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
     const sidebarBtn = document.querySelector(`.sidebar-item.tab-${tab}`);
@@ -3056,6 +3068,7 @@ function exportAllData() {
     link.href = URL.createObjectURL(blob);
     link.download = `battalion_backup_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     showToast('נתונים יוצאו בהצלחה');
 }
 
@@ -3119,6 +3132,7 @@ function exportCompanyData(compKey) {
     link.href = URL.createObjectURL(blob);
     link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 // ==================== REPORTS ====================
@@ -4425,6 +4439,7 @@ function exportEquipmentCSV() {
     link.href = URL.createObjectURL(blob);
     link.download = `צלמ_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     showToast('צל"מ יוצא ל-CSV');
 }
 
@@ -5847,6 +5862,7 @@ function exportPakalCSV() {
     a.href = URL.createObjectURL(blob);
     a.download = `פקל_גדודי_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // ==================== GLOBAL SEARCH ====================
