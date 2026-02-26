@@ -2849,6 +2849,12 @@ function updateGlobalStats() {
         const regSoldiers = state.soldiers.filter(s => filterCompanies.includes(s.company)).length;
         statAvailable.textContent = Math.max(0, regSoldiers - assignedIds.size - totalLeave);
     }
+
+    // Update sidebar company counts
+    ['a','b','c','d'].forEach(k => {
+        const el = document.getElementById('sidebarCount-' + k);
+        if (el) el.textContent = state.soldiers.filter(s => s.company === k).length;
+    });
 }
 
 // ==================== SETTINGS PAGE ====================
