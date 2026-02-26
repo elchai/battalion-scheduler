@@ -2322,11 +2322,8 @@ function openEditShift(id) {
     updateShiftOptions();
     // Select task
     document.getElementById('shiftTask').value = sh.task;
-    // Select soldiers
-    const solSel = document.getElementById('shiftSoldiers');
-    Array.from(solSel.options).forEach(opt => {
-        opt.selected = sh.soldiers.includes(opt.value);
-    });
+    // Check soldiers in checkbox list
+    setTimeout(() => setCheckboxListValues('shiftSoldiers', sh.soldiers), 50);
     openModal('addShiftModal');
 }
 
@@ -2368,9 +2365,10 @@ function updateShiftOptions() {
         });
     }
 
-    // Soldiers: only from selected company, with status indicators
-    const solSel = document.getElementById('shiftSoldiers');
-    solSel.innerHTML = '';
+    // Soldiers: checkbox list from selected company, with status indicators
+    const solList = document.getElementById('shiftSoldiers');
+    const prevSelected = getCheckboxListValues('shiftSoldiers');
+    solList.innerHTML = '';
 
     const companySoldiers = state.soldiers.filter(s => s.company === company);
     if (companySoldiers.length > 0) {
@@ -2381,8 +2379,11 @@ function updateShiftOptions() {
             groups[unit].push(s);
         });
         Object.entries(groups).forEach(([unit, soldiers]) => {
-            const grp = document.createElement('optgroup');
-            grp.label = unit;
+            const header = document.createElement('div');
+            header.className = 'checkbox-list-group';
+            header.style.cssText = 'padding:4px 12px;font-size:0.75em;font-weight:700;color:var(--text-light);background:var(--bg);';
+            header.textContent = unit;
+            solList.appendChild(header);
             soldiers.sort((a,b) => {
                 const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime);
                 const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime);
@@ -2391,26 +2392,26 @@ function updateShiftOptions() {
             });
             soldiers.forEach(s => {
                 const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
-                const opt = document.createElement('option');
-                opt.value = s.id;
+                const checked = prevSelected.includes(s.id);
+                let label = s.name;
+                let badge = '';
                 if (status.onLeave) {
-                    opt.textContent = `${s.name} - (בבית)`;
-                    opt.className = 'option-on-leave';
+                    badge = '<span class="badge-sm" style="background:#fce4ec;color:#c62828;">בבית</span>';
                 } else if (status.assignedTo) {
-                    opt.textContent = `${s.name} - (${status.assignedTo})`;
-                    opt.className = 'option-assigned';
+                    badge = `<span class="badge-sm" style="background:#fff3e0;color:#e65100;">${status.assignedTo}</span>`;
                 } else {
-                    opt.textContent = `${s.name} (${s.role})`;
+                    badge = `<span class="badge-sm">${s.role}</span>`;
                 }
-                grp.appendChild(opt);
+                const item = document.createElement('div');
+                item.className = 'checkbox-list-item' + (checked ? ' checked' : '');
+                item.setAttribute('data-name', s.name);
+                item.innerHTML = `<input type="checkbox" value="${s.id}" ${checked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${label}</label>${badge}`;
+                item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); } };
+                solList.appendChild(item);
             });
-            solSel.appendChild(grp);
         });
     } else {
-        const opt = document.createElement('option');
-        opt.disabled = true;
-        opt.textContent = 'אין חיילים רשומים - הוסף חיילים ידנית';
-        solSel.appendChild(opt);
+        solList.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-light);font-size:0.85em;">אין חיילים רשומים</div>';
     }
 }
 
@@ -2466,7 +2467,7 @@ function saveShift() {
     const shiftName = document.getElementById('shiftName').value.trim();
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
-    const soldiers = Array.from(document.getElementById('shiftSoldiers').selectedOptions).map(o => o.value);
+    const soldiers = getCheckboxListValues('shiftSoldiers');
     const editId = document.getElementById('shiftEditId').value;
 
     if (!task || !date || !startTime || !endTime) { showToast('יש למלא את כל השדות', 'error'); return; }
@@ -2594,12 +2595,15 @@ function openEditLeave(id) {
 
 function updateLeaveSoldiers() {
     const company = document.getElementById('leaveCompany').value;
-    const sel = document.getElementById('leaveSoldier');
-    sel.innerHTML = '';
-    state.soldiers.filter(s => s.company === company).forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id; opt.textContent = `${s.name} (${s.rank})`;
-        sel.appendChild(opt);
+    const list = document.getElementById('leaveSoldier');
+    list.innerHTML = '';
+    state.soldiers.filter(s => s.company === company).sort((a,b) => a.name.localeCompare(b.name,'he')).forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'checkbox-list-item';
+        item.setAttribute('data-name', s.name);
+        item.innerHTML = `<input type="checkbox" value="${s.id}" onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${s.name}</label><span class="badge-sm">${s.role || s.rank || ''}</span>`;
+        item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); } };
+        list.appendChild(item);
     });
 }
 
@@ -2632,7 +2636,7 @@ function saveLeave() {
         }
     } else {
         // New leaves
-        const selectedSoldiers = Array.from(document.getElementById('leaveSoldier').selectedOptions).map(o => o.value);
+        const selectedSoldiers = getCheckboxListValues('leaveSoldier');
         if (selectedSoldiers.length === 0) { showToast('יש לבחור חיילים', 'error'); return; }
 
         selectedSoldiers.forEach(soldierId => {
@@ -2663,15 +2667,19 @@ function deleteLeave(id) {
 // ==================== ROTATION GROUPS ====================
 function updateRotGroupSoldiers() {
     const company = document.getElementById('rotGroupCompany').value;
-    const sel = document.getElementById('rotGroupSoldiers');
-    sel.innerHTML = '';
+    const list = document.getElementById('rotGroupSoldiers');
+    list.innerHTML = '';
     const soldiers = company === 'all' ? state.soldiers : state.soldiers.filter(s => s.company === company);
-    soldiers.forEach(s => {
+    soldiers.sort((a,b) => a.name.localeCompare(b.name,'he')).forEach(s => {
         const compName = companyData[s.company] ? companyData[s.company].name : '';
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = company === 'all' ? `[${compName}] ${s.name} (${s.rank})` : `${s.name} (${s.rank} - ${s.role})`;
-        sel.appendChild(opt);
+        const label = company === 'all' ? `[${compName}] ${s.name}` : s.name;
+        const badge = s.role || s.rank || '';
+        const item = document.createElement('div');
+        item.className = 'checkbox-list-item';
+        item.setAttribute('data-name', s.name);
+        item.innerHTML = `<input type="checkbox" value="${s.id}" onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${label}</label><span class="badge-sm">${badge}</span>`;
+        item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); } };
+        list.appendChild(item);
     });
 }
 
@@ -2680,7 +2688,7 @@ function saveRotationGroup() {
     const startDate = document.getElementById('rotGroupStartDate').value;
     const daysIn = parseInt(document.getElementById('rotGroupDaysIn').value) || 10;
     const daysOut = parseInt(document.getElementById('rotGroupDaysOut').value) || 4;
-    const soldiers = Array.from(document.getElementById('rotGroupSoldiers').selectedOptions).map(o => o.value);
+    const soldiers = getCheckboxListValues('rotGroupSoldiers');
     if (!name || !startDate) { showToast('יש למלא שם ותאריך', 'error'); return; }
     if (soldiers.length === 0) { showToast('יש לבחור חיילים', 'error'); return; }
 
@@ -2702,6 +2710,37 @@ function deleteRotGroup(id) {
     saveState();
     renderRotationTab();
     showToast('קבוצה נמחקה');
+}
+
+// ==================== CHECKBOX LIST HELPERS ====================
+function getCheckboxListValues(listId) {
+    return Array.from(document.querySelectorAll(`#${listId} input[type="checkbox"]:checked`)).map(cb => cb.value);
+}
+
+function setCheckboxListValues(listId, values) {
+    document.querySelectorAll(`#${listId} input[type="checkbox"]`).forEach(cb => {
+        const checked = values.includes(cb.value);
+        cb.checked = checked;
+        cb.parentElement.classList.toggle('checked', checked);
+    });
+}
+
+function filterCheckboxList(listId, query) {
+    const q = query.trim().toLowerCase();
+    document.querySelectorAll(`#${listId} .checkbox-list-item`).forEach(item => {
+        const name = (item.getAttribute('data-name') || '').toLowerCase();
+        item.style.display = !q || name.includes(q) ? '' : 'none';
+    });
+    // Also hide empty group headers
+    document.querySelectorAll(`#${listId} .checkbox-list-group`).forEach(header => {
+        const next = [];
+        let sib = header.nextElementSibling;
+        while (sib && !sib.classList.contains('checkbox-list-group')) {
+            if (sib.classList.contains('checkbox-list-item')) next.push(sib);
+            sib = sib.nextElementSibling;
+        }
+        header.style.display = next.some(i => i.style.display !== 'none') ? '' : 'none';
+    });
 }
 
 // ==================== HELPERS ====================

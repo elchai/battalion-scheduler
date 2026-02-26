@@ -847,8 +847,11 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>חיילים משובצים (Ctrl+לחיצה לבחירה מרובה)</label>
-                <select id="shiftSoldiers" multiple style="height:140px;width:100%"></select>
+                <label>חיילים משובצים</label>
+                <div class="checkbox-list-wrap">
+                    <input type="text" class="checkbox-list-search" placeholder="חיפוש חייל..." oninput="filterCheckboxList('shiftSoldiers', this.value)">
+                    <div class="checkbox-list" id="shiftSoldiers"></div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -879,8 +882,11 @@
                 </select>
             </div>
             <div class="form-group" id="leaveSoldierGroup">
-                <label>חייל (ניתן לבחור מספר חיילים)</label>
-                <select id="leaveSoldier" multiple style="height:100px"></select>
+                <label>חיילים</label>
+                <div class="checkbox-list-wrap">
+                    <input type="text" class="checkbox-list-search" placeholder="חיפוש חייל..." oninput="filterCheckboxList('leaveSoldier', this.value)">
+                    <div class="checkbox-list" id="leaveSoldier"></div>
+                </div>
             </div>
             <div class="form-group" id="leaveSoldierDisplay" style="display:none;">
                 <label>חייל</label>
@@ -957,8 +963,11 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>חיילים בקבוצה (Ctrl+לחיצה)</label>
-                <select id="rotGroupSoldiers" multiple style="height:160px;width:100%"></select>
+                <label>חיילים בקבוצה</label>
+                <div class="checkbox-list-wrap">
+                    <input type="text" class="checkbox-list-search" placeholder="חיפוש חייל..." oninput="filterCheckboxList('rotGroupSoldiers', this.value)">
+                    <div class="checkbox-list" id="rotGroupSoldiers"></div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
