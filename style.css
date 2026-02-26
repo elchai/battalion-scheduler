@@ -74,6 +74,7 @@ body {
     color: var(--text);
     direction: rtl;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* ==================== Sidebar ==================== */
@@ -736,7 +737,7 @@ body {
 .tab-content.active { flex: 1; }
 .tab-content.expanded { margin-right: 0; }
 .app-footer { margin-top: auto; }
-.main-content { padding: 20px 25px; max-width: 1600px; margin: 0 auto; overflow: hidden; }
+.main-content { padding: 20px 25px; }
 .section-title {
     font-size: 1.15em;
     font-weight: 700;
