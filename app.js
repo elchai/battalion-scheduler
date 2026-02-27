@@ -38,8 +38,16 @@ function loadSettings() {
     const saved = localStorage.getItem('battalionSettings');
     if (saved) {
         const parsed = JSON.parse(saved);
-        settings = { ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...parsed };
-        if (parsed.shiftPresets) settings.shiftPresets = { ...DEFAULT_SETTINGS.shiftPresets, ...parsed.shiftPresets };
+        const defaults = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+        settings = { ...defaults, ...parsed };
+        if (parsed.shiftPresets) settings.shiftPresets = { ...defaults.shiftPresets, ...parsed.shiftPresets };
+        if (defaults.equipmentSets) {
+            settings.equipmentSets = settings.equipmentSets || {};
+            settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
+            if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
+            settings.equipmentSets.roleSets = settings.equipmentSets.roleSets || defaults.equipmentSets.roleSets;
+            settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || defaults.equipmentSets.savedSignatures || {};
+        }
     }
 }
 
@@ -731,6 +739,9 @@ function renderOverview() {
                     </div>
                     <div class="timeline-bar"><div class="timeline-fill" style="width:${total>0?(regCount/total*100):0}%"></div></div>
                 </div>
+                ${comp.forecast ? `<div style="display:flex;justify-content:space-between;font-size:0.82em;margin-bottom:4px;">
+                    <span>צפי כוח</span><span><strong>${comp.forecast}</strong></span>
+                </div>` : ''}
                 <div style="display:flex;justify-content:space-between;font-size:0.82em;color:var(--text-light);">
                     <span>${comp.tasks.length} משימות</span>
                     <span>${onLeave > 0 ? onLeave + ' בבית' : 'כולם בבסיס'}</span>
@@ -1049,8 +1060,8 @@ function updateNotifications() {
                 <div class="notif-item">
                     <div class="notif-icon ${n.type}">${n.icon}</div>
                     <div class="notif-body">
-                        <div class="notif-title">${n.title}</div>
-                        <div class="notif-desc">${n.desc}</div>
+                        <div class="notif-title">${esc(n.title)}</div>
+                        <div class="notif-desc">${esc(n.desc)}</div>
                     </div>
                 </div>
             `).join('');
@@ -1184,7 +1195,7 @@ function renderCompanyTab(compKey) {
         <div class="sub-section">
             <div class="section-title">
                 <div class="icon" style="background:#e8f5e9;color:var(--success);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg></div>
-                טבלת כוחות ומשימות - ${comp.name} (${comp.location})
+                טבלת כוחות ומשימות - ${comp.name} (${comp.location})${comp.forecast ? ` | צפי: ${comp.forecast}` : ''}
             </div>
             <div class="task-table-wrapper"><div class="table-scroll">
                 <table>
@@ -1254,7 +1265,7 @@ function renderCompanyTab(compKey) {
                         const needsCommander = taskData && taskData.perShift.soldiers >= 4;
                         return `<div class="shift-card">
                             <div class="shift-card-header">
-                                <h4>${sh.task}${sh.shiftName ? ' - '+sh.shiftName : ''}</h4>
+                                <h4>${esc(sh.task)}${sh.shiftName ? ' - '+esc(sh.shiftName) : ''}</h4>
                                 <span class="shift-time">${sh.startTime} - ${sh.endTime}</span>
                             </div>
                             <div class="shift-card-body">
@@ -1299,7 +1310,7 @@ function renderCompanyTab(compKey) {
                                     <td>${formatDate(l.startDate)}</td><td>${l.startTime}</td>
                                     <td>${formatDate(l.endDate)}</td><td>${l.endTime}</td>
                                     <td><span class="person-status ${active?'status-on-leave':'status-on-duty'}">${active?'בבית':'חזר'}</span></td>
-                                    <td style="font-size:0.83em">${l.notes||'-'}</td>
+                                    <td style="font-size:0.83em">${esc(l.notes)||'-'}</td>
                                     <td style="display:flex;gap:4px;">
                                         ${editable ? `<button class="btn btn-edit btn-sm" onclick="openEditLeave('${l.id}')">&#9998;</button>
                                         <button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">&#10005;</button>` : '-'}
@@ -1320,7 +1331,7 @@ function renderCompanyTab(compKey) {
             </div>
             <div class="search-bar">
                 <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                <input type="text" id="search-${compKey}" placeholder="חיפוש לפי שם, תפקיד, מספר אישי..." value="${ss.query}" oninput="onSearchInput('${compKey}')">
+                <input type="text" id="search-${compKey}" placeholder="חיפוש לפי שם, תפקיד, מספר אישי..." value="${esc(ss.query)}" oninput="onSearchInput('${compKey}')">
             </div>
             <div class="filter-buttons">
                 <button class="filter-btn ${ss.filter==='all'?'active':''}" onclick="setFilter('${compKey}','all',this)">הכל</button>
@@ -1437,7 +1448,7 @@ function renderRotationGroups() {
         return `<div class="rotation-group-card">
             <div class="rotation-group-header ${headerClass}">
                 <div>
-                    <h4>${group.name}</h4>
+                    <h4>${esc(group.name)}</h4>
                     <div style="font-size:0.8em;opacity:0.9;">${statusText}</div>
                 </div>
                 <div style="text-align:left;">
@@ -1449,7 +1460,7 @@ function renderRotationGroups() {
                 <div style="font-size:0.83em;color:var(--text-light);margin-bottom:6px;">
                     מחזור: ${group.daysIn} בבסיס / ${group.daysOut} בבית | ${soldierNames.length} חיילים
                 </div>
-                <ul>${soldierNames.map(n => `<li>${n}</li>`).join('')}</ul>
+                <ul>${soldierNames.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
                 ${canManage ? `<div style="margin-top:8px;text-align:left;">
                     <button class="btn btn-danger btn-sm" onclick="deleteRotGroup('${group.id}')">&#10005; מחק קבוצה</button>
                 </div>` : ''}
@@ -1898,8 +1909,8 @@ function cmdSoldierCard(s, status) {
     const txt = status === 'home' ? 'בבית' : status === 'returning' ? 'חוזר היום' : 'ללא שיבוץ';
     return `<div class="person-card ${cls}">
         <div class="person-info">
-            <h4>${s.name}</h4>
-            <div class="meta">${s.role || ''}${s.rank ? ' | '+s.rank : ''}${s.phone ? ' | '+s.phone : ''}</div>
+            <h4>${esc(s.name)}</h4>
+            <div class="meta">${esc(s.role) || ''}${s.rank ? ' | '+esc(s.rank) : ''}${s.phone ? ' | '+esc(s.phone) : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
             <span class="person-status ${badge}">${txt}</span>
@@ -2086,11 +2097,11 @@ function renderWhatsAppCard(n) {
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:8px;border-right:4px solid ${borderColor};">
         <div style="flex:1;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                <h4 style="margin:0;font-size:0.92em;">${n.title}</h4>
-                <span style="font-size:0.7em;background:var(--bg);padding:2px 8px;border-radius:10px;color:var(--text-light);">${typeLabels[n.type]||n.type}</span>
+                <h4 style="margin:0;font-size:0.92em;">${esc(n.title)}</h4>
+                <span style="font-size:0.7em;background:var(--bg);padding:2px 8px;border-radius:10px;color:var(--text-light);">${esc(typeLabels[n.type]||n.type)}</span>
             </div>
-            <div style="font-size:0.82em;color:var(--text-light);">${n.desc}</div>
-            <div style="font-size:0.78em;color:var(--text-light);margin-top:2px;">${n.phone}</div>
+            <div style="font-size:0.82em;color:var(--text-light);">${esc(n.desc)}</div>
+            <div style="font-size:0.78em;color:var(--text-light);margin-top:2px;">${esc(n.phone)}</div>
         </div>
         <a href="${waLink}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#25D366;color:white;border-radius:8px;text-decoration:none;font-size:0.85em;font-weight:600;white-space:nowrap;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
@@ -3808,7 +3819,7 @@ function generateDailyReport() {
             const status = getRotationStatus(g, new Date());
             const statusText = status.inBase ? 'בבסיס' : 'בבית';
             const statusColor = status.inBase ? '#27ae60' : '#e74c3c';
-            html += `<tr><td>${g.name}</td><td style="color:${statusColor};font-weight:600;">${statusText}</td><td>${status.dayInCycle}/${g.daysIn + g.daysOut}</td><td>${g.soldiers.length}</td></tr>`;
+            html += `<tr><td>${esc(g.name)}</td><td style="color:${statusColor};font-weight:600;">${statusText}</td><td>${status.dayInCycle}/${g.daysIn + g.daysOut}</td><td>${g.soldiers.length}</td></tr>`;
         });
         html += '</table>';
     }
@@ -3832,8 +3843,8 @@ function generateDailyReport() {
         html += '<table><tr><th>פלוגה</th><th>משימה</th><th>שעות</th><th>חיילים</th></tr>';
         todayShifts.forEach(sh => {
             const compName = companyData[sh.company] ? companyData[sh.company].name : sh.company;
-            const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
-            html += `<tr><td>${compName}</td><td>${sh.task}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
+            const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? esc(s.name) : '?'; }).join(', ');
+            html += `<tr><td>${esc(compName)}</td><td>${esc(sh.task)}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
         });
         html += '</table>';
     }
@@ -3854,7 +3865,7 @@ function generateCompanyReport() {
         if (soldiers.length > 0) {
             html += '<table><tr><th>שם</th><th>דרגה</th><th>תפקיד</th><th>מ.א.</th><th>טלפון</th></tr>';
             soldiers.forEach(s => {
-                html += `<tr><td>${s.name}</td><td>${s.rank}</td><td>${s.role}</td><td>${s.personalId || '-'}</td><td>${s.phone || '-'}</td></tr>`;
+                html += `<tr><td>${esc(s.name)}</td><td>${esc(s.rank)}</td><td>${esc(s.role)}</td><td>${esc(s.personalId) || '-'}</td><td>${esc(s.phone) || '-'}</td></tr>`;
             });
             html += '</table>';
         } else {
@@ -3881,8 +3892,8 @@ function generateShiftsReport() {
         html += `<h3>${comp.name} - ${shifts.length} שיבוצים</h3>`;
         html += '<table><tr><th>תאריך</th><th>משימה</th><th>משמרת</th><th>שעות</th><th>חיילים</th></tr>';
         shifts.forEach(sh => {
-            const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
-            html += `<tr><td>${formatDate(sh.date)}</td><td>${sh.task}</td><td>${sh.shiftName || '-'}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
+            const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? esc(s.name) : '?'; }).join(', ');
+            html += `<tr><td>${formatDate(sh.date)}</td><td>${esc(sh.task)}</td><td>${esc(sh.shiftName) || '-'}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
         });
         html += '</table>';
     });
@@ -3915,7 +3926,7 @@ function generateLeavesReport() {
             const sol = state.soldiers.find(s => s.id === l.soldierId);
             const isActive = l.startDate <= todayStr && l.endDate >= todayStr;
             const rowStyle = isActive ? 'background:#fff8e1;' : '';
-            html += `<tr style="${rowStyle}"><td>${sol ? sol.name : '?'}</td><td>${formatDate(l.startDate)} ${l.startTime}</td><td>${formatDate(l.endDate)} ${l.endTime}</td><td>${l.notes || '-'}</td></tr>`;
+            html += `<tr style="${rowStyle}"><td>${sol ? esc(sol.name) : '?'}</td><td>${formatDate(l.startDate)} ${l.startTime}</td><td>${formatDate(l.endDate)} ${l.endTime}</td><td>${esc(l.notes) || '-'}</td></tr>`;
         });
         html += '</table>';
     });
@@ -6387,8 +6398,8 @@ function renderPalsamDashboard() {
                 <thead><tr><th>שם</th><th>תפקיד</th><th>פלוגה</th><th>פריטים</th><th>פעולות</th></tr></thead>
                 <tbody>
                     ${unsignedSoldiers.slice(0, 50).map(s => `<tr>
-                        <td style="text-align:right;font-weight:600;">${s.name}</td>
-                        <td>${s.role || 'לוחם'}</td>
+                        <td style="text-align:right;font-weight:600;">${esc(s.name)}</td>
+                        <td>${esc(s.role) || 'לוחם'}</td>
                         <td>${companyNames[s.company] || s.company}</td>
                         <td style="text-align:center;">${s.pe.items.length}</td>
                         <td style="display:flex;gap:4px;">
