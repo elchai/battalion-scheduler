@@ -260,66 +260,66 @@ document.getElementById('loginName').addEventListener('keydown', function(e) {
 const companyData = {
     a: {
         name: 'פלוגה א', location: 'עתודה', color: 'var(--pluga-a)', colorClass: 'company-a',
+        forecast: 51,
         tasks: [
-            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'מחסום מכבים', soldiers: 7, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
-            { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 2, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'בונקר', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 20, commanders: 2, officers: 2, shifts: 1, perShift: { soldiers: 20, commanders: 2, officers: 2 } }
+            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
+            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
+            { name: 'צוותי יזומות', soldiers: 22, commanders: 2, officers: 0, shifts: 1, perShift: { soldiers: 22, commanders: 2, officers: 0 } },
+            { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
+            { name: 'תגבור', soldiers: 12, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 12, commanders: 0, officers: 0 } },
+            { name: 'ליווי גשש', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } }
         ],
-        totals: { soldiers: 48, commanders: 3, officers: 4 }
+        totals: { soldiers: 41, commanders: 2, officers: 2 }
     },
     b: {
         name: 'פלוגה ב', location: 'מבוא חורון', color: 'var(--pluga-b)', colorClass: 'company-b',
+        forecast: 66,
         tasks: [
-            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 9, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
+            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
+            { name: 'סיור קל', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
+            { name: 'בונקר', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
+            { name: 'ש.ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
+            { name: 'פטרול לילה', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
+            { name: 'חמל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
             { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } },
-            { name: 'ש"ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } }
+            { name: 'כ"כ', soldiers: 4, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
+            { name: 'צוות יזומות', soldiers: 11, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 1, officers: 0 } }
         ],
-        totals: { soldiers: 35, commanders: 4, officers: 2 }
+        totals: { soldiers: 36, commanders: 5, officers: 2 }
     },
     c: {
         name: 'פלוגה ג', location: 'חשמונאים', color: 'var(--pluga-c)', colorClass: 'company-c',
+        forecast: 65,
         tasks: [
-            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
-            { name: 'סיור דרום', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'סיור צפון', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
+            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
+            { name: 'סיור קל דרום', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
+            { name: 'סיור קל צפון', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
+            { name: 'חמל פלוגתי', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
             { name: 'הגנת מחנה', soldiers: 6, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
-            { name: 'של"ז', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
             { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } },
-            { name: 'ש"ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'פטרול רגלי 24:00-06:00', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } }
+            { name: 'כ"כ', soldiers: 5, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 0 } },
+            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
+            { name: 'צוות יזומות', soldiers: 11, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 1, officers: 0 } }
         ],
-        totals: { soldiers: 41, commanders: 7, officers: 2 }
+        totals: { soldiers: 41, commanders: 8, officers: 2 }
     },
     d: {
         name: 'פלוגה ד', location: '443', color: 'var(--pluga-d)', colorClass: 'company-d',
+        forecast: 71,
         tasks: [
-            { name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } },
-            { name: 'חפ"ק (מ"פ+נהג+קשר)', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 2 } },
+            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
+            { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
             { name: 'מחסום בל', soldiers: 12, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'מחסום מכבים', soldiers: 13, commanders: 2, officers: 2, shifts: 2, perShift: { soldiers: 6, commanders: 1, officers: 1 } },
-            { name: 'חמ"ל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 0, commanders: 0, officers: 0, shifts: 0, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
+            { name: 'חמל פלוגתי', soldiers: 3, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
+            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
+            { name: 'מעבר מכבים (בוקר 06-09)', soldiers: 11, commanders: 3, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 3, officers: 0 } },
+            { name: 'מעבר מכבים (יום 09-15)', soldiers: 9, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 9, commanders: 0, officers: 0 } },
             { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 10, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 10, commanders: 1, officers: 1 } }
+            { name: 'צוות יזומות', soldiers: 11, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 1, officers: 0 } }
         ],
-        totals: { soldiers: 42, commanders: 6, officers: 4 }
+        totals: { soldiers: 56, commanders: 10, officers: 2 }
     },
     hq: {
         name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: '#607D8B', colorClass: 'company-hq',
@@ -1250,6 +1250,8 @@ function renderCompanyTab(compKey) {
                         });
                         const taskData = comp.tasks.find(t => t.name === sh.task);
                         const needed = taskData ? taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers : 0;
+                        const cmdSol = sh.taskCommander && state.soldiers.find(s => s.id === sh.taskCommander);
+                        const needsCommander = taskData && taskData.perShift.soldiers >= 4;
                         return `<div class="shift-card">
                             <div class="shift-card-header">
                                 <h4>${sh.task}${sh.shiftName ? ' - '+sh.shiftName : ''}</h4>
@@ -1259,6 +1261,7 @@ function renderCompanyTab(compKey) {
                                 <div style="font-size:0.83em;color:var(--text-light);margin-bottom:6px;">
                                     &#128197; ${formatDate(sh.date)} | ${names.length}/${needed} משובצים
                                 </div>
+                                ${needsCommander ? `<div class="task-commander-badge">${cmdSol ? '<strong>מפקד המשימה:</strong> <a href="#" onclick="event.preventDefault();openSoldierProfile(\'' + sh.taskCommander + '\')" class="soldier-link">' + esc(cmdSol.name) + '</a>' : '<span style="color:var(--danger)">לא נבחר מפקד משימה</span>'}</div>` : ''}
                                 ${names.length > 0 ? `<ul class="shift-soldiers">${names.map(n => `<li class="shift-soldier"><span>${n}</span></li>`).join('')}</ul>` : '<div style="text-align:center;padding:8px;color:var(--danger);font-size:0.83em;">לא שובצו חיילים</div>'}
                                 ${editable ? `<div style="margin-top:6px;text-align:left;display:flex;gap:4px;">
                                     <button class="btn btn-edit btn-sm" onclick="openEditShift('${sh.id}')">&#9998; עריכה</button>
@@ -2470,8 +2473,12 @@ function openEditShift(id) {
     updateShiftOptions();
     // Select task
     document.getElementById('shiftTask').value = sh.task;
-    // Check soldiers in checkbox list
-    setTimeout(() => setCheckboxListValues('shiftSoldiers', sh.soldiers), 50);
+    // Check soldiers in checkbox list, then set task commander
+    setTimeout(() => {
+        setCheckboxListValues('shiftSoldiers', sh.soldiers);
+        updateTaskCommanderSelect();
+        if (sh.taskCommander) document.getElementById('taskCommanderSelect').value = sh.taskCommander;
+    }, 50);
     openModal('addShiftModal');
 }
 
@@ -2495,6 +2502,7 @@ function updateShiftOptions() {
     // Tasks dropdown with capacity info
     const taskSel = document.getElementById('shiftTask');
     taskSel.innerHTML = '';
+    taskSel.onchange = updateTaskCommanderSelect;
     const tasks = companyData[company].tasks;
     if (tasks.length === 0) {
         const opt = document.createElement('option');
@@ -2553,13 +2561,40 @@ function updateShiftOptions() {
                 const item = document.createElement('div');
                 item.className = 'checkbox-list-item' + (checked ? ' checked' : '');
                 item.setAttribute('data-name', s.name);
-                item.innerHTML = `<input type="checkbox" value="${s.id}" ${checked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${label}</label>${badge}`;
-                item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); } };
+                item.innerHTML = `<input type="checkbox" value="${s.id}" ${checked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('checked',this.checked);updateTaskCommanderSelect()"><label>${label}</label>${badge}`;
+                item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); updateTaskCommanderSelect(); } };
                 solList.appendChild(item);
             });
         });
     } else {
         solList.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-light);font-size:0.85em;">אין חיילים רשומים</div>';
+    }
+    updateTaskCommanderSelect();
+}
+
+function updateTaskCommanderSelect() {
+    const company = document.getElementById('shiftCompany').value;
+    const taskName = document.getElementById('shiftTask').value.replace(/\s*\(\d+\/\d+\)$/, '');
+    const taskData = companyData[company] && companyData[company].tasks.find(t => t.name === taskName);
+    const group = document.getElementById('taskCommanderGroup');
+    const select = document.getElementById('taskCommanderSelect');
+    if (taskData && taskData.perShift.soldiers >= 4) {
+        group.style.display = '';
+        const selectedSoldiers = getCheckboxListValues('shiftSoldiers');
+        const prev = select.value;
+        select.innerHTML = '<option value="">-- בחר מפקד משימה --</option>';
+        selectedSoldiers.forEach(sid => {
+            const sol = state.soldiers.find(s => s.id === sid);
+            if (sol) {
+                const opt = document.createElement('option');
+                opt.value = sid;
+                opt.textContent = sol.name + (sol.role ? ' (' + sol.role + ')' : '');
+                select.appendChild(opt);
+            }
+        });
+        if (prev && selectedSoldiers.includes(prev)) select.value = prev;
+    } else {
+        group.style.display = 'none';
     }
 }
 
@@ -2616,6 +2651,7 @@ async function saveShift() {
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
     const soldiers = getCheckboxListValues('shiftSoldiers');
+    const taskCommander = document.getElementById('taskCommanderSelect').value || '';
     const editId = document.getElementById('shiftEditId').value;
 
     if (!task || !date || !startTime || !endTime) { showToast('יש למלא את כל השדות', 'error'); return; }
@@ -2672,6 +2708,7 @@ async function saveShift() {
             sh.startTime = startTime;
             sh.endTime = endTime;
             sh.soldiers = soldiers;
+            sh.taskCommander = taskCommander;
             saveState();
             closeModal('addShiftModal');
             renderCompanyTab(company);
@@ -2682,7 +2719,7 @@ async function saveShift() {
         // Create new shift
         state.shifts.push({
             id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-            company, task, date, shiftName, startTime, endTime, soldiers
+            company, task, date, shiftName, startTime, endTime, soldiers, taskCommander
         });
         saveState();
         closeModal('addShiftModal');

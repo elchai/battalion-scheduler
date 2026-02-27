@@ -899,6 +899,15 @@ tbody tr:hover { background: #f8f9ff; }
 }
 .shift-soldier:hover { background: var(--bg); }
 .shift-soldier:last-child { border-bottom: none; }
+.task-commander-badge {
+    background: #fff8e1;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-bottom: 6px;
+    font-size: 0.85em;
+    text-align: center;
+}
 .personnel-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
