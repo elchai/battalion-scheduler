@@ -19,6 +19,8 @@
     --pluga-b: #4CAF50;
     --pluga-c: #FF9800;
     --pluga-d: #9C27B0;
+    --pluga-hq: #607D8B;
+    --pluga-palsam: #795548;
 }
 
 [data-theme="dark"] {
@@ -31,6 +33,8 @@
     --primary: #4a7ab5;
     --primary-light: #5a8ac5;
     --primary-dark: #3a6aa5;
+    --pluga-hq: #78909C;
+    --pluga-palsam: #A1887F;
 }
 [data-theme="dark"] body { background: var(--bg); color: var(--text); }
 [data-theme="dark"] .login-screen { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #0d2240 100%); }
@@ -576,7 +580,7 @@ body {
     width: 70px;
     font-size: 0.82em;
     font-weight: 600;
-    text-align: left;
+    text-align: right;
     white-space: nowrap;
 }
 .bar-track {

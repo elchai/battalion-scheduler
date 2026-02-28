@@ -330,12 +330,12 @@ const companyData = {
         totals: { soldiers: 56, commanders: 10, officers: 2 }
     },
     hq: {
-        name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: '#607D8B', colorClass: 'company-hq',
+        name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: 'var(--pluga-hq)', colorClass: 'company-hq',
         tasks: [],
         totals: { soldiers: 0, commanders: 0, officers: 0 }
     },
     palsam: {
-        name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', color: '#795548', colorClass: 'company-palsam',
+        name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', color: 'var(--pluga-palsam)', colorClass: 'company-palsam',
         tasks: [
             { name: 'מטבח', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
             { name: 'שמירה', soldiers: 5, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
@@ -3011,19 +3011,19 @@ function showToast(msg, type='success') {
     setTimeout(() => t.remove(), 3000);
 }
 
+let _confirmCleanup = null;
 function customConfirm(msg) {
     return new Promise(resolve => {
+        // Dismiss any previous open dialog and clean up its listeners
+        if (_confirmCleanup) _confirmCleanup(false);
         const overlay = document.getElementById('confirmDialog');
-        // Dismiss any previous open dialog
-        if (overlay.classList.contains('active')) {
-            overlay.classList.remove('active');
-        }
         document.getElementById('confirmMsg').textContent = msg;
         overlay.classList.add('active');
         document.body.classList.add('modal-open');
         const yesBtn = document.getElementById('confirmYes');
         const noBtn = document.getElementById('confirmNo');
         function cleanup(result) {
+            _confirmCleanup = null;
             overlay.classList.remove('active');
             if (!document.querySelector('.modal-overlay.active')) document.body.classList.remove('modal-open');
             yesBtn.removeEventListener('click', onYes);
@@ -3031,6 +3031,7 @@ function customConfirm(msg) {
             overlay.removeEventListener('click', onOverlay);
             resolve(result);
         }
+        _confirmCleanup = cleanup;
         function onYes() { cleanup(true); }
         function onNo() { cleanup(false); }
         function onOverlay(e) { if (e.target === overlay) cleanup(false); }
@@ -3103,7 +3104,15 @@ function updateGlobalStats() {
     if (statHome) statHome.textContent = totalLeave;
     if (statAvailable) {
         const regSoldiers = state.soldiers.filter(s => filterCompanies.includes(s.company)).length;
-        statAvailable.textContent = Math.max(0, regSoldiers - assignedIds.size - totalLeave);
+        // Don't double-count soldiers who are both assigned and on leave
+        const leaveIds = new Set();
+        state.leaves.filter(l => isCurrentlyOnLeave(l)).forEach(l => leaveIds.add(l.soldierId));
+        state.rotationGroups.forEach(g => {
+            const status = getRotationStatus(g, new Date());
+            if (!status.inBase) g.soldiers?.forEach(sid => leaveIds.add(sid));
+        });
+        const effectiveAssigned = [...assignedIds].filter(id => !leaveIds.has(id)).length;
+        statAvailable.textContent = Math.max(0, regSoldiers - effectiveAssigned - totalLeave);
     }
 
     // Update sidebar company counts
@@ -3570,7 +3579,30 @@ function renderRollCall() {
 
 function setRollCallStatus(soldierId, status) {
     rollCallStatus[soldierId] = status;
-    renderRollCall();
+    // Update only the specific row + summary instead of full re-render
+    const row = document.querySelector(`.rc-soldier[data-id="${soldierId}"]`);
+    if (row) {
+        row.querySelectorAll('.rc-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.status === status);
+        });
+        updateRollCallSummary();
+    } else {
+        renderRollCall();
+    }
+}
+
+function updateRollCallSummary() {
+    const compKey = document.getElementById('rollcallCompany').value;
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const counts = { present: 0, absent: 0, leave: 0, unknown: 0 };
+    soldiers.forEach(s => counts[rollCallStatus[s.id] || 'unknown']++);
+    const els = document.querySelectorAll('.rc-stat span:first-child');
+    if (els.length >= 4) {
+        els[0].textContent = counts.present;
+        els[1].textContent = counts.absent;
+        els[2].textContent = counts.leave;
+        els[3].textContent = counts.unknown;
+    }
 }
 
 function markAllPresent() {
@@ -3695,8 +3727,16 @@ function generateMorningReport() {
         const soldiers = state.soldiers.filter(s => s.company === k);
         const total = soldiers.length;
         const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
+        // Include rotation-absent soldiers
+        const rotationAbsent = soldiers.filter(s => {
+            if (onLeave.find(x => x.id === s.id)) return false; // already counted
+            const group = state.rotationGroups?.find(g => g.soldiers?.includes(s.id));
+            if (!group) return false;
+            const status = getRotationStatus(group, now);
+            return !status.inBase;
+        });
         const onShift = soldiers.filter(s => state.shifts.some(sh => sh.company === k && sh.date === todayStr && sh.soldiers.includes(s.id)));
-        const leaveCount = onLeave.length;
+        const leaveCount = onLeave.length + rotationAbsent.length;
         const shiftCount = onShift.length;
         const present = total - leaveCount;
 
