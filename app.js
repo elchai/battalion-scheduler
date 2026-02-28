@@ -611,9 +611,8 @@ function syncFromGoogleSheets(silent) {
         if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
     }).finally(() => {
         syncInProgress = false;
-        syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = false; });
+        syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = true; });
         // Cooldown: disable for 15 seconds
-        syncBtns.forEach(btn => { btn.disabled = true; });
         setTimeout(() => syncBtns.forEach(btn => { btn.disabled = false; }), 15000);
     });
 }
@@ -1243,7 +1242,7 @@ function renderCompanyTab(compKey) {
                             const needed = t.soldiers + t.commanders + t.officers;
                             const pct = needed > 0 ? Math.min(100, Math.round(assigned/needed*100)) : 0;
                             return `<tr>
-                                <td class="task-name">${t.name}</td>
+                                <td class="task-name">${esc(t.name)}</td>
                                 <td>${t.perShift.soldiers}</td>
                                 <td>${t.perShift.commanders}</td>
                                 <td>${t.perShift.officers}</td>
@@ -1416,7 +1415,7 @@ function renderRotationCalendar() {
     html += '<div class="rotation-days">';
     days.forEach((d, i) => {
         const isToday = i === 0;
-        html += `<div class="rotation-day ${isToday ? 'today' : ''}" style="background:#f5f5f5;">
+        html += `<div class="rotation-day ${isToday ? 'today' : ''}" style="background:var(--bg-secondary,#f5f5f5);">
             <div class="day-name">${dayNames[d.getDay()]}'</div>
             <div class="day-num">${d.getDate()}</div>
             <div style="font-size:0.7em;opacity:0.5;">${d.getMonth()+1}</div>
@@ -2847,6 +2846,7 @@ function saveLeave() {
 
     if (!startDate || !endDate) { showToast('יש למלא את כל השדות', 'error'); return; }
     if (endDate < startDate) { showToast('תאריך סיום חייב להיות אחרי תאריך התחלה', 'error'); return; }
+    if (endDate === startDate && endTime && startTime && endTime <= startTime) { showToast('שעת סיום חייבת להיות אחרי שעת התחלה', 'error'); return; }
 
     if (editId) {
         // Update existing leave
@@ -3014,6 +3014,10 @@ function showToast(msg, type='success') {
 function customConfirm(msg) {
     return new Promise(resolve => {
         const overlay = document.getElementById('confirmDialog');
+        // Dismiss any previous open dialog
+        if (overlay.classList.contains('active')) {
+            overlay.classList.remove('active');
+        }
         document.getElementById('confirmMsg').textContent = msg;
         overlay.classList.add('active');
         document.body.classList.add('modal-open');
@@ -3067,7 +3071,8 @@ function updateGlobalStats() {
     const totalEl = document.getElementById('statTotalPersonnel');
     if (totalEl) totalEl.textContent = totalSol + totalCmd + totalOff;
 
-    const relevantShifts = state.shifts.filter(sh => filterCompanies.includes(sh.company));
+    const todayStr = new Date().toISOString().split('T')[0];
+    const relevantShifts = state.shifts.filter(sh => filterCompanies.includes(sh.company) && sh.date === todayStr);
     const assignedIds = new Set();
     relevantShifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
@@ -3230,7 +3235,7 @@ function renderTaskEditor() {
         </div>
         ${tasks.map((t, i) => `
             <div class="task-edit-row">
-                <input value="${t.name}" onchange="updateTask('${compKey}',${i},'name',this.value)">
+                <input value="${esc(t.name)}" onchange="updateTask('${compKey}',${i},'name',this.value)">
                 <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
                 <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
                 <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
@@ -3520,6 +3525,10 @@ function renderRollCall() {
         container.innerHTML = '<div class="empty-state"><p>אין חיילים בפלוגה זו</p></div>';
         return;
     }
+
+    // Clear statuses from other companies
+    const soldierIds = new Set(soldiers.map(s => s.id));
+    Object.keys(rollCallStatus).forEach(id => { if (!soldierIds.has(id)) delete rollCallStatus[id]; });
 
     // Initialize status for all soldiers if not set
     soldiers.forEach(s => {
