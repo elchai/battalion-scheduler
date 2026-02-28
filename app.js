@@ -2797,7 +2797,7 @@ function updateLeaveSoldiers() {
         const item = document.createElement('div');
         item.className = 'checkbox-list-item';
         item.setAttribute('data-name', s.name);
-        item.innerHTML = `<input type="checkbox" value="${s.id}" onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${s.name}</label><span class="badge-sm">${s.role || s.rank || ''}</span>`;
+        item.innerHTML = `<input type="checkbox" value="${s.id}" onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${esc(s.name)}</label><span class="badge-sm">${esc(s.role || s.rank || '')}</span>`;
         item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); } };
         list.appendChild(item);
     });
@@ -2814,6 +2814,7 @@ function saveLeave() {
     const notes = document.getElementById('leaveNotes').value.trim();
 
     if (!startDate || !endDate) { showToast('יש למלא את כל השדות', 'error'); return; }
+    if (endDate < startDate) { showToast('תאריך סיום חייב להיות אחרי תאריך התחלה', 'error'); return; }
 
     if (editId) {
         // Update existing leave
@@ -2873,7 +2874,7 @@ function updateRotGroupSoldiers() {
         const item = document.createElement('div');
         item.className = 'checkbox-list-item';
         item.setAttribute('data-name', s.name);
-        item.innerHTML = `<input type="checkbox" value="${s.id}" onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${label}</label><span class="badge-sm">${badge}</span>`;
+        item.innerHTML = `<input type="checkbox" value="${s.id}" onchange="this.parentElement.classList.toggle('checked',this.checked)"><label>${esc(label)}</label><span class="badge-sm">${esc(badge)}</span>`;
         item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); } };
         list.appendChild(item);
     });
@@ -4024,7 +4025,7 @@ function buildReportHTML(type) {
             if (soldiers.length > 0) {
                 html += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
                 <tr style="background:#1a3a5c;color:white;"><th>שם</th><th>דרגה</th><th>תפקיד</th><th>מ.א.</th><th>טלפון</th></tr>`;
-                soldiers.forEach(s => html += `<tr><td>${s.name}</td><td>${s.rank}</td><td>${s.role}</td><td>${s.personalId||'-'}</td><td>${s.phone||'-'}</td></tr>`);
+                soldiers.forEach(s => html += `<tr><td>${esc(s.name)}</td><td>${esc(s.rank)}</td><td>${esc(s.role)}</td><td>${esc(s.personalId)||'-'}</td><td>${esc(s.phone)||'-'}</td></tr>`);
                 html += '</table>';
             }
         });
@@ -4037,8 +4038,8 @@ function buildReportHTML(type) {
             html += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
             <tr style="background:#1a3a5c;color:white;"><th>תאריך</th><th>משימה</th><th>שעות</th><th>חיילים</th></tr>`;
             shifts.forEach(sh => {
-                const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
-                html += `<tr><td>${formatDate(sh.date)}</td><td>${sh.task}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
+                const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? esc(s.name) : '?'; }).join(', ');
+                html += `<tr><td>${formatDate(sh.date)}</td><td>${esc(sh.task)}</td><td>${sh.startTime}-${sh.endTime}</td><td>${names}</td></tr>`;
             });
             html += '</table>';
         });
@@ -4053,7 +4054,7 @@ function buildReportHTML(type) {
             <tr style="background:#1a3a5c;color:white;"><th>חייל</th><th>יציאה</th><th>חזרה</th><th>הערות</th></tr>`;
             leaves.forEach(l => {
                 const sol = state.soldiers.find(s => s.id === l.soldierId);
-                html += `<tr><td>${sol?sol.name:'?'}</td><td>${formatDate(l.startDate)} ${l.startTime}</td><td>${formatDate(l.endDate)} ${l.endTime}</td><td>${l.notes||'-'}</td></tr>`;
+                html += `<tr><td>${sol?esc(sol.name):'?'}</td><td>${formatDate(l.startDate)} ${l.startTime}</td><td>${formatDate(l.endDate)} ${l.endTime}</td><td>${esc(l.notes)||'-'}</td></tr>`;
             });
             html += '</table>';
         });
@@ -5196,9 +5197,9 @@ function renderWeaponsTab() {
     soldiers.forEach(s => {
         const status = getWeaponsStatus(s.id);
         html += `<tr>
-            <td style="font-weight:600;">${s.name}</td>
-            <td>${companyNames[s.company] || s.company}</td>
-            <td>${s.personalId || '-'}</td>
+            <td style="font-weight:600;">${esc(s.name)}</td>
+            <td>${esc(companyNames[s.company] || s.company)}</td>
+            <td>${esc(s.personalId) || '-'}</td>
             <td><span class="wp-status-badge ${statusClass[status]}">${statusLabel[status]}</span></td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="openWeaponsForm('${s.id}')">מלא טפסים</button>
@@ -5821,7 +5822,7 @@ function previewPakalForSoldier() {
     preview.style.display = '';
     preview.innerHTML = `
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
-            <strong>${soldier.name}</strong> - ${soldier.role || 'לוחם'}
+            <strong>${esc(soldier.name)}</strong> - ${esc(soldier.role) || 'לוחם'}
             <div style="margin-top:8px;">
                 <div style="font-weight:600;font-size:0.85em;margin-bottom:4px;">סט בסיס (${baseItems.length} פריטים):</div>
                 ${baseItems.length ? `<ul style="font-size:0.83em;margin:0;padding-right:20px;">${baseItems.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>` : '<span style="font-size:0.83em;color:var(--text-light);">ריק - הגדר בהגדרות</span>'}
@@ -5984,8 +5985,8 @@ function renderPakalCard(pe) {
     return `<div class="pakal-card ${statusClass}">
         <div class="pakal-card-header">
             <div>
-                <h4>${sol.name}</h4>
-                <div class="pakal-card-meta">${sol.role || 'לוחם'} | ${compName} | ${sol.personalId || ''}</div>
+                <h4>${esc(sol.name)}</h4>
+                <div class="pakal-card-meta">${esc(sol.role) || 'לוחם'} | ${esc(compName)} | ${esc(sol.personalId) || ''}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
                 <span class="person-status ${statusBadge}">${statusText}</span>
@@ -6039,7 +6040,7 @@ function openBulkSignModal(soldierId) {
     document.getElementById('bulkSignSoldierId').value = soldierId;
     document.getElementById('bulkSignSoldierInfo').innerHTML = `
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;">
-            <strong>${sol.name}</strong> | ${sol.role || 'לוחם'} | ${companyData[sol.company]?.name || ''} | מ.א: ${sol.personalId || '-'}
+            <strong>${esc(sol.name)}</strong> | ${esc(sol.role) || 'לוחם'} | ${companyData[sol.company]?.name || ''} | מ.א: ${esc(sol.personalId) || '-'}
         </div>`;
 
     document.getElementById('bulkSignItemsList').innerHTML = `
@@ -6228,7 +6229,7 @@ function openReturnPakalModal(soldierId) {
     document.getElementById('returnPakalSoldierId').value = soldierId;
     document.getElementById('returnPakalSoldierInfo').innerHTML = `
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;">
-            <strong>${sol.name}</strong> | ${sol.role || 'לוחם'} | ${companyData[sol.company]?.name || ''}
+            <strong>${esc(sol.name)}</strong> | ${esc(sol.role) || 'לוחם'} | ${companyData[sol.company]?.name || ''}
         </div>`;
 
     const issuedItems = pe.items.filter(i => i.status === 'issued');
@@ -6529,8 +6530,8 @@ function onGlobalSearch(query) {
         results.innerHTML = matches.map((s, i) => {
             const comp = companyData[s.company];
             return `<div class="search-result-item" data-company="${s.company}" data-id="${s.id}" onclick="selectSearchResult('${s.company}','${s.id}')">
-                <span class="search-result-name">${s.name}</span>
-                <span class="search-result-meta">${s.rank || ''} · ${comp ? comp.name : ''}</span>
+                <span class="search-result-name">${esc(s.name)}</span>
+                <span class="search-result-meta">${esc(s.rank) || ''} · ${comp ? comp.name : ''}</span>
             </div>`;
         }).join('');
     }
