@@ -5142,7 +5142,7 @@ function generateReturnPDF(logEntry, eq) {
 function downloadPDF(htmlContent, filename) {
     // html2pdf.js - pixel-perfect DOM-to-PDF with RTL/Hebrew support
     const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;top:0;left:0;z-index:-1;width:210mm;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;opacity:0;pointer-events:none;';
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:210mm;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;pointer-events:none;';
     container.innerHTML = htmlContent;
     document.body.appendChild(container);
 
@@ -5978,7 +5978,7 @@ function generatePersonalEquipment(soldierId) {
         items.push({
             itemId: 'pi_' + (counter++),
             name: item.name, quantity: item.quantity, category: item.category,
-            requiresSerial: item.requiresSerial, source: 'base',
+            requiresSerial: item.requiresSerial, serialNumber: '', source: 'base',
             status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
             issuedDate: null, returnedDate: null, notes: ''
         });
@@ -5988,7 +5988,7 @@ function generatePersonalEquipment(soldierId) {
             items.push({
                 itemId: 'pi_' + (counter++),
                 name: item.name, quantity: item.quantity, category: item.category,
-                requiresSerial: item.requiresSerial, source: 'role',
+                requiresSerial: item.requiresSerial, serialNumber: '', source: 'role',
                 status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
                 issuedDate: null, returnedDate: null, notes: ''
             });
@@ -6120,10 +6120,11 @@ function renderPakalCard(pe) {
         <details>
             <summary style="cursor:pointer;font-size:0.85em;font-weight:600;margin-bottom:6px;">פירוט פריטים (${totalItems})</summary>
             <div class="table-scroll"><table class="pakal-items-table">
-                <thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
+                <thead><tr><th>פריט</th><th>מספר צ'</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
                 <tbody>
-                    ${pe.items.map(item => `<tr>
+                    ${pe.items.map((item, idx) => `<tr>
                         <td style="text-align:right;">${item.name}</td>
+                        <td><input type="text" class="serial-input" value="${esc(item.serialNumber || '')}" placeholder="-" onchange="updatePakalSerial('${pe.soldierId}',${idx},this.value)" style="width:70px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.85em;background:var(--bg);"></td>
                         <td>${item.quantity}</td>
                         <td>${item.category}</td>
                         <td>${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
@@ -6140,6 +6141,14 @@ function renderPakalCard(pe) {
             <button class="btn btn-danger btn-sm" onclick="deletePakal('${pe.soldierId}')">&#10005;</button>
         </div>
     </div>`;
+}
+
+function updatePakalSerial(soldierId, itemIdx, value) {
+    const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
+    if (pe && pe.items[itemIdx]) {
+        pe.items[itemIdx].serialNumber = value.trim();
+        saveState();
+    }
 }
 
 async function deletePakal(soldierId) {
@@ -6306,6 +6315,7 @@ function openAddExtraItemModal(soldierId) {
     document.getElementById('extraItemQty').value = '1';
     document.getElementById('extraItemNotes').value = '';
     document.getElementById('extraItemSerial').checked = false;
+    document.getElementById('extraItemSerialNumber').value = '';
     openModal('addExtraItemModal');
 }
 
@@ -6323,6 +6333,7 @@ function confirmAddExtraItem() {
         quantity: parseInt(document.getElementById('extraItemQty').value) || 1,
         category: document.getElementById('extraItemCategory').value,
         requiresSerial: document.getElementById('extraItemSerial').checked,
+        serialNumber: (document.getElementById('extraItemSerialNumber').value || '').trim(),
         source: 'manual',
         status: 'pending',
         issuedQuantity: 0,
@@ -6578,11 +6589,12 @@ function generatePakalPDF(soldierId) {
     </table>
     <p style="font-size:13px;">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
     <table class="items">
-        <thead><tr><th>#</th><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
+        <thead><tr><th>#</th><th>פריט</th><th>מספר צ'</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
         <tbody>
             ${pe.items.map((item, i) => `<tr>
                 <td>${i + 1}</td>
                 <td style="text-align:right;">${item.name}</td>
+                <td>${item.serialNumber || '-'}</td>
                 <td>${item.quantity}</td>
                 <td>${item.category}</td>
                 <td>${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
