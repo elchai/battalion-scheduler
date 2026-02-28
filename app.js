@@ -5158,40 +5158,40 @@ function generateReturnPDF(logEntry, eq) {
 }
 
 function downloadPDF(htmlContent, filename) {
-    // html2pdf.js - pixel-perfect DOM-to-PDF with RTL/Hebrew support
-    const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:210mm;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;pointer-events:none;';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
+    if (typeof html2pdf === 'undefined') {
+        _downloadPdfPrintFallback(htmlContent, filename);
+        return;
+    }
 
-    // Wait for all images (logo, signature) to load before rendering
-    const images = container.querySelectorAll('img');
+    // Place wrapper on-screen for html2canvas (briefly visible during capture)
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;z-index:99999;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;';
+    wrapper.innerHTML = htmlContent;
+    document.body.appendChild(wrapper);
+
+    // Wait for images to load
+    const images = wrapper.querySelectorAll('img');
     const imagePromises = Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
     });
 
     Promise.all(imagePromises).then(() => {
-        if (typeof html2pdf !== 'undefined') {
-            html2pdf().set({
-                margin: [10, 10, 10, 10],
-                filename: (filename || 'document') + '.pdf',
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
-            }).from(container).save().then(() => {
-                container.remove();
-                showToast('PDF הורד בהצלחה');
-            }).catch(err => {
-                console.error('PDF error:', err);
-                container.remove();
-                _downloadPdfPrintFallback(htmlContent, filename);
-            });
-        } else {
-            container.remove();
-            _downloadPdfPrintFallback(htmlContent, filename);
-        }
+        return html2pdf().set({
+            margin: [10, 10, 10, 10],
+            filename: (filename || 'document') + '.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, width: wrapper.scrollWidth, height: wrapper.scrollHeight },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        }).from(wrapper).save();
+    }).then(() => {
+        wrapper.remove();
+        showToast('PDF הורד בהצלחה');
+    }).catch(err => {
+        console.error('PDF error:', err);
+        wrapper.remove();
+        _downloadPdfPrintFallback(htmlContent, filename);
     });
 }
 
@@ -6687,59 +6687,47 @@ function generatePakalPDF(soldierId) {
         ? new Date(pe.bulkSignature.signedDate).toLocaleDateString('he-IL')
         : new Date().toLocaleDateString('he-IL');
 
-    const html = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
-        h1 { text-align: center; color: #1a3a5c; border-bottom: 3px solid #1a3a5c; padding-bottom: 10px; }
-        .info { margin: 15px 0; }
-        .info td { padding: 4px 10px; font-size: 14px; }
-        table.items { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        table.items th { background: #1a3a5c; color: white; padding: 8px; font-size: 13px; }
-        table.items td { padding: 6px 8px; border: 1px solid #ddd; font-size: 13px; text-align: center; }
-        table.items tr:nth-child(even) { background: #f9f9f9; }
-        .sig-section { margin-top: 30px; display: flex; justify-content: space-between; }
-        .sig-box { width: 45%; text-align: center; }
-        .sig-box img { max-width: 200px; max-height: 80px; border-bottom: 1px solid #333; }
-        .sig-label { font-size: 12px; margin-top: 4px; color: #666; }
-        .footer { text-align: center; font-size: 11px; color: #999; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
-    </style></head><body>
-    <h1>פק"ל אישי - טופס חתימה על ציוד</h1>
-    <table class="info">
-        <tr><td><strong>שם:</strong></td><td>${sol.name}</td><td><strong>מ.א:</strong></td><td>${sol.personalId || '-'}</td></tr>
-        <tr><td><strong>תפקיד:</strong></td><td>${sol.role || 'לוחם'}</td><td><strong>פלוגה:</strong></td><td>${compName}</td></tr>
-        <tr><td><strong>טלפון:</strong></td><td>${sol.phone || '-'}</td><td><strong>תאריך:</strong></td><td>${dateStr}</td></tr>
-    </table>
-    <p style="font-size:13px;">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
-    <table class="items">
-        <thead><tr><th>#</th><th>פריט</th><th>מספר צ'</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
-        <tbody>
-            ${pe.items.map((item, i) => `<tr>
-                <td>${i + 1}</td>
-                <td style="text-align:right;">${item.name}</td>
-                <td>${item.serialNumber || '-'}</td>
-                <td>${item.quantity}</td>
-                <td>${item.category}</td>
-                <td>${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
-                <td>${item.status === 'issued' ? 'הונפק' : item.status === 'returned' ? 'הוחזר' : 'ממתין'}</td>
-            </tr>`).join('')}
-        </tbody>
-    </table>
-    ${pe.bulkSignature.signed ? `
-    <div class="sig-section">
-        <div class="sig-box">
-            ${pe.bulkSignature.signatureImg ? `<img src="${pe.bulkSignature.signatureImg}">` : ''}
-            <div class="sig-label">חתימת חייל מקבל</div>
-            <div style="font-size:12px;">${sol.name}</div>
-        </div>
-        <div class="sig-box">
-            ${pe.bulkSignature.issuerSignatureImg ? `<img src="${pe.bulkSignature.issuerSignatureImg}">` : ''}
-            <div class="sig-label">חתימת מנפיק</div>
-            <div style="font-size:12px;">${pe.bulkSignature.issuedBy || ''}</div>
-            ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;">${pe.bulkSignature.signingUnit}</div>` : ''}
-        </div>
-    </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
-    <div class="footer">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
-    </body></html>`;
+    const thStyle = 'background:#1a3a5c;color:white;padding:8px;font-size:13px;border:1px solid #1a3a5c;';
+    const tdStyle = 'padding:6px 8px;border:1px solid #ddd;font-size:13px;text-align:center;';
+    const html = `
+    <div style="font-family:Arial,sans-serif;direction:rtl;padding:20px;">
+        <h1 style="text-align:center;color:#1a3a5c;border-bottom:3px solid #1a3a5c;padding-bottom:10px;margin:0 0 15px;">פק"ל אישי - טופס חתימה על ציוד</h1>
+        <table style="margin:15px 0;">
+            <tr><td style="padding:4px 10px;font-size:14px;"><strong>שם:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.name}</td><td style="padding:4px 10px;font-size:14px;"><strong>מ.א:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.personalId || '-'}</td></tr>
+            <tr><td style="padding:4px 10px;font-size:14px;"><strong>תפקיד:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.role || 'לוחם'}</td><td style="padding:4px 10px;font-size:14px;"><strong>פלוגה:</strong></td><td style="padding:4px 10px;font-size:14px;">${compName}</td></tr>
+            <tr><td style="padding:4px 10px;font-size:14px;"><strong>טלפון:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.phone || '-'}</td><td style="padding:4px 10px;font-size:14px;"><strong>תאריך:</strong></td><td style="padding:4px 10px;font-size:14px;">${dateStr}</td></tr>
+        </table>
+        <p style="font-size:13px;">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
+        <table style="width:100%;border-collapse:collapse;margin:15px 0;">
+            <thead><tr><th style="${thStyle}">#</th><th style="${thStyle}">פריט</th><th style="${thStyle}">מספר צ'</th><th style="${thStyle}">כמות</th><th style="${thStyle}">קטגוריה</th><th style="${thStyle}">מקור</th><th style="${thStyle}">סטטוס</th></tr></thead>
+            <tbody>
+                ${pe.items.map((item, i) => `<tr style="${i % 2 === 1 ? 'background:#f9f9f9;' : ''}">
+                    <td style="${tdStyle}">${i + 1}</td>
+                    <td style="${tdStyle}text-align:right;">${item.name}</td>
+                    <td style="${tdStyle}">${item.serialNumber || '-'}</td>
+                    <td style="${tdStyle}">${item.quantity}</td>
+                    <td style="${tdStyle}">${item.category}</td>
+                    <td style="${tdStyle}">${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
+                    <td style="${tdStyle}">${item.status === 'issued' ? 'הונפק' : item.status === 'returned' ? 'הוחזר' : 'ממתין'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+        ${pe.bulkSignature.signed ? `
+        <div style="margin-top:30px;display:flex;justify-content:space-between;">
+            <div style="width:45%;text-align:center;">
+                ${pe.bulkSignature.signatureImg ? `<img src="${pe.bulkSignature.signatureImg}" style="max-width:200px;max-height:80px;border-bottom:1px solid #333;">` : ''}
+                <div style="font-size:12px;margin-top:4px;color:#666;">חתימת חייל מקבל</div>
+                <div style="font-size:12px;">${sol.name}</div>
+            </div>
+            <div style="width:45%;text-align:center;">
+                ${pe.bulkSignature.issuerSignatureImg ? `<img src="${pe.bulkSignature.issuerSignatureImg}" style="max-width:200px;max-height:80px;border-bottom:1px solid #333;">` : ''}
+                <div style="font-size:12px;margin-top:4px;color:#666;">חתימת מנפיק</div>
+                <div style="font-size:12px;">${pe.bulkSignature.issuedBy || ''}</div>
+                ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;">${pe.bulkSignature.signingUnit}</div>` : ''}
+            </div>
+        </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
+        <div style="text-align:center;font-size:11px;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
+    </div>`;
 
     downloadPDF(html, `פקל_${sol.name}_${dateStr.replace(/\//g, '-')}`);
 }
