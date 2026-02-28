@@ -446,6 +446,20 @@ function saveState() {
     if (typeof firebaseSaveState === 'function') firebaseSaveState();
 }
 
+function cleanupOldData() {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const oldShifts = state.shifts.filter(sh => sh.date < cutoffStr).length;
+    const oldLeaves = state.leaves.filter(l => l.endDate < cutoffStr).length;
+    if (oldShifts > 0 || oldLeaves > 0) {
+        state.shifts = state.shifts.filter(sh => sh.date >= cutoffStr);
+        state.leaves = state.leaves.filter(l => l.endDate >= cutoffStr);
+        saveState();
+        console.log(`Cleanup: removed ${oldShifts} old shifts, ${oldLeaves} old leaves (>30 days)`);
+    }
+}
+
 // ==================== INIT ====================
 // Google Sheets config
 function getSheetUrls() {
@@ -500,6 +514,8 @@ async function init() {
     } else if (state.soldiers.length === 0) {
         syncFromGoogleSheets(true);
     }
+    // Auto-cleanup: remove shifts/leaves older than 30 days
+    cleanupOldData();
     renderAll();
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('shiftDate').value = today;
@@ -2682,7 +2698,7 @@ async function saveShift() {
         return;
     }
 
-    // Validate: check shift capacity
+    // Validate: warn if task commander not selected for 4+ soldiers tasks
     const taskData = companyData[company].tasks.find(t => t.name === task);
     if (taskData) {
         const needed = taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers;
@@ -2706,6 +2722,11 @@ async function saveShift() {
     if (selectedCmds.length > 1) {
         const cmdNames = selectedCmds.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
         if (!await customConfirm(`שים לב! שיבצת ${selectedCmds.length} מפקדים למשמרת:\n${cmdNames}\n\nהאם אתה בטוח?`)) return;
+    }
+
+    // Warn if task needs commander but none selected
+    if (taskData && taskData.perShift.soldiers >= 4 && !taskCommander) {
+        if (!await customConfirm('לא נבחר מפקד משימה.\nהאם להמשיך בלי?')) return;
     }
 
     if (editId) {
@@ -3002,6 +3023,10 @@ function customConfirm(msg) {
         overlay.addEventListener('click', onOverlay);
     });
 }
+
+// Online/offline indicator
+window.addEventListener('offline', () => showToast('אין חיבור לאינטרנט - עובד במצב לא מקוון', 'error'));
+window.addEventListener('online', () => showToast('חיבור לאינטרנט חזר'));
 
 function esc(text) {
     if (!text) return '';
