@@ -442,7 +442,12 @@ function seedTestSoldier() {
 }
 
 function saveState() {
-    localStorage.setItem('battalionState_v2', JSON.stringify(state));
+    try {
+        localStorage.setItem('battalionState_v2', JSON.stringify(state));
+    } catch (e) {
+        console.error('localStorage quota exceeded:', e);
+        showToast('אזהרה: הזיכרון המקומי מלא - ייתכן אובדן נתונים', 'error');
+    }
     if (typeof firebaseSaveState === 'function') firebaseSaveState();
 }
 
@@ -3370,7 +3375,7 @@ function importAllData(input) {
 async function resetAllData() {
     if (!await customConfirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
     if (!await customConfirm('אישור סופי - למחוק הכל?')) return;
-    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [] };
+    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [] };
     saveState();
     localStorage.removeItem('battalionTasks');
     localStorage.removeItem('battalionDataVersion');
@@ -3566,9 +3571,9 @@ function renderRollCall() {
                         <span class="rc-role">${esc(s.role)}</span>
                     </div>
                     <div class="rc-buttons">
-                        <button class="rc-btn ${st==='present'?'active':''}" onclick="setRollCallStatus('${s.id}','present')" title="נוכח">&#10003;</button>
-                        <button class="rc-btn rc-absent ${st==='absent'?'active':''}" onclick="setRollCallStatus('${s.id}','absent')" title="חסר">&#10007;</button>
-                        <button class="rc-btn rc-leave ${st==='leave'?'active':''}" onclick="setRollCallStatus('${s.id}','leave')" title="ביציאה">&#127968;</button>
+                        <button class="rc-btn ${st==='present'?'active':''}" data-status="present" onclick="setRollCallStatus('${s.id}','present')" title="נוכח">&#10003;</button>
+                        <button class="rc-btn rc-absent ${st==='absent'?'active':''}" data-status="absent" onclick="setRollCallStatus('${s.id}','absent')" title="חסר">&#10007;</button>
+                        <button class="rc-btn rc-leave ${st==='leave'?'active':''}" data-status="leave" onclick="setRollCallStatus('${s.id}','leave')" title="ביציאה">&#127968;</button>
                     </div>
                 </div>`;
             }).join('')}
@@ -3828,13 +3833,25 @@ function getMorningReportText() {
         const soldiers = state.soldiers.filter(s => s.company === k);
         const total = soldiers.length;
         const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
-        const present = total - onLeave.length;
+        // Include rotation-absent soldiers (same as generateMorningReport)
+        const rotationAbsent = soldiers.filter(s => {
+            if (onLeave.find(x => x.id === s.id)) return false;
+            const group = state.rotationGroups?.find(g => g.soldiers?.includes(s.id));
+            if (!group) return false;
+            const status = getRotationStatus(group, now);
+            return !status.inBase;
+        });
+        const absentCount = onLeave.length + rotationAbsent.length;
+        const present = total - absentCount;
         totalAll += total;
         totalPresent += present;
 
         text += `*${compNames[k]}:* ${present}/${total}`;
         if (onLeave.length > 0) {
             text += ` (ביציאה: ${onLeave.map(s => s.name).join(', ')})`;
+        }
+        if (rotationAbsent.length > 0) {
+            text += ` (רוטציה: ${rotationAbsent.length})`;
         }
         text += '\n';
     });
