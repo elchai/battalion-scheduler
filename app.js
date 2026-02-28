@@ -15,15 +15,33 @@ const DEFAULT_SETTINGS = {
         baseSet: {
             name: 'סט ציוד ללוחם',
             items: [
+                // ציוד עם מספר צ'
+                { name: 'נשק', quantity: 1, category: 'נשק', requiresSerial: true },
+                { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'נשק', requiresSerial: true },
+                { name: 'כוונת טריג\'יקון', quantity: 1, category: 'תצפית', requiresSerial: true },
+                { name: 'כוונת לילה אקילה', quantity: 1, category: 'תצפית', requiresSerial: true },
+                { name: 'משקפת שדה', quantity: 1, category: 'תצפית', requiresSerial: true },
+                { name: 'מצפן', quantity: 1, category: 'שטח', requiresSerial: true },
+                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true },
+                { name: 'ליונט', quantity: 1, category: 'תצפית', requiresSerial: true },
+                { name: 'אול"ר', quantity: 1, category: 'תצפית', requiresSerial: true },
+                { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true },
+                // ציוד ללא מספר צ'
+                { name: 'מע"ד למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'ערכת מדונה למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'סוללה ל-624', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'סוללה לעכבר', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'מדים (2 חולצות + 2 מכנסיים)', quantity: 1, category: 'אחר', requiresSerial: false },
+                { name: 'נעליים צבאיות', quantity: 1, category: 'אחר', requiresSerial: false },
                 { name: 'אפוד קרב', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'מחסנית m16', quantity: 5, category: 'תחמושת', requiresSerial: false },
-                { name: 'מדי ב\'', quantity: 2, category: 'אחר', requiresSerial: false },
                 { name: 'קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
                 { name: 'כיסוי קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'מצנפת קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'בירכיות', quantity: 2, category: 'מגן', requiresSerial: false },
+                { name: 'מחסניות M16', quantity: 5, category: 'תחמושת', requiresSerial: false },
                 { name: 'תחבושת אישית', quantity: 1, category: 'רפואי', requiresSerial: false },
-                { name: 'חוסם עורקים CAT', quantity: 1, category: 'רפואי', requiresSerial: false }
+                { name: 'חוסם עורקים CAT', quantity: 1, category: 'רפואי', requiresSerial: false },
+                { name: 'מצנפת לקסדה', quantity: 1, category: 'מגן', requiresSerial: false },
+                { name: 'ברכיות', quantity: 2, category: 'מגן', requiresSerial: false },
+                { name: 'חגורה צבאית', quantity: 1, category: 'אחר', requiresSerial: false }
             ]
         },
         roleSets: [],
@@ -5909,8 +5927,17 @@ function switchEquipmentSubTab(tab) {
 // --- Generate Personal Equipment ---
 function openGeneratePakalModal() {
     openModal('generatePakalModal');
+    const compDropdown = document.getElementById('pakalGenCompany');
+    const userUnit = currentUser?.unit;
+    // Non-palsam/gdudi users → lock to their company
+    if (userUnit && userUnit !== 'gdudi' && userUnit !== 'palsam') {
+        compDropdown.value = userUnit;
+        compDropdown.disabled = true;
+    } else {
+        compDropdown.disabled = false;
+    }
     updatePakalGenSoldiers();
-    document.getElementById('pakalGenPreview').style.display = 'none';
+    document.getElementById('pakalGenItemsList').style.display = 'none';
 }
 
 function updatePakalGenSoldiers() {
@@ -5923,35 +5950,76 @@ function updatePakalGenSoldiers() {
     soldiers = soldiers.filter(s => !existingIds.has(s.id));
     select.innerHTML = '<option value="">-- בחר חייל --</option>' +
         soldiers.map(s => `<option value="${s.id}">${s.name} (${s.role || 'לוחם'} - ${companyData[s.company]?.name || s.company})</option>`).join('');
-    document.getElementById('pakalGenPreview').style.display = 'none';
+    document.getElementById('pakalGenItemsList').style.display = 'none';
 }
 
 function previewPakalForSoldier() {
     const soldierId = document.getElementById('pakalGenSoldier').value;
-    const preview = document.getElementById('pakalGenPreview');
-    if (!soldierId) { preview.style.display = 'none'; return; }
+    const itemsList = document.getElementById('pakalGenItemsList');
+    if (!soldierId) { itemsList.style.display = 'none'; return; }
     const soldier = state.soldiers.find(s => s.id === soldierId);
     if (!soldier) return;
 
     const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
     const roleSet = getRoleSetForSoldier(soldier);
-    const baseItems = es.baseSet.items || [];
-    const roleItems = roleSet ? roleSet.items : [];
+    const baseItems = (es.baseSet.items || []).map(i => ({ ...i, source: 'base' }));
+    const roleItems = roleSet ? roleSet.items.map(i => ({ ...i, source: 'role' })) : [];
+    const allItems = [...baseItems, ...roleItems];
 
-    preview.style.display = '';
-    preview.innerHTML = `
-        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;">
-            <strong>${esc(soldier.name)}</strong> - ${esc(soldier.role) || 'לוחם'}
-            <div style="margin-top:8px;">
-                <div style="font-weight:600;font-size:0.85em;margin-bottom:4px;">סט בסיס (${baseItems.length} פריטים):</div>
-                ${baseItems.length ? `<ul style="font-size:0.83em;margin:0;padding-right:20px;">${baseItems.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>` : '<span style="font-size:0.83em;color:var(--text-light);">ריק - הגדר בהגדרות</span>'}
+    itemsList.style.display = '';
+    itemsList.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong>${esc(soldier.name)}</strong>
+            <div style="display:flex;gap:6px;">
+                <button type="button" class="btn btn-sm" style="background:var(--success);color:#fff;font-size:0.8em;" onclick="toggleAllPakalItems(true)">בחר הכל</button>
+                <button type="button" class="btn btn-sm" style="background:var(--bg);font-size:0.8em;" onclick="toggleAllPakalItems(false)">נקה הכל</button>
             </div>
-            ${roleSet ? `<div style="margin-top:8px;">
-                <div style="font-weight:600;font-size:0.85em;margin-bottom:4px;">${roleSet.name} (${roleItems.length} פריטים):</div>
-                <ul style="font-size:0.83em;margin:0;padding-right:20px;">${roleItems.map(i => `<li>${i.name} x${i.quantity}</li>`).join('')}</ul>
-            </div>` : '<div style="margin-top:8px;font-size:0.83em;color:var(--text-light);">אין סט תפקידי מתאים</div>'}
-            <div style="margin-top:8px;font-size:0.85em;font-weight:700;">סה"כ: ${baseItems.length + roleItems.length} פריטים</div>
+        </div>
+        <div style="max-height:350px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+                <thead><tr style="background:var(--primary);color:#fff;">
+                    <th style="padding:6px 4px;width:30px;"></th>
+                    <th style="padding:6px;text-align:right;">פריט</th>
+                    <th style="padding:6px;width:60px;text-align:center;">כמות</th>
+                    <th style="padding:6px;width:100px;text-align:center;">מספר צ'</th>
+                </tr></thead>
+                <tbody>
+                    ${allItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);" class="pakal-gen-item-row">
+                        <td style="padding:4px;text-align:center;">
+                            <input type="checkbox" class="pakal-gen-cb" data-idx="${i}" checked>
+                        </td>
+                        <td style="padding:4px 6px;">
+                            ${esc(item.name)}
+                            ${item.source === 'role' ? '<span style="font-size:0.75em;color:var(--primary);margin-right:4px;">(תפקידי)</span>' : ''}
+                        </td>
+                        <td style="padding:4px;text-align:center;">
+                            <input type="number" class="pakal-gen-qty" data-idx="${i}" value="${item.quantity}" min="1" style="width:50px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;">
+                        </td>
+                        <td style="padding:4px;text-align:center;">
+                            ${item.requiresSerial ? `<input type="text" class="pakal-gen-serial" data-idx="${i}" placeholder="מספר צ'" style="width:90px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;text-align:center;">` : '<span style="color:var(--text-light);font-size:0.8em;">-</span>'}
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top:6px;font-size:0.83em;color:var(--text-light);text-align:left;">
+            <span id="pakalGenCount">${allItems.length}</span> פריטים נבחרו
         </div>`;
+
+    // Update count on checkbox change
+    itemsList.querySelectorAll('.pakal-gen-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checked = itemsList.querySelectorAll('.pakal-gen-cb:checked').length;
+            document.getElementById('pakalGenCount').textContent = checked;
+        });
+    });
+}
+
+function toggleAllPakalItems(state) {
+    document.querySelectorAll('.pakal-gen-cb').forEach(cb => { cb.checked = state; });
+    const count = state ? document.querySelectorAll('.pakal-gen-cb').length : 0;
+    const el = document.getElementById('pakalGenCount');
+    if (el) el.textContent = count;
 }
 
 function confirmGeneratePakal() {
@@ -5960,39 +6028,79 @@ function confirmGeneratePakal() {
     if (state.personalEquipment.find(pe => pe.soldierId === soldierId)) {
         showToast('לחייל זה כבר יש פק"ל', 'error'); return;
     }
-    generatePersonalEquipment(soldierId);
+
+    // Collect selected items from the items table
+    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
+    const soldier = state.soldiers.find(s => s.id === soldierId);
+    const roleSet = soldier ? getRoleSetForSoldier(soldier) : null;
+    const baseItems = (es.baseSet.items || []).map(i => ({ ...i, source: 'base' }));
+    const roleItems = roleSet ? roleSet.items.map(i => ({ ...i, source: 'role' })) : [];
+    const allItems = [...baseItems, ...roleItems];
+
+    const selectedItems = [];
+    document.querySelectorAll('.pakal-gen-cb:checked').forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
+        const item = allItems[idx];
+        if (!item) return;
+        const qtyInput = document.querySelector(`.pakal-gen-qty[data-idx="${idx}"]`);
+        const serialInput = document.querySelector(`.pakal-gen-serial[data-idx="${idx}"]`);
+        selectedItems.push({
+            ...item,
+            quantity: parseInt(qtyInput?.value) || item.quantity,
+            serialNumber: serialInput?.value?.trim() || ''
+        });
+    });
+
+    if (selectedItems.length === 0) { showToast('יש לבחור לפחות פריט אחד', 'error'); return; }
+
+    generatePersonalEquipment(soldierId, selectedItems);
     closeModal('generatePakalModal');
-    showToast('פק"ל נוצר בהצלחה');
+    showToast(`פק"ל נוצר עם ${selectedItems.length} פריטים`);
     if (equipmentSubTab === 'pakal') renderPakalSubTab();
 }
 
-function generatePersonalEquipment(soldierId) {
+function generatePersonalEquipment(soldierId, selectedItems) {
     const soldier = state.soldiers.find(s => s.id === soldierId);
     if (!soldier) return;
-    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
-    const roleSet = getRoleSetForSoldier(soldier);
 
     const items = [];
     let counter = 1;
-    (es.baseSet.items || []).forEach(item => {
-        items.push({
-            itemId: 'pi_' + (counter++),
-            name: item.name, quantity: item.quantity, category: item.category,
-            requiresSerial: item.requiresSerial, serialNumber: '', source: 'base',
-            status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
-            issuedDate: null, returnedDate: null, notes: ''
-        });
-    });
-    if (roleSet) {
-        roleSet.items.forEach(item => {
+
+    if (selectedItems) {
+        // From modal - use selected items with custom quantities and serials
+        selectedItems.forEach(item => {
             items.push({
                 itemId: 'pi_' + (counter++),
                 name: item.name, quantity: item.quantity, category: item.category,
-                requiresSerial: item.requiresSerial, serialNumber: '', source: 'role',
+                requiresSerial: item.requiresSerial, serialNumber: item.serialNumber || '', source: item.source,
                 status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
                 issuedDate: null, returnedDate: null, notes: ''
             });
         });
+    } else {
+        // Bulk generate - use all baseSet + roleSet with defaults
+        const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
+        const roleSet = getRoleSetForSoldier(soldier);
+        (es.baseSet.items || []).forEach(item => {
+            items.push({
+                itemId: 'pi_' + (counter++),
+                name: item.name, quantity: item.quantity, category: item.category,
+                requiresSerial: item.requiresSerial, serialNumber: '', source: 'base',
+                status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
+                issuedDate: null, returnedDate: null, notes: ''
+            });
+        });
+        if (roleSet) {
+            roleSet.items.forEach(item => {
+                items.push({
+                    itemId: 'pi_' + (counter++),
+                    name: item.name, quantity: item.quantity, category: item.category,
+                    requiresSerial: item.requiresSerial, serialNumber: '', source: 'role',
+                    status: 'pending', issuedQuantity: 0, linkedEquipmentIds: [],
+                    issuedDate: null, returnedDate: null, notes: ''
+                });
+            });
+        }
     }
 
     const pe = {
@@ -6010,6 +6118,14 @@ function generatePersonalEquipment(soldierId) {
 }
 
 function openBulkGeneratePakalModal() {
+    const compDropdown = document.getElementById('bulkPakalCompany');
+    const userUnit = currentUser?.unit;
+    if (userUnit && userUnit !== 'gdudi' && userUnit !== 'palsam') {
+        compDropdown.value = userUnit;
+        compDropdown.disabled = true;
+    } else {
+        compDropdown.disabled = false;
+    }
     openModal('bulkGeneratePakalModal');
 }
 
@@ -6048,6 +6164,12 @@ function renderPakalSubTab() {
         const sol = state.soldiers.find(s => s.id === pe.soldierId);
         return { ...pe, soldier: sol };
     }).filter(pe => pe.soldier);
+
+    // Filter by current user's company (palsam + gdudi see all)
+    const userUnit = currentUser?.unit;
+    if (userUnit && userUnit !== 'gdudi' && userUnit !== 'palsam') {
+        pelist = pelist.filter(pe => pe.soldier.company === userUnit);
+    }
 
     // Filter
     if (pakalFilter === 'signed') pelist = pelist.filter(pe => pe.bulkSignature.signed);

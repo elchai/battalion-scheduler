@@ -574,31 +574,33 @@
 
 <!-- Generate Pakal Modal -->
 <div class="modal-overlay" id="generatePakalModal">
-    <div class="modal" style="max-width:600px;">
+    <div class="modal" style="max-width:700px;">
         <div class="modal-header" style="background:#5C6BC0;">
             <h3>יצירת פק"ל אישי</h3>
             <button class="modal-close" onclick="closeModal('generatePakalModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="form-group">
-                <label>פלוגה</label>
-                <select id="pakalGenCompany" onchange="updatePakalGenSoldiers()">
-                    <option value="all">כל הפלוגות</option>
-                    <option value="a">פלוגה א</option>
-                    <option value="b">פלוגה ב</option>
-                    <option value="c">פלוגה ג</option>
-                    <option value="d">פלוגה ד</option>
-                    <option value="hq">חפ"ק מג"ד</option>
-                    <option value="palsam">פלס"ם</option>
-                </select>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="pakalGenCompany" onchange="updatePakalGenSoldiers()">
+                        <option value="all">כל הפלוגות</option>
+                        <option value="a">פלוגה א</option>
+                        <option value="b">פלוגה ב</option>
+                        <option value="c">פלוגה ג</option>
+                        <option value="d">פלוגה ד</option>
+                        <option value="hq">חפ"ק מג"ד</option>
+                        <option value="palsam">פלס"ם</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>בחר חייל</label>
+                    <select id="pakalGenSoldier" onchange="previewPakalForSoldier()">
+                        <option value="">-- בחר חייל --</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label>בחר חייל</label>
-                <select id="pakalGenSoldier" onchange="previewPakalForSoldier()">
-                    <option value="">-- בחר חייל --</option>
-                </select>
-            </div>
-            <div id="pakalGenPreview" style="display:none;margin-top:12px;"></div>
+            <div id="pakalGenItemsList" style="display:none;margin-top:8px;"></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="confirmGeneratePakal()">צור פק"ל</button>
