@@ -1,4 +1,4 @@
-const CACHE_NAME = 'battalion-v20';
+const CACHE_NAME = 'battalion-v21';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
@@ -24,12 +24,15 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches + notify clients to reload
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys =>
             Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-        )
+        ).then(() => self.clients.matchAll({ type: 'window' }))
+        .then(clients => {
+            clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
+        })
     );
     self.clients.claim();
 });

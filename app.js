@@ -452,11 +452,13 @@ function cleanupOldData() {
     const cutoffStr = cutoff.toISOString().split('T')[0];
     const oldShifts = state.shifts.filter(sh => sh.date < cutoffStr).length;
     const oldLeaves = state.leaves.filter(l => l.endDate < cutoffStr).length;
-    if (oldShifts > 0 || oldLeaves > 0) {
+    const oldRollCalls = state.rollCalls ? state.rollCalls.filter(rc => rc.date < cutoffStr).length : 0;
+    if (oldShifts > 0 || oldLeaves > 0 || oldRollCalls > 0) {
         state.shifts = state.shifts.filter(sh => sh.date >= cutoffStr);
         state.leaves = state.leaves.filter(l => l.endDate >= cutoffStr);
+        if (state.rollCalls) state.rollCalls = state.rollCalls.filter(rc => rc.date >= cutoffStr);
         saveState();
-        console.log(`Cleanup: removed ${oldShifts} old shifts, ${oldLeaves} old leaves (>30 days)`);
+        console.log(`Cleanup: removed ${oldShifts} old shifts, ${oldLeaves} old leaves, ${oldRollCalls} old roll calls (>30 days)`);
     }
 }
 
@@ -529,6 +531,11 @@ async function init() {
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.type === 'SW_UPDATED') {
+                showToast('גרסה חדשה זמינה - רענן את הדף', 'info');
+            }
+        });
     }
 }
 
@@ -826,15 +833,19 @@ function renderDashboard() {
 
     // === BAR CHART - Company manning ===
     const mainCompanies = ['a', 'b', 'c', 'd'];
-    const maxReg = Math.max(...mainCompanies.map(k => compStats[k].regCount), 1);
+    const maxVal = Math.max(...mainCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
     const barsHtml = mainCompanies.map(k => {
         const cs = compStats[k];
-        const pct = (cs.regCount / maxReg) * 100;
+        const forecast = companyData[k].forecast || 0;
+        const pct = (cs.regCount / maxVal) * 100;
+        const forecastPct = forecast > 0 ? (forecast / maxVal) * 100 : 0;
         return `<div class="bar-row">
             <div class="bar-label">${cs.name}</div>
-            <div class="bar-track">
+            <div class="bar-track" style="position:relative;">
                 <div class="bar-fill" style="width:${pct}%;background:${cs.color};">${cs.regCount}</div>
+                ${forecast > 0 ? `<div style="position:absolute;right:${100-forecastPct}%;top:0;bottom:0;border-left:2px dashed rgba(0,0,0,0.3);" title="צפי: ${forecast}"></div>` : ''}
             </div>
+            ${forecast > 0 ? `<div style="font-size:0.7em;color:var(--text-light);min-width:30px;text-align:center;">${forecast}</div>` : ''}
         </div>`;
     }).join('');
 
@@ -1169,7 +1180,7 @@ function renderSoldiersGrid(compKey) {
         const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
         let rotInfo = '';
         if (rotGroup && rotStatus) {
-            rotInfo = `<div class="meta">רוטציה: ${rotGroup.name} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/10 בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/4 בבית'}</div>`;
+            rotInfo = `<div class="meta">רוטציה: ${rotGroup.name} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/' + rotGroup.daysIn + ' בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/' + rotGroup.daysOut + ' בבית'}</div>`;
         }
         return `<div class="person-card ${cls}" data-soldier-id="${s.id}">
             <div class="person-info">
@@ -2994,7 +3005,8 @@ function showToast(msg, type='success') {
     const c = document.getElementById('toastContainer');
     const t = document.createElement('div');
     t.className = `toast ${type}`;
-    t.innerHTML = `${type==='success'?'&#10003;':'&#10007;'} ${msg}`;
+    const icon = type === 'success' ? '&#10003;' : type === 'error' ? '&#10007;' : 'ℹ';
+    t.innerHTML = `${icon} ${msg}`;
     c.appendChild(t);
     setTimeout(() => t.remove(), 3000);
 }
@@ -3309,7 +3321,22 @@ function importAllData(input) {
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if (data.state) { state = data.state; saveState(); }
+            if (data.state) {
+                state = data.state;
+                // Apply field guards (same as loadState) for older backups
+                if (!state.soldiers) state.soldiers = [];
+                if (!state.shifts) state.shifts = [];
+                if (!state.leaves) state.leaves = [];
+                if (!state.rotationGroups) state.rotationGroups = [];
+                if (!state.equipment) state.equipment = [];
+                if (!state.signatureLog) state.signatureLog = [];
+                if (!state.weaponsData) state.weaponsData = [];
+                if (!state.personalEquipment) state.personalEquipment = [];
+                if (!state.rollCalls) state.rollCalls = [];
+                if (!state.announcements) state.announcements = [];
+                seedTestSoldier();
+                saveState();
+            }
             if (data.settings) { settings = { ...settings, ...data.settings }; saveSettings(); }
             if (data.tasks) {
                 ALL_COMPANIES.forEach(k => { if (data.tasks[k]) companyData[k].tasks = data.tasks[k]; });
@@ -3566,7 +3593,8 @@ function saveRollCall() {
     if (!state.rollCalls) state.rollCalls = [];
     state.rollCalls.push(record);
     saveState();
-    rollCallStatus = {};
+    // Clear only the saved company's soldiers from rollCallStatus
+    state.soldiers.filter(s => s.company === compKey).forEach(s => delete rollCallStatus[s.id]);
     renderRollCall();
     showToast('מפקד נשמר בהצלחה');
 }
@@ -5516,7 +5544,7 @@ function collectWeaponsFormData() {
         cmdRole: document.getElementById('wpCmdRole').value.trim(),
         weaponType: document.getElementById('wpWeaponType').value,
         weaponSerial: document.getElementById('wpWeaponSerial').value.trim(),
-        idPhoto: document.getElementById('idPhotoImg').src || null,
+        idPhoto: (document.getElementById('idPhotoImg').src && document.getElementById('idPhotoImg').src.startsWith('data:')) ? document.getElementById('idPhotoImg').src : null,
         date: new Date().toISOString().split('T')[0]
     };
 }
@@ -6134,10 +6162,10 @@ function loadSavedSignature() {
             loadSignatureToCanvas('issuerSignCanvas', savedSignature.signatureImg);
             showToast('חתימה נטענה מהזיכרון');
         } else {
-            showToast('לא נמצאת חתימה שמורה', 'warning');
+            showToast('לא נמצאת חתימה שמורה', 'info');
         }
     } else {
-        showToast('לא נמצאת חתימה שמורה עבור המשתמש הנוכחי', 'warning');
+        showToast('לא נמצאת חתימה שמורה עבור המשתמש הנוכחי', 'info');
     }
 }
 
@@ -6196,7 +6224,7 @@ function confirmBulkSign() {
         }
     });
 
-    pe.history.push({ date: now.toISOString(), action: 'bulk_signed', details: `חתימה כוללנית ע"י ${issuerName}` });
+    pe.history.push({ date: now.toISOString(), action: 'bulk_signed', details: `חתימה כוללנית ע"י ${issuerFullName}` });
 
     saveState();
     closeModal('bulkSignPakalModal');

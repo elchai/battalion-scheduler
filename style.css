@@ -1036,6 +1036,8 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 }
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
+.toast.info { background: var(--primary); }
+.toast.warning { background: #f59e0b; }
 
 /* Custom confirm dialog */
 .confirm-dialog { max-width: 360px; text-align: center; padding: 30px 24px 24px; }
