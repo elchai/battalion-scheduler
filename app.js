@@ -5687,17 +5687,46 @@ function renderTransferWizard() {
     refreshIcons();
 }
 
+function _renderSoldierPicker(containerId, searchId, selectedId, excludeId) {
+    const q = document.getElementById(searchId)?.value?.trim().toLowerCase() || '';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    let soldiers = state.soldiers.filter(s => s.id !== excludeId);
+    if (q) soldiers = soldiers.filter(s => s.name.toLowerCase().includes(q) || (s.personalId || '').includes(q) || (s.company || '').includes(q));
+    // Count held items per soldier
+    const heldCount = {};
+    state.equipment.forEach(e => { if (e.holderId) heldCount[e.holderId] = (heldCount[e.holderId] || 0) + 1; });
+    container.innerHTML = soldiers.length ? soldiers.map(s => {
+        const count = heldCount[s.id] || 0;
+        const isSelected = s.id === selectedId;
+        return `<div class="transfer-soldier-item ${isSelected ? 'selected' : ''}" onclick="selectTransferSoldier('${containerId}','${s.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;${isSelected ? 'background:#E3F2FD;' : ''}">
+            <div style="flex:1;">
+                <div style="font-weight:600;">${s.name}</div>
+                <div style="font-size:0.8em;color:var(--text-light);">${s.company || ''} ${s.role ? '| ' + s.role : ''} ${s.personalId ? '| ' + s.personalId : ''}</div>
+            </div>
+            ${count ? `<span style="background:var(--success);color:white;padding:2px 8px;border-radius:10px;font-size:0.78em;">${count} פריטים</span>` : ''}
+        </div>`;
+    }).join('') : '<div style="padding:16px;text-align:center;color:var(--text-light);">לא נמצאו חיילים</div>';
+}
+
+function selectTransferSoldier(containerId, soldierId) {
+    if (containerId === 'transferSourceList') transferState.sourceId = soldierId;
+    else if (containerId === 'transferTargetList') transferState.targetId = soldierId;
+    // Re-render to show selection
+    if (containerId === 'transferSourceList') _renderSoldierPicker('transferSourceList', 'transferSourceSearch', transferState.sourceId, null);
+    else _renderSoldierPicker('transferTargetList', 'transferTargetSearch', transferState.targetId, transferState.sourceId);
+}
+
 function renderTransferStep1(c) {
-    // Select source soldier (only soldiers with held equipment)
-    const holdersIds = [...new Set(state.equipment.filter(e => e.holderId).map(e => e.holderId))];
-    const holders = holdersIds.map(id => state.soldiers.find(s => s.id === id)).filter(Boolean);
-    c.innerHTML = `<div class="form-group" style="margin-top:12px;">
-        <label style="font-weight:600;">בחר חייל מוסר (בעל הציוד)</label>
-        <select id="transferSourceSoldier" class="form-control" style="font-size:1em;padding:8px;">
-            <option value="">-- בחר חייל --</option>
-            ${holders.map(s => `<option value="${s.id}" ${transferState.sourceId === s.id ? 'selected' : ''}>${s.name} (${s.company || ''})</option>`).join('')}
-        </select>
+    c.innerHTML = `<div style="margin-top:12px;">
+        <label style="font-weight:600;display:block;margin-bottom:8px;">בחר חייל מוסר (בעל הציוד)</label>
+        <div class="search-bar" style="margin-bottom:8px;">
+            <span class="search-icon"><i data-lucide="search"></i></span>
+            <input type="text" id="transferSourceSearch" placeholder="חיפוש לפי שם, מ.א, פלוגה..." oninput="_renderSoldierPicker('transferSourceList','transferSourceSearch',transferState.sourceId,null)">
+        </div>
+        <div id="transferSourceList" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);"></div>
     </div>`;
+    _renderSoldierPicker('transferSourceList', 'transferSourceSearch', transferState.sourceId, null);
 }
 
 function renderTransferStep2(c) {
@@ -5716,14 +5745,15 @@ function renderTransferStep2(c) {
 }
 
 function renderTransferStep3(c) {
-    const allSoldiers = state.soldiers.filter(s => s.id !== transferState.sourceId);
-    c.innerHTML = `<div class="form-group" style="margin-top:12px;">
-        <label style="font-weight:600;">בחר חייל מקבל</label>
-        <select id="transferTargetSoldier" class="form-control" style="font-size:1em;padding:8px;">
-            <option value="">-- בחר חייל --</option>
-            ${allSoldiers.map(s => `<option value="${s.id}" ${transferState.targetId === s.id ? 'selected' : ''}>${s.name} (${s.company || ''})</option>`).join('')}
-        </select>
+    c.innerHTML = `<div style="margin-top:12px;">
+        <label style="font-weight:600;display:block;margin-bottom:8px;">בחר חייל מקבל</label>
+        <div class="search-bar" style="margin-bottom:8px;">
+            <span class="search-icon"><i data-lucide="search"></i></span>
+            <input type="text" id="transferTargetSearch" placeholder="חיפוש לפי שם, מ.א, פלוגה..." oninput="_renderSoldierPicker('transferTargetList','transferTargetSearch',transferState.targetId,transferState.sourceId)">
+        </div>
+        <div id="transferTargetList" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);"></div>
     </div>`;
+    _renderSoldierPicker('transferTargetList', 'transferTargetSearch', transferState.targetId, transferState.sourceId);
 }
 
 function renderTransferStep4(c) {
@@ -5774,16 +5804,12 @@ function renderTransferStep5(c) {
 
 function transferNextStep() {
     if (transferState.step === 1) {
-        const sel = document.getElementById('transferSourceSoldier')?.value;
-        if (!sel) { showToast('יש לבחור חייל מוסר', 'error'); return; }
-        transferState.sourceId = sel;
+        if (!transferState.sourceId) { showToast('יש לבחור חייל מוסר', 'error'); return; }
     } else if (transferState.step === 2) {
         transferState.selectedItems = [...document.querySelectorAll('.transfer-item-check:checked')].map(cb => cb.value);
         if (!transferState.selectedItems.length) { showToast('יש לבחור לפחות פריט אחד', 'error'); return; }
     } else if (transferState.step === 3) {
-        const sel = document.getElementById('transferTargetSoldier')?.value;
-        if (!sel) { showToast('יש לבחור חייל מקבל', 'error'); return; }
-        transferState.targetId = sel;
+        if (!transferState.targetId) { showToast('יש לבחור חייל מקבל', 'error'); return; }
     } else if (transferState.step === 4) {
         if (isCanvasEmpty('transferSourceSig') || isCanvasEmpty('transferTargetSig') || isCanvasEmpty('transferIssuerSig')) {
             showToast('יש לחתום את כל 3 החתימות', 'error'); return;
