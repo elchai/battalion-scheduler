@@ -69,15 +69,10 @@ function loadSettings() {
             settings.equipmentSets = settings.equipmentSets || {};
             settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
             if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
-            // Migration v2→v3: move commander items from baseSet to roleSet
-            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 3) {
-                const cmdItemNames = ['משקפת שדה', 'מצפן', 'אמר"ל עכבר'];
-                settings.equipmentSets.baseSet.items = settings.equipmentSets.baseSet.items.filter(i => !cmdItemNames.includes(i.name));
-                // Ensure we have the defaults for remaining baseSet items
-                if (settings.equipmentSets.baseSet.items.length < defaults.equipmentSets.baseSet.items.length) {
-                    settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
-                }
-                settings.equipmentSets._baseSetVer = 3;
+            // Migration v4: force-reset baseSet to full 22 items
+            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 4) {
+                settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
+                settings.equipmentSets._baseSetVer = 4;
             }
             // Migration: add commander roleSet if missing
             if (!settings.equipmentSets._roleSetVer || settings.equipmentSets._roleSetVer < 1) {
@@ -1286,7 +1281,7 @@ function renderCompanyTab(compKey) {
             ${editable ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
             <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
             <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>` : ''}
-            <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">&#128196; ייצוא CSV</button>
+            <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
         </div>
 
         <!-- Force Table -->
@@ -1368,7 +1363,7 @@ function renderCompanyTab(compKey) {
                             </div>
                             <div class="shift-card-body">
                                 <div style="font-size:0.83em;color:var(--text-light);margin-bottom:6px;">
-                                    &#128197; ${formatDate(sh.date)} | ${names.length}/${needed} משובצים
+                                    ${formatDate(sh.date)} | ${names.length}/${needed} משובצים
                                 </div>
                                 ${needsCommander ? `<div class="task-commander-badge">${cmdSol ? '<strong>מפקד המשימה:</strong> <a href="#" onclick="event.preventDefault();openSoldierProfile(\'' + sh.taskCommander + '\')" class="soldier-link">' + esc(cmdSol.name) + '</a>' : '<span style="color:var(--danger)">לא נבחר מפקד משימה</span>'}</div>` : ''}
                                 ${names.length > 0 ? `<ul class="shift-soldiers">${names.map(n => `<li class="shift-soldier"><span>${n}</span></li>`).join('')}</ul>` : '<div style="text-align:center;padding:8px;color:var(--danger);font-size:0.83em;">לא שובצו חיילים</div>'}
@@ -1505,7 +1500,7 @@ function renderRotationCalendar() {
             const isToday = i === 0;
             const cls = status.inBase ? 'in-base' : 'at-home';
             html += `<div class="rotation-day ${cls} ${isToday ? 'today' : ''}" title="${status.inBase ? 'בבסיס - יום '+status.dayInCycle : 'בבית - יום '+(status.dayInCycle - group.daysIn)}">
-                <div style="font-size:1em;">${status.inBase ? '&#9989;' : '&#127968;'}</div>
+                <div style="font-size:1em;">${status.inBase ? '&#9989;' : '&#9670;'}</div>
                 <div style="font-size:0.75em;">${status.inBase ? 'יום ' + status.dayInCycle : 'בבית'}</div>
             </div>`;
         });
@@ -2364,7 +2359,7 @@ function openSoldierProfile(id) {
 
     html += `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="closeModal('soldierProfileModal');openEditSoldier('${id}')">&#9998; ערוך</button>
-        ${sol.phone ? `<a class="btn btn-sm" style="background:#25D366;color:white;text-decoration:none;" href="https://wa.me/${sol.phone.replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank">&#128172; וואטסאפ</a>` : ''}
+        ${sol.phone ? `<a class="btn btn-sm" style="background:#25D366;color:white;text-decoration:none;" href="https://wa.me/${sol.phone.replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank">WhatsApp</a>` : ''}
     </div>`;
 
     html += `</div>`;
@@ -3256,7 +3251,7 @@ function renderSettingsTab() {
             <input type="text" value="${settings.sheetId}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
         </div>
         <div class="settings-actions">
-            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">&#128260; סנכרון מחדש</button>
+            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
         </div>
     </div>
 
@@ -3276,10 +3271,10 @@ function renderSettingsTab() {
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ניהול נתונים</h3>
         <div class="settings-actions">
-            <button class="btn btn-primary" onclick="exportAllData()">&#128190; ייצוא נתונים (JSON)</button>
-            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">&#128194; ייבוא נתונים (JSON)</button>
+            <button class="btn btn-primary" onclick="exportAllData()">ייצוא נתונים (JSON)</button>
+            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">ייבוא נתונים (JSON)</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(this)">
-            <button class="btn btn-danger" onclick="resetAllData()">&#9888; איפוס כל הנתונים</button>
+            <button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>
         </div>
         <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
             סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
@@ -3498,7 +3493,7 @@ function renderAnnouncements() {
         const dateStr = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' });
         const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         const priorityClass = ann.priority === 'urgent' ? 'ann-urgent' : ann.priority === 'pinned' ? 'ann-pinned' : '';
-        const priorityIcon = ann.priority === 'urgent' ? '&#9888; ' : ann.priority === 'pinned' ? '&#128204; ' : '';
+        const priorityIcon = ann.priority === 'urgent' ? '&#9651; ' : ann.priority === 'pinned' ? '' : '';
         const isAuthor = currentUser && currentUser.name === ann.author;
 
         return `<div class="ann-card ${priorityClass}">
@@ -3640,7 +3635,7 @@ function renderRollCall() {
                     <div class="rc-buttons">
                         <button class="rc-btn ${st==='present'?'active':''}" data-status="present" onclick="setRollCallStatus('${s.id}','present')" title="נוכח">&#10003;</button>
                         <button class="rc-btn rc-absent ${st==='absent'?'active':''}" data-status="absent" onclick="setRollCallStatus('${s.id}','absent')" title="חסר">&#10007;</button>
-                        <button class="rc-btn rc-leave ${st==='leave'?'active':''}" data-status="leave" onclick="setRollCallStatus('${s.id}','leave')" title="ביציאה">&#127968;</button>
+                        <button class="rc-btn rc-leave ${st==='leave'?'active':''}" data-status="leave" onclick="setRollCallStatus('${s.id}','leave')" title="ביציאה">&#9670;</button>
                     </div>
                 </div>`;
             }).join('')}
@@ -3737,7 +3732,7 @@ function renderRollCallHistory(compKey) {
                         <div class="rc-history-counts">
                             <span style="color:var(--success);">&#10003; ${present}</span>
                             <span style="color:var(--danger);">&#10007; ${absent}</span>
-                            <span style="color:var(--warning);">&#127968; ${leave}</span>
+                            <span style="color:var(--warning);">&#9670; ${leave}</span>
                             <span>סה"כ: ${entries.length}</span>
                         </div>
                     </div>`;
@@ -4544,37 +4539,36 @@ function openSignEquipment() {
     const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
     const es = settings.equipmentSets || { baseSet: { items: [] } };
     const baseItems = (es.baseSet && es.baseSet.items) || [];
-    const lblStyle = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;direction:rtl;';
 
     let html = '';
 
     // Existing equipment (tracked inventory with serial)
     if (availableEquip.length > 0) {
-        html += `<div style="padding:6px 10px;background:var(--bg);font-size:0.82em;color:var(--text-light);border-bottom:1px solid var(--border);text-align:right;">ציוד קיים במלאי</div>`;
+        html += `<div class="sign-group-header">ציוד קיים במלאי</div>`;
         html += availableEquip.map(e => `
-            <label class="sign-equip-checkbox-item" data-search="${esc(e.type)} ${esc(e.serial)} ${esc(e.notes || '')}" style="${lblStyle}">
+            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(e.type)} ${esc(e.serial)} ${esc(e.notes || '')}">
                 <input type="checkbox" value="${e.id}" data-src="equip" onchange="updateSignEquipSelection()">
-                <span style="font-weight:600;flex:1;text-align:right;">${esc(e.type)}</span>
-                <span style="color:var(--text-light);font-size:0.85em;direction:ltr;">צ' ${esc(e.serial)}</span>
-                <span style="color:var(--text-light);font-size:0.8em;">x${e.defaultQty || 1}</span>
+                <span class="sign-equip-name">${esc(e.type)}</span>
+                <span class="sign-equip-serial">${esc(e.serial)}</span>
+                <span class="sign-equip-qty">x${e.defaultQty || 1}</span>
             </label>
         `).join('');
     }
 
     // BaseSet template items
     if (baseItems.length > 0) {
-        html += `<div style="padding:6px 10px;background:var(--bg);font-size:0.82em;color:var(--text-light);border-bottom:1px solid var(--border);text-align:right;">פריטים מסט ציוד ללוחם</div>`;
+        html += `<div class="sign-group-header">סט ציוד ללוחם (${baseItems.length} פריטים)</div>`;
         html += baseItems.map((item, i) => `
-            <label class="sign-equip-checkbox-item" data-search="${esc(item.name)} ${item.category}" style="${lblStyle}">
+            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}">
                 <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()">
-                <span style="font-weight:600;flex:1;text-align:right;">${esc(item.name)}</span>
-                ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="מספר צ'" onclick="event.stopPropagation()" style="width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.85em;text-align:center;">` : ''}
-                <span style="color:var(--text-light);font-size:0.8em;">x${item.quantity}</span>
+                <span class="sign-equip-name">${esc(item.name)}</span>
+                ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
+                <span class="sign-equip-qty">x${item.quantity}</span>
             </label>
         `).join('');
     }
 
-    container.innerHTML = html || '<div style="padding:8px;color:var(--text-light);">אין פריטי ציוד</div>';
+    container.innerHTML = html || '<div style="padding:12px;color:var(--text-light);text-align:center;">אין פריטי ציוד</div>';
 
     document.getElementById('signEquipSelectedCount').textContent = '';
     document.getElementById('signEquipInfo').style.display = 'none';
@@ -5125,16 +5119,16 @@ function renderSignatureHistory() {
 
         return `<div class="sig-history-card ${isReturn ? 'return' : ''}">
             <div class="sig-info">
-                <h4>${isReturn ? '&#8634; זיכוי' : '&#9998; חתימה'} - ${equipDisplay}</h4>
+                <h4>${isReturn ? 'זיכוי' : 'חתימה'} — ${equipDisplay}</h4>
                 <div class="meta">${log.soldierName} | ${log.soldierPersonalId || ''} | ${log.soldierPhone || ''}</div>
                 <div class="meta">${dateFormatted}${log.issuedBy ? ' | מחתים: ' + log.issuedBy : ''}${log.notes ? ' | ' + log.notes : ''}</div>
             </div>
             <div class="sig-actions">
                 <img class="sig-preview" src="${log.signatureImg}" alt="חתימה">
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    <button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">&#128196; PDF</button>
-                    ${!isReturn ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="ערוך / הוסף פריטים">&#9998;</button>` : ''}
-                    <button class="btn btn-danger btn-sm" onclick="deleteSignatureLog('${log.id}')" title="מחק חתימה">&#10005;</button>
+                    <button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">PDF</button>
+                    ${!isReturn ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="עריכה">עריכה</button>` : ''}
+                    <button class="btn btn-danger btn-sm" onclick="deleteSignatureLog('${log.id}')" title="מחיקה">מחק</button>
                 </div>
             </div>
         </div>`;
@@ -6044,23 +6038,52 @@ function renderEquipmentSetsSettings() {
     const es = settings.equipmentSets;
 
     let html = `<div class="sub-section">
-        <h4 style="margin:0 0 10px;">סט ציוד ללוחם</h4>
-        <p style="font-size:0.82em;color:var(--text-light);margin-bottom:10px;">רשימת הציוד שכל לוחם מקבל בעת ההצטיידות</p>
-        <div class="table-scroll"><table style="width:100%;font-size:0.85em;">
-            <thead><tr><th>שם פריט</th><th>כמות</th><th>קטגוריה</th><th></th></tr></thead>
+        <h4 style="margin:0 0 10px;">סט ציוד ללוחם (${es.baseSet.items.length} פריטים)</h4>
+        <div class="table-scroll"><table style="width:100%;font-size:0.85em;border-collapse:collapse;">
+            <thead><tr style="background:var(--primary);color:white;">
+                <th style="padding:6px 8px;text-align:right;">שם פריט</th>
+                <th style="padding:6px 8px;text-align:center;width:55px;">כמות</th>
+                <th style="padding:6px 8px;text-align:center;">קטגוריה</th>
+                <th style="padding:6px 8px;text-align:center;width:40px;">צ'</th>
+                <th style="padding:6px 8px;width:36px;"></th>
+            </tr></thead>
             <tbody>
-                ${es.baseSet.items.map((item, i) => `<tr>
-                    <td><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;">${item.requiresSerial ? ' <span style="font-size:0.7em;color:var(--primary);font-weight:600;">צ\'</span>' : ''}</td>
-                    <td><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:60px;"></td>
-                    <td><select onchange="updateBaseSetItem(${i},'category',this.value)">
+                ${es.baseSet.items.map((item, i) => `<tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:5px 8px;"><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;border:1px solid var(--border);padding:3px 6px;border-radius:4px;"></td>
+                    <td style="padding:5px 4px;text-align:center;"><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:48px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;"></td>
+                    <td style="padding:5px 4px;"><select onchange="updateBaseSetItem(${i},'category',this.value)" style="width:100%;border:1px solid var(--border);padding:3px;border-radius:4px;">
                         ${['מגן','נשק','קשר','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                     </select></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})">&#10005;</button></td>
+                    <td style="padding:5px 4px;text-align:center;"><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)" title="דורש מספר צ'"></td>
+                    <td style="padding:5px 4px;text-align:center;"><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})" style="padding:2px 6px;font-size:0.8em;">X</button></td>
                 </tr>`).join('')}
             </tbody>
         </table></div>
         <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="addBaseSetItem()">+ הוסף פריט</button>
     </div>`;
+
+    // Commander roleSet
+    if (es.roleSets && es.roleSets.length > 0) {
+        es.roleSets.forEach((rs, ri) => {
+            html += `<div class="sub-section" style="margin-top:16px;">
+                <h4 style="margin:0 0 6px;">${rs.name} (${rs.items.length} פריטים)</h4>
+                <p style="font-size:0.78em;color:var(--text-light);margin:0 0 8px;">תפקידים: ${rs.roles.join(', ')}</p>
+                <div class="table-scroll"><table style="width:100%;font-size:0.85em;border-collapse:collapse;">
+                    <thead><tr style="background:#546E7A;color:white;">
+                        <th style="padding:6px 8px;text-align:right;">שם פריט</th>
+                        <th style="padding:6px 8px;text-align:center;width:55px;">כמות</th>
+                        <th style="padding:6px 8px;text-align:center;">קטגוריה</th>
+                    </tr></thead>
+                    <tbody>${rs.items.map(item => `<tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:5px 8px;">${item.name}</td>
+                        <td style="padding:5px 8px;text-align:center;">${item.quantity}</td>
+                        <td style="padding:5px 8px;text-align:center;">${item.category}</td>
+                    </tr>`).join('')}</tbody>
+                </table></div>
+            </div>`;
+        });
+    }
+
     container.innerHTML = html;
 }
 
@@ -6123,10 +6146,9 @@ function switchEquipmentSubTab(tab) {
     const target = document.getElementById('subtab-' + tab);
     if (target) target.style.display = '';
     const btns = document.querySelectorAll('#equipmentSubTabs .subtab-btn');
-    const idx = { items: 0, pakal: 1, dashboard: 2, reports: 3 }[tab] || 0;
+    const idx = { items: 0, dashboard: 1, reports: 2 }[tab] || 0;
     if (btns[idx]) btns[idx].classList.add('active');
 
-    if (tab === 'pakal') renderPakalSubTab();
     if (tab === 'dashboard') renderPalsamDashboard();
     if (tab === 'reports') renderEquipmentReports();
 }
@@ -6191,7 +6213,7 @@ function _reportByCategory(equip, filterVal) {
         const items = grouped[cat];
         const assigned = items.filter(i => i.holderId).length;
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;">&#128230;</div>${cat} (${items.length} פריטים, ${assigned} מוחזקים)</div>
+            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;">&#9632;</div>${cat} (${items.length} פריטים, ${assigned} מוחזקים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>מחזיק</th><th>סטטוס</th></tr></thead>
                 <tbody>${items.map(i => `<tr>
@@ -6216,7 +6238,7 @@ function _reportByType(equip, filterVal) {
         const items = grouped[type];
         const assigned = items.filter(i => i.holderId).length;
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;">&#128295;</div>${type} (${items.length} יחידות, ${assigned} מוחזקים)</div>
+            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;">&#9642;</div>${type} (${items.length} יחידות, ${assigned} מוחזקים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>מס' צ'</th><th>קטגוריה</th><th>מחזיק</th><th>מ.א</th><th>פלוגה</th></tr></thead>
                 <tbody>${items.map(i => {
@@ -6244,7 +6266,7 @@ function _reportByHolder(equip) {
     return Object.entries(holders).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
         const sol = state.soldiers.find(s => s.id === id);
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;">&#128100;</div>${h.name} ${sol ? '(' + (sol.personalId || '') + ' | ' + (sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
+            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;">&#9679;</div>${h.name} ${sol ? '(' + (sol.personalId || '') + ' | ' + (sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>תאריך קבלה</th></tr></thead>
                 <tbody>${h.items.map(i => `<tr>
@@ -6272,7 +6294,7 @@ function _reportByCompany(equip, filterVal) {
         const soldiers = companies[comp];
         const totalItems = Object.values(soldiers).reduce((s, h) => s + h.items.length, 0);
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;">&#127968;</div>${comp} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
+            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;">&#9670;</div>${comp} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>חייל</th><th>מ.א</th><th>מספר פריטים</th><th>פריטים</th></tr></thead>
                 <tbody>${Object.entries(soldiers).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
@@ -6293,7 +6315,7 @@ function _reportUnsigned(equip) {
     const unsigned = equip.filter(e => !e.holderId && e.status !== 'faulty');
     if (!unsigned.length) return '<div class="empty-state"><p>כל הציוד מוחזק &#10003;</p></div>';
     return `<div class="sub-section">
-        <div class="section-title"><div class="icon" style="background:#FFF3E0;color:#E65100;">&#9888;</div>ציוד לא מוחתם (${unsigned.length} פריטים)</div>
+        <div class="section-title"><div class="icon" style="background:#FFF3E0;color:#E65100;">&#9651;</div>ציוד לא מוחתם (${unsigned.length} פריטים)</div>
         <table class="data-table" style="width:100%;font-size:0.88em;">
             <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>הערות</th></tr></thead>
             <tbody>${unsigned.map(i => `<tr>
@@ -6657,7 +6679,7 @@ function renderPakalSubTab() {
         <div class="action-bar">
             <button class="btn btn-primary" onclick="openGeneratePakalModal()">+ יצירת פק"ל לחייל</button>
             <button class="btn btn-success" onclick="openBulkGeneratePakalModal()">יצירת פק"ל לפלוגה</button>
-            <button class="btn" style="background:var(--bg)" onclick="exportPakalCSV()">&#128196; ייצוא CSV</button>
+            <button class="btn" style="background:var(--bg)" onclick="exportPakalCSV()">ייצוא CSV</button>
         </div>
         <div class="quick-stats" style="margin-bottom:14px;">
             <div class="quick-stat"><div class="value">${stats.total}</div><div class="label">סה"כ פק"לים</div></div>

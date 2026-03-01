@@ -1794,6 +1794,24 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     height: 200px;
 }
 
+/* Sign equipment modal rows */
+.sign-equip-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    direction: rtl;
+    font-size: 0.88em;
+}
+.sign-equip-row:hover { background: var(--bg); }
+.sign-equip-row input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--primary); }
+.sign-equip-name { font-weight: 600; flex: 1; text-align: right; white-space: nowrap; }
+.sign-equip-serial { color: var(--text-light); font-size: 0.82em; direction: ltr; font-family: monospace; min-width: 70px; text-align: center; }
+.sign-equip-qty { color: var(--text-light); font-size: 0.78em; min-width: 24px; text-align: center; }
+.sign-group-header { padding: 6px 12px; background: var(--bg); font-size: 0.8em; color: var(--text-light); border-bottom: 1px solid var(--border); text-align: right; font-weight: 600; }
+
 /* Signature history cards */
 .sig-history-card {
     background: var(--card);
@@ -1837,6 +1855,9 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     /* Checkbox list items - bigger touch targets */
     .sign-equip-checkbox-item { padding: 10px 6px !important; min-height: 44px; }
     .sign-equip-checkbox-item input[type="checkbox"] { width: 20px; height: 20px; }
+    .sign-equip-row { flex-wrap: wrap; }
+    .sign-equip-name { min-width: 100px; }
+    .sign-bs-serial { width: 80px !important; font-size: 0.78em !important; }
     /* Equipment sets editor */
     #equipmentSetsEditor table { font-size: 0.78em; }
     #equipmentSetsEditor input[type="text"] { min-width: 80px; }
