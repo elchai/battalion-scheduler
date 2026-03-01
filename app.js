@@ -3499,15 +3499,15 @@ function renderAnnouncements() {
         const dateStr = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' });
         const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         const priorityClass = ann.priority === 'urgent' ? 'ann-urgent' : ann.priority === 'pinned' ? 'ann-pinned' : '';
-        const priorityIcon = ann.priority === 'urgent' ? '&#9651; ' : ann.priority === 'pinned' ? '' : '';
+        const priorityIcon = ann.priority === 'urgent' ? '<i data-lucide="alert-triangle" style="width:14px;height:14px;display:inline;vertical-align:-2px;color:var(--danger);"></i> ' : ann.priority === 'pinned' ? '<i data-lucide="pin" style="width:14px;height:14px;display:inline;vertical-align:-2px;"></i> ' : '';
         const isAuthor = currentUser && currentUser.name === ann.author;
 
         return `<div class="ann-card ${priorityClass}">
             <div class="ann-header">
                 <h4>${priorityIcon}${esc(ann.title)}</h4>
                 ${isAuthor || isAdmin() ? `<div class="ann-actions">
-                    <button class="btn btn-edit btn-sm" onclick="editAnnouncement('${ann.id}')" title="ערוך">&#9998;</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${ann.id}')" title="מחק">&#10005;</button>
+                    <button class="btn btn-edit btn-sm" onclick="editAnnouncement('${ann.id}')" title="ערוך"><i data-lucide="edit-2"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${ann.id}')" title="מחק"><i data-lucide="trash-2"></i></button>
                 </div>` : ''}
             </div>
             <div class="ann-body">${esc(ann.body).replace(/\n/g, '<br>')}</div>
@@ -3516,6 +3516,7 @@ function renderAnnouncements() {
     }).join('');
 
     updateAnnouncementBadge();
+    refreshIcons();
 }
 
 function openNewAnnouncement() {
