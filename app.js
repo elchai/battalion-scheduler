@@ -196,14 +196,9 @@ function doLogin() {
         return;
     }
 
-    // Admin or battalion-level roles get gdudi access
+    // Admin + palsam get full (gdudi) access; everyone else sees their company
     let effectiveUnit = unit;
-    if (name === settings.adminName) effectiveUnit = 'gdudi';
-    const sol = state.soldiers.find(s => s.name === name || (personalId && s.personalId === personalId));
-    if (sol && sol.role) {
-        const battalionRoles = ['רס"פ', 'סרס"פ', 'סמ"ח'];
-        if (battalionRoles.includes(sol.role)) effectiveUnit = 'gdudi';
-    }
+    if (name === settings.adminName || unit === 'palsam') effectiveUnit = 'gdudi';
 
     currentUser = { name, unit: effectiveUnit, personalId, company: unit };
     sessionStorage.setItem('battalionUser', JSON.stringify(currentUser));
