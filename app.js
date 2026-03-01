@@ -5063,24 +5063,40 @@ function openSignEquipment() {
     updateSignSoldiers();
     delete document.getElementById('signEquipmentModal').dataset.editLogId;
     openModal('signEquipmentModal');
-    setTimeout(() => { setupSignatureCanvas('signatureCanvas'); clearSignatureCanvas(); }, 100);
+    // Canvas setup moved to onSignSoldierSelect - must be visible for getBoundingClientRect
 }
 
 function filterSignSoldiers() {
     const query = document.getElementById('signSoldierSearch').value.trim().toLowerCase();
     const sel = document.getElementById('signSoldier');
     const opts = sel.querySelectorAll('option');
+    // Also hide/show optgroups
     opts.forEach(opt => {
         if (!opt.value) return; // skip placeholder
         opt.style.display = opt.textContent.toLowerCase().includes(query) ? '' : 'none';
     });
+    // Show optgroups that have visible children
+    sel.querySelectorAll('optgroup').forEach(grp => {
+        const hasVisible = Array.from(grp.querySelectorAll('option')).some(o => o.style.display !== 'none');
+        grp.style.display = hasVisible ? '' : 'none';
+    });
     // Auto-select if single match
     const visible = Array.from(opts).filter(o => o.value && o.style.display !== 'none');
-    if (visible.length === 1) { sel.value = visible[0].value; onSignSoldierSelect(); }
+    if (visible.length === 1) {
+        sel.value = visible[0].value;
+        onSignSoldierSelect();
+    } else if (query && visible.length > 0 && visible.length <= 5) {
+        // Open dropdown hint
+        sel.size = Math.min(visible.length + 1, 6);
+    } else {
+        sel.size = 0;
+    }
 }
 
 function onSignSoldierSelect() {
-    const soldierId = document.getElementById('signSoldier')?.value;
+    const sel = document.getElementById('signSoldier');
+    if (sel) sel.size = 0; // collapse dropdown after selection
+    const soldierId = sel?.value;
     if (!soldierId) {
         document.getElementById('signEquipSection').style.display = 'none';
         document.getElementById('signSignatureSection').style.display = 'none';
@@ -5090,10 +5106,13 @@ function onSignSoldierSelect() {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!sol) return;
 
-    // Show soldier info
+    // Show soldier info with clear highlight
     const info = document.getElementById('signSoldierInfo');
     info.style.display = '';
-    info.innerHTML = `<strong>${esc(sol.name)}</strong> | ${esc(sol.role||'')} | מ.א: ${esc(sol.personalId||'-')}`;
+    info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:1.2em;">&#9745;</span>
+        <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}</span>
+    </div>`;
 
     // Show equipment mode selection
     const CMD_SET_EXCLUDED = ['רס"פ', 'סרס"פ'];
@@ -5107,6 +5126,9 @@ function onSignSoldierSelect() {
         </div>`;
     document.getElementById('signEquipSection').style.display = '';
     document.getElementById('signSignatureSection').style.display = '';
+
+    // Setup canvas AFTER section is visible (getBoundingClientRect needs visible element)
+    setTimeout(() => { setupSignatureCanvas('signatureCanvas'); clearCanvasById('signatureCanvas'); }, 50);
 }
 
 function loadSignSetMode(includeCmd) {
@@ -5303,6 +5325,15 @@ function confirmSignEquipment() {
 
     if (selectedItems.length === 0) { showToast('יש לבחור לפחות פריט ציוד אחד', 'error'); return; }
     if (!soldierId) { showToast('יש לבחור חייל', 'error'); return; }
+
+    // Validate serial numbers - required for items that need them
+    const missingSerials = selectedItems.filter(item => item.serialRequired && !item.serial);
+    if (missingSerials.length > 0) {
+        const names = missingSerials.map(i => i.name).join(', ');
+        showToast(`חסר מספר צ\' עבור: ${names}`, 'error');
+        return;
+    }
+
     if (isCanvasEmpty('signatureCanvas')) { showToast('יש לחתום על המסך', 'error'); return; }
 
     const sol = state.soldiers.find(s => s.id === soldierId);
