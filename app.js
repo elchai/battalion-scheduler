@@ -773,7 +773,6 @@ async function init() {
     }
     // Auto-cleanup: remove shifts/leaves older than 30 days
     cleanupOldData();
-    renderRoleHolders();
     renderAll();
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('shiftDate').value = today;
