@@ -243,6 +243,19 @@
     </div>
 </div>
 
+<!-- Custom delete confirm dialog (requires typing "מחק") -->
+<div class="modal-overlay" id="deleteConfirmDialog">
+    <div class="modal confirm-dialog" style="max-width:420px">
+        <div class="confirm-icon" style="color:#d32f2f">&#9888;</div>
+        <p class="confirm-msg" id="deleteConfirmMsg" style="white-space:pre-line;font-size:0.95rem;line-height:1.6"></p>
+        <input type="text" id="deleteConfirmInput" autocomplete="off" placeholder='הקלד "מחק" כאן' style="width:100%;padding:10px 12px;border:2px solid #ccc;border-radius:8px;font-size:1rem;text-align:center;margin:8px 0 12px;direction:rtl" />
+        <div class="confirm-actions">
+            <button class="btn btn-danger" id="deleteConfirmYes" disabled>מחק</button>
+            <button class="btn btn-secondary" id="deleteConfirmNo">ביטול</button>
+        </div>
+    </div>
+</div>
+
 <!-- ====== TAB: OVERVIEW ====== -->
 <div class="tab-content active" id="tab-all">
     <div class="main-content">

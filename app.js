@@ -3297,6 +3297,45 @@ function customConfirm(msg) {
     });
 }
 
+let _deleteConfirmCleanup = null;
+function customDeleteConfirm() {
+    return new Promise(resolve => {
+        if (_deleteConfirmCleanup) _deleteConfirmCleanup(false);
+        const overlay = document.getElementById('deleteConfirmDialog');
+        const msgEl = document.getElementById('deleteConfirmMsg');
+        const input = document.getElementById('deleteConfirmInput');
+        const yesBtn = document.getElementById('deleteConfirmYes');
+        const noBtn = document.getElementById('deleteConfirmNo');
+        msgEl.textContent = 'שים לב! מחיקת ציוד הינו צעד חריג!\nיש לזכות את החייל על הציוד ולא למחוק את הפריט.\n\nאם בכל זאת ברצונך למחוק נא לכתוב כאן "מחק" כדי שהפעולה תבוצע.';
+        input.value = '';
+        yesBtn.disabled = true;
+        overlay.classList.add('active');
+        document.body.classList.add('modal-open');
+        function onInput() {
+            yesBtn.disabled = input.value.trim() !== 'מחק';
+        }
+        function cleanup(result) {
+            _deleteConfirmCleanup = null;
+            overlay.classList.remove('active');
+            if (!document.querySelector('.modal-overlay.active')) document.body.classList.remove('modal-open');
+            input.removeEventListener('input', onInput);
+            yesBtn.removeEventListener('click', onYes);
+            noBtn.removeEventListener('click', onNo);
+            overlay.removeEventListener('click', onOverlay);
+            resolve(result);
+        }
+        _deleteConfirmCleanup = cleanup;
+        function onYes() { cleanup(true); }
+        function onNo() { cleanup(false); }
+        function onOverlay(e) { if (e.target === overlay) cleanup(false); }
+        input.addEventListener('input', onInput);
+        yesBtn.addEventListener('click', onYes);
+        noBtn.addEventListener('click', onNo);
+        overlay.addEventListener('click', onOverlay);
+        setTimeout(() => input.focus(), 100);
+    });
+}
+
 // Online/offline indicator
 window.addEventListener('offline', () => showToast('אין חיבור לאינטרנט - עובד במצב לא מקוון', 'error'));
 window.addEventListener('online', () => showToast('חיבור לאינטרנט חזר'));
@@ -5030,11 +5069,7 @@ function saveEquipment() {
 async function deleteEquipment(id) {
     const eq = state.equipment.find(e => e.id === id);
     if (!eq) return;
-    if (eq.holderId) {
-        if (!await customConfirm(`הציוד מוחזק ע"י ${eq.holderName}. למחוק בכל זאת?`)) return;
-    } else {
-        if (!await customConfirm('למחוק פריט ציוד?')) return;
-    }
+    if (!await customDeleteConfirm()) return;
     logEquipDeletion([eq]);
     state.equipment = state.equipment.filter(e => e.id !== id);
     saveState();
@@ -5810,13 +5845,7 @@ async function deleteSelectedEquipment() {
     const checkedIds = Array.from(document.querySelectorAll('.equip-select-cb:checked')).map(cb => cb.value);
     if (checkedIds.length === 0) return;
 
-    // Check if any are assigned to soldiers
-    const assignedItems = checkedIds.filter(id => { const eq = state.equipment.find(e => e.id === id); return eq && eq.holderId; });
-    const msg = assignedItems.length > 0
-        ? `למחוק ${checkedIds.length} פריטים? (${assignedItems.length} מהם מוקצים לחיילים!)`
-        : `למחוק ${checkedIds.length} פריטים?`;
-
-    if (!await customConfirm(msg)) return;
+    if (!await customDeleteConfirm()) return;
 
     const deletedItems = state.equipment.filter(e => checkedIds.includes(e.id));
     logEquipDeletion(deletedItems);
