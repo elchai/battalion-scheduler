@@ -509,6 +509,7 @@
             <button class="subtab-btn active" onclick="switchEquipmentSubTab('items')">צל"מ וציוד</button>
             <button class="subtab-btn" onclick="switchEquipmentSubTab('dashboard')">דשבורד פלס"ם</button>
             <button class="subtab-btn" onclick="switchEquipmentSubTab('reports')">דוחות ציוד</button>
+            <button class="subtab-btn" onclick="switchEquipmentSubTab('transfer')">החלפת חתימות</button>
         </div>
 
         <!-- Sub-tab: Equipment Items (existing) -->
@@ -521,20 +522,30 @@
             </div>
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="openAddEquipment()"><i data-lucide="plus"></i> הוספת פריט</button>
+                <button class="btn" style="background:#00BCD4;color:white;" onclick="openImportEquipment()"><i data-lucide="upload"></i> ייבוא</button>
                 <button id="btnSignEquip" class="btn btn-success" onclick="openSignEquipment()"><i data-lucide="pen-line"></i> חתימה על ציוד</button>
                 <button id="btnReturnEquip" class="btn btn-warning" onclick="openReturnEquipment()"><i data-lucide="undo-2"></i> זיכוי</button>
-                <button class="btn" style="background:var(--bg)" onclick="exportEquipmentCSV()"><i data-lucide="download"></i> CSV</button>
+                <button class="btn" style="background:var(--bg)" onclick="openExportFilter()"><i data-lucide="download"></i> ייצוא</button>
             </div>
             <div class="quick-stats" id="equipmentStats"></div>
             <div class="search-bar">
                 <span class="search-icon"><i data-lucide="search"></i></span>
                 <input type="text" id="equipmentSearch" placeholder="חיפוש לפי שם פריט, מספר סידורי, חייל..." oninput="renderEquipmentTab()">
             </div>
-            <div class="filter-buttons" style="margin-bottom:14px;">
-                <button class="filter-btn active" onclick="setEquipmentFilter('all',this)">הכל</button>
-                <button class="filter-btn" onclick="setEquipmentFilter('assigned',this)">מוחזק</button>
-                <button class="filter-btn" onclick="setEquipmentFilter('available',this)">פנוי</button>
-                <button class="filter-btn" onclick="setEquipmentFilter('faulty',this)">תקול</button>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="setEquipmentFilter('all',this)">הכל</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('assigned',this)">מוחזק</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('available',this)">פנוי</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('faulty',this)">תקול</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('lost',this)">אובדן/מת"ש</button>
+                </div>
+                <select id="equipWarehouseFilter" onchange="renderEquipmentTab()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:0.85em;">
+                    <option value="all">כל המחסנים</option>
+                    <option value="מחסן גדוד">מחסן גדוד</option>
+                    <option value="מחסן אוגדה">מחסן אוגדה</option>
+                    <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                </select>
             </div>
             <div class="sub-section">
                 <div class="section-title">
@@ -580,6 +591,8 @@
                         <option value="byHolder">לפי מחזיק</option>
                         <option value="byCompany">לפי פלוגה</option>
                         <option value="unsigned">ציוד לא מוחתם</option>
+                        <option value="byLoss">אובדן / מת"ש</option>
+                        <option value="byFaulty">תקולים לתיקון</option>
                     </select>
                 </div>
                 <div style="flex:1;min-width:140px;" id="reportFilterGroup">
@@ -593,9 +606,49 @@
             </div>
             <div id="equipmentReportContent"></div>
         </div>
+
+        <!-- Transfer sub-tab -->
+        <div class="equip-subtab" id="subtab-transfer" style="display:none;">
+            <div class="info-box">
+                <span class="info-icon"><i data-lucide="repeat-2"></i></span>
+                <div><strong>החלפת חתימות:</strong> העברת ציוד מחייל לחייל עם חתימות דיגיטליות.</div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="openTransferEquip()"><i data-lucide="repeat-2"></i> העברת ציוד חדשה</button>
+            </div>
+            <div id="transferHistoryContent"></div>
+        </div>
     </div>
 </div>
 
+
+<!-- ====== TAB: SOLDIER VIEW ====== -->
+<div class="tab-content" id="tab-myequipment" style="display:none;">
+    <div class="main-content">
+        <div style="text-align:center;padding:16px 0 8px;">
+            <div class="icon" style="background:var(--primary);color:white;width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;margin-bottom:8px;"><i data-lucide="shield-check" style="width:24px;height:24px;"></i></div>
+            <h2 style="margin:0;" id="soldierViewName"></h2>
+            <p style="margin:4px 0 0;color:var(--text-light);font-size:0.9em;" id="soldierViewUnit"></p>
+        </div>
+        <div class="sub-section">
+            <div class="section-title">
+                <div class="icon" style="background:#E8F5E9;color:#2E7D32;"><i data-lucide="package"></i></div>
+                הציוד שלי
+            </div>
+            <div id="myEquipmentContent"></div>
+        </div>
+        <div class="sub-section" style="margin-top:20px;">
+            <div class="section-title">
+                <div class="icon" style="background:#E3F2FD;color:#1565C0;"><i data-lucide="calendar"></i></div>
+                המשמרות שלי
+            </div>
+            <div id="myShiftsContent"></div>
+        </div>
+        <div style="text-align:center;margin-top:24px;">
+            <button class="btn btn-danger" onclick="logout()"><i data-lucide="log-out"></i> יציאה</button>
+        </div>
+    </div>
+</div>
 
 <!-- ====== TAB: WEAPONS PROJECT ====== -->
 <div class="tab-content" id="tab-weapons">
@@ -998,10 +1051,43 @@
                 </div>
                 <div class="form-group">
                     <label>מצב</label>
-                    <select id="equipCondition">
+                    <select id="equipCondition" onchange="onEquipConditionChange()">
                         <option value="תקין">תקין</option>
                         <option value="תקול">תקול</option>
+                        <option value="אובדן">אובדן</option>
+                        <option value="מת&quot;ש">מת"ש</option>
                     </select>
+                </div>
+            </div>
+            <div id="lossFieldsGroup" style="display:none;">
+                <div class="form-group">
+                    <label>תיאור האירוע</label>
+                    <textarea id="lossDescription" rows="2" placeholder="מה קרה?" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:8px;"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>תאריך אירוע</label>
+                        <input type="date" id="lossDate">
+                    </div>
+                    <div class="form-group">
+                        <label>חייל מדווח</label>
+                        <input type="text" id="lossReportingSoldier" placeholder="שם החייל">
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מחסן</label>
+                    <select id="equipWarehouse" onchange="toggleCustomWarehouse()">
+                        <option value="מחסן גדוד">מחסן גדוד</option>
+                        <option value="מחסן אוגדה">מחסן אוגדה</option>
+                        <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                        <option value="אחר">אחר</option>
+                    </select>
+                </div>
+                <div class="form-group" id="equipCustomWarehouseGroup" style="display:none;">
+                    <label>שם מחסן</label>
+                    <input type="text" id="equipCustomWarehouse" placeholder="הזן שם מחסן">
                 </div>
             </div>
             <div class="form-row">
@@ -1018,6 +1104,130 @@
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveEquipment()">שמור פריט</button>
             <button class="btn" style="background:var(--bg)" onclick="closeModal('addEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Import Equipment Modal -->
+<div class="modal-overlay" id="importEquipmentModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#00BCD4;">
+            <h3><i data-lucide="upload"></i> ייבוא ציוד מקובץ</h3>
+            <button class="modal-close" onclick="closeModal('importEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="info-box">
+                <span class="info-icon"><i data-lucide="info"></i></span>
+                <div>העלה קובץ CSV או Excel עם עמודות: סוג ציוד, מספר סידורי, קטגוריה, מצב, הערות</div>
+            </div>
+            <div class="form-row" style="margin-bottom:12px;">
+                <div class="form-group" style="flex:2;">
+                    <label>בחר קובץ</label>
+                    <input type="file" id="importEquipFile" accept=".csv,.xlsx,.xls" onchange="previewImportEquipment()" style="border:1px solid var(--border);padding:6px;border-radius:var(--radius);width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>מחסן יעד</label>
+                    <select id="importWarehouse">
+                        <option value="מחסן גדוד">מחסן גדוד</option>
+                        <option value="מחסן אוגדה">מחסן אוגדה</option>
+                        <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="importCompany">
+                        <option value="gdudi">גדודי</option>
+                        <option value="a">פלוגה א</option>
+                        <option value="b">פלוגה ב</option>
+                        <option value="c">פלוגה ג</option>
+                        <option value="d">פלוגה ד</option>
+                        <option value="hq">חפ"ק</option>
+                        <option value="palsam">פלס"ם</option>
+                    </select>
+                </div>
+            </div>
+            <div id="importPreviewContainer" style="display:none;max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;"></div>
+            <div id="importSummary" style="display:none;text-align:center;padding:10px;font-weight:600;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="importConfirmBtn" style="display:none;" onclick="confirmImportEquipment()"><i data-lucide="check"></i> ייבא ציוד</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('importEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Equipment Modal -->
+<div class="modal-overlay" id="transferEquipModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#9C27B0;">
+            <h3><i data-lucide="repeat-2"></i> העברת ציוד בין חיילים</h3>
+            <button class="modal-close" onclick="closeModal('transferEquipModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+            <div class="wizard-steps" id="transferSteps"></div>
+            <div id="transferStepContent"></div>
+        </div>
+        <div class="modal-footer" id="transferFooter">
+            <button class="btn" style="background:var(--bg)" id="transferPrevBtn" onclick="transferPrevStep()">חזרה</button>
+            <button class="btn btn-primary" id="transferNextBtn" onclick="transferNextStep()">הבא</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('transferEquipModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Export Filter Modal -->
+<div class="modal-overlay" id="exportFilterModal">
+    <div class="modal" style="max-width:500px;">
+        <div class="modal-header">
+            <h3><i data-lucide="download"></i> ייצוא ציוד לקובץ</h3>
+            <button class="modal-close" onclick="closeModal('exportFilterModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label style="font-weight:600;margin-bottom:6px;display:block;">קטגוריות</label>
+                <div id="exportCategoryChecks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+            </div>
+            <div class="form-row" style="margin-top:12px;">
+                <div class="form-group">
+                    <label>מחסן</label>
+                    <select id="exportWarehouseFilter" onchange="updateExportPreviewCount()">
+                        <option value="all">הכל</option>
+                        <option value="מחסן גדוד">מחסן גדוד</option>
+                        <option value="מחסן אוגדה">מחסן אוגדה</option>
+                        <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>סטטוס</label>
+                    <select id="exportStatusFilter" onchange="updateExportPreviewCount()">
+                        <option value="all">הכל</option>
+                        <option value="assigned">מוחזק</option>
+                        <option value="available">פנוי</option>
+                        <option value="faulty">תקול</option>
+                        <option value="lost">אובדן</option>
+                        <option value="writeoff">מת"ש</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>פלוגה</label>
+                <select id="exportCompanyFilter" onchange="updateExportPreviewCount()">
+                    <option value="all">הכל</option>
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק</option>
+                    <option value="palsam">פלס"ם</option>
+                    <option value="gdudi">גדודי</option>
+                </select>
+            </div>
+            <div id="exportPreviewCount" style="text-align:center;padding:12px;font-weight:600;font-size:1.1em;color:var(--primary);"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="doFilteredExportCSV()"><i data-lucide="download"></i> CSV</button>
+            <button class="btn" style="background:var(--card);border:1px solid var(--border);" onclick="doFilteredExportPDF()"><i data-lucide="file-down"></i> PDF</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('exportFilterModal')">ביטול</button>
         </div>
     </div>
 </div>

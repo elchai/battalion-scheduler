@@ -108,6 +108,15 @@ function canView(compKey) {
 
 // --- Role detection & equipment signing permissions ---
 const SIGNING_ROLES = ['רס"פ', 'סרס"פ', 'סמ"ח', 'מ"כ', 'מ"פ', 'סמ"פ'];
+const WAREHOUSES = ['מחסן גדוד', 'מחסן אוגדה', 'ימ"ח רנטיס', 'אחר'];
+const CATEGORY_GROUPS = {
+    'נשק': ['נשק'],
+    'אופטיקה': ['תצפית'],
+    'קשר': ['קשר'],
+    'לוגיסטיקה': ['אחר', 'מגן', 'שטח'],
+    'רפואי': ['רפואי'],
+    'תחמושת': ['תחמושת']
+};
 
 function detectUserRole() {
     if (!currentUser) return null;
@@ -131,6 +140,14 @@ function canSignEquipment() {
     if (isAdmin()) return true;
     if (!currentUser.role) return false;
     return SIGNING_ROLES.some(r => currentUser.role.includes(r));
+}
+
+function isSoldierView() {
+    if (!currentUser) return false;
+    if (isAdmin()) return false;
+    if (['palsam', 'gdudi'].includes(currentUser.unit)) return false;
+    if (canSignEquipment()) return false;
+    return true;
 }
 
 // ==================== LOGIN ====================
@@ -188,6 +205,14 @@ function activateApp() {
     if (sidebarUser) sidebarUser.textContent = currentUser.name;
 
     detectUserRole();
+
+    // Soldier read-only view
+    if (isSoldierView()) {
+        activateSoldierView();
+        refreshIcons();
+        return;
+    }
+
     applyUnitFilter();
 
     // Set calendar filter to user's company
@@ -210,6 +235,79 @@ function activateApp() {
         document.body.classList.remove('sidebar-open');
     }
     refreshIcons();
+}
+
+function activateSoldierView() {
+    // Hide sidebar
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    document.body.classList.remove('sidebar-open');
+
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+
+    // Show soldier view tab
+    const soldierTab = document.getElementById('tab-myequipment');
+    if (soldierTab) {
+        soldierTab.style.display = '';
+        const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי'};
+        const nameEl = document.getElementById('soldierViewName');
+        const unitEl = document.getElementById('soldierViewUnit');
+        if (nameEl) nameEl.textContent = currentUser.name;
+        if (unitEl) unitEl.textContent = unitMap[currentUser.unit] || currentUser.unit;
+        renderSoldierEquipment();
+        renderSoldierShifts();
+    }
+}
+
+function renderSoldierEquipment() {
+    const container = document.getElementById('myEquipmentContent');
+    if (!container) return;
+    const soldierId = currentUser.soldierId;
+    if (!soldierId) {
+        container.innerHTML = '<div class="empty-state"><p>לא נמצא חייל מתאים במערכת</p></div>';
+        return;
+    }
+    const heldItems = state.equipment.filter(e => e.holderId === soldierId);
+    if (!heldItems.length) {
+        container.innerHTML = '<div class="empty-state"><p>אין ציוד חתום על שמך</p></div>';
+        return;
+    }
+    container.innerHTML = heldItems.map(e => `
+        <div class="soldier-equip-card">
+            <div class="icon" style="background:#E8F5E9;color:#2E7D32;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;flex-shrink:0;"><i data-lucide="package"></i></div>
+            <div style="flex:1;">
+                <div style="font-weight:700;">${e.type}</div>
+                <div style="font-size:0.82em;color:var(--text-light);direction:ltr;font-family:monospace;">${e.serial}</div>
+            </div>
+            <div style="text-align:left;font-size:0.82em;color:var(--text-light);">
+                ${e.assignedDate ? new Date(e.assignedDate).toLocaleDateString('he-IL') : ''}
+            </div>
+        </div>
+    `).join('');
+    refreshIcons();
+}
+
+function renderSoldierShifts() {
+    const container = document.getElementById('myShiftsContent');
+    if (!container) return;
+    const soldierId = currentUser.soldierId;
+    if (!soldierId || !state.shifts || !state.shifts.length) {
+        container.innerHTML = '<div class="empty-state"><p>אין משמרות</p></div>';
+        return;
+    }
+    const myShifts = state.shifts.filter(sh => sh.soldiers && sh.soldiers.includes(soldierId));
+    if (!myShifts.length) {
+        container.innerHTML = '<div class="empty-state"><p>אין משמרות משובצות</p></div>';
+        return;
+    }
+    container.innerHTML = myShifts.slice(-10).reverse().map(sh => `
+        <div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;border-right:4px solid var(--info);">
+            <div style="font-weight:600;">${sh.name || sh.type || 'משמרת'}</div>
+            <div style="font-size:0.82em;color:var(--text-light);">${sh.date || ''} ${sh.time || ''}</div>
+            ${sh.notes ? `<div style="font-size:0.82em;margin-top:4px;">${sh.notes}</div>` : ''}
+        </div>
+    `).join('');
 }
 
 function applyUnitFilter() {
@@ -453,7 +551,29 @@ function loadState() {
         localStorage.setItem('migration_clear_v1', '1');
     }
 
+    // Migration: add warehouse + category to existing equipment
+    if (!localStorage.getItem('migration_warehouse_v1')) {
+        state.equipment.forEach(e => {
+            if (!e.warehouse) e.warehouse = 'מחסן גדוד';
+            if (!e.category) e.category = detectCategoryFromType(e.type);
+        });
+        localStorage.setItem('migration_warehouse_v1', '1');
+        saveState();
+    }
+
     seedTestSoldier();
+}
+
+function detectCategoryFromType(type) {
+    if (!type) return 'אחר';
+    if (['נשק','M16','M4','MAG','נגב','רובה'].some(t => type.includes(t))) return 'נשק';
+    if (['כוונת','משקפת','אמר"ל','ליונט','אול"ר','תצפית'].some(t => type.includes(t))) return 'תצפית';
+    if (['קשר','624','מע"ד','מדונה','עכבר'].some(t => type.includes(t))) return 'קשר';
+    if (['קסדה','אפוד','מגן','ברכיות','כיסוי','מצנפת'].some(t => type.includes(t))) return 'מגן';
+    if (['תחבושת','CAT','רפואי','חובש'].some(t => type.includes(t))) return 'רפואי';
+    if (['מחסנית','תחמושת'].some(t => type.includes(t))) return 'תחמושת';
+    if (['מצפן'].some(t => type.includes(t))) return 'שטח';
+    return 'אחר';
 }
 
 function seedTestSoldier() {
@@ -4445,6 +4565,18 @@ document.addEventListener('change', function(e) {
 });
 
 // --- Equipment CRUD ---
+function onEquipConditionChange() {
+    const cond = document.getElementById('equipCondition').value;
+    const grp = document.getElementById('lossFieldsGroup');
+    if (grp) grp.style.display = (cond === 'אובדן' || cond === 'מת"ש') ? '' : 'none';
+}
+
+function toggleCustomWarehouse() {
+    const sel = document.getElementById('equipWarehouse');
+    const grp = document.getElementById('equipCustomWarehouseGroup');
+    if (grp) grp.style.display = sel && sel.value === 'אחר' ? '' : 'none';
+}
+
 function openAddEquipment() {
     document.getElementById('equipmentModalTitle').textContent = 'הוספת פריט ציוד';
     document.getElementById('equipEditId').value = '';
@@ -4453,6 +4585,8 @@ function openAddEquipment() {
     document.getElementById('equipSerial').value = '';
     document.getElementById('equipCompany').value = 'gdudi';
     document.getElementById('equipCondition').value = 'תקין';
+    document.getElementById('equipWarehouse').value = 'מחסן גדוד';
+    toggleCustomWarehouse();
     document.getElementById('equipDefaultQty').value = '1';
     document.getElementById('equipNotes').value = '';
     openModal('addEquipmentModal');
@@ -4475,6 +4609,16 @@ function openEditEquipment(id) {
     document.getElementById('equipSerial').value = eq.serial;
     document.getElementById('equipCompany').value = eq.company;
     document.getElementById('equipCondition').value = eq.condition;
+    // Warehouse
+    const wh = eq.warehouse || 'מחסן גדוד';
+    const whSel = document.getElementById('equipWarehouse');
+    if (['מחסן גדוד','מחסן אוגדה','ימ"ח רנטיס'].includes(wh)) {
+        whSel.value = wh;
+    } else {
+        whSel.value = 'אחר';
+        document.getElementById('equipCustomWarehouse').value = wh;
+    }
+    toggleCustomWarehouse();
     document.getElementById('equipDefaultQty').value = eq.defaultQty || 1;
     document.getElementById('equipNotes').value = eq.notes || '';
     openModal('addEquipmentModal');
@@ -4494,6 +4638,15 @@ function saveEquipment() {
     const condition = document.getElementById('equipCondition').value;
     const defaultQty = parseInt(document.getElementById('equipDefaultQty').value) || 1;
     const notes = document.getElementById('equipNotes').value.trim();
+    let warehouse = document.getElementById('equipWarehouse').value;
+    if (warehouse === 'אחר') {
+        warehouse = document.getElementById('equipCustomWarehouse').value.trim() || 'אחר';
+    }
+    const category = detectCategoryFromType(type);
+    // Loss/write-off fields
+    const lossDescription = (condition === 'אובדן' || condition === 'מת"ש') ? (document.getElementById('lossDescription').value.trim() || '') : '';
+    const lossDate = (condition === 'אובדן' || condition === 'מת"ש') ? (document.getElementById('lossDate').value || '') : '';
+    const lossReportingSoldier = (condition === 'אובדן' || condition === 'מת"ש') ? (document.getElementById('lossReportingSoldier').value.trim() || '') : '';
 
     if (editId) {
         const eq = state.equipment.find(e => e.id === editId);
@@ -4504,6 +4657,15 @@ function saveEquipment() {
             eq.condition = condition;
             eq.defaultQty = defaultQty;
             eq.notes = notes;
+            eq.warehouse = warehouse;
+            eq.category = category;
+            eq.lossDescription = lossDescription;
+            eq.lossDate = lossDate;
+            eq.lossReportingSoldier = lossReportingSoldier;
+            // Release from holder if lost/written-off
+            if (condition === 'אובדן' || condition === 'מת"ש') {
+                eq.holderId = null; eq.holderName = ''; eq.holderPhone = '';
+            }
         }
         showToast('פריט עודכן');
     } else {
@@ -4515,6 +4677,7 @@ function saveEquipment() {
         state.equipment.push({
             id: 'eq_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
             type, serial, company, condition, defaultQty, notes,
+            warehouse, category,
             holderId: null, holderName: '', holderPhone: '',
             assignedDate: null, signatureImg: null
         });
@@ -5025,23 +5188,32 @@ function renderEquipmentTab() {
         );
     }
 
-    // Filter
+    // Filter by status
     if (equipmentFilter === 'assigned') items = items.filter(e => e.holderId);
-    else if (equipmentFilter === 'available') items = items.filter(e => !e.holderId && e.condition !== 'תקול');
+    else if (equipmentFilter === 'available') items = items.filter(e => !e.holderId && !['תקול','אובדן','מת"ש'].includes(e.condition));
     else if (equipmentFilter === 'faulty') items = items.filter(e => e.condition === 'תקול');
+    else if (equipmentFilter === 'lost') items = items.filter(e => e.condition === 'אובדן' || e.condition === 'מת"ש');
+
+    // Filter by warehouse
+    const whFilter = document.getElementById('equipWarehouseFilter');
+    if (whFilter && whFilter.value !== 'all') {
+        items = items.filter(e => (e.warehouse || 'מחסן גדוד') === whFilter.value);
+    }
 
     // Stats
     const statsEl = document.getElementById('equipmentStats');
     if (statsEl) {
         const total = state.equipment.length;
         const assigned = state.equipment.filter(e => e.holderId).length;
-        const available = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול').length;
+        const available = state.equipment.filter(e => !e.holderId && !['תקול','אובדן','מת"ש'].includes(e.condition)).length;
         const faulty = state.equipment.filter(e => e.condition === 'תקול').length;
+        const lost = state.equipment.filter(e => e.condition === 'אובדן' || e.condition === 'מת"ש').length;
         statsEl.innerHTML = `
             <div class="quick-stat"><div class="value">${total}</div><div class="label">סה"כ פריטים</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--success);"><div class="value">${assigned}</div><div class="label">מוחזקים</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--info);"><div class="value">${available}</div><div class="label">פנויים</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--danger);"><div class="value">${faulty}</div><div class="label">תקולים</div></div>
+            ${lost ? `<div class="quick-stat" style="border-top:3px solid #9C27B0;"><div class="value">${lost}</div><div class="label">אובדן/מת"ש</div></div>` : ''}
         `;
     }
 
@@ -5062,17 +5234,18 @@ function renderEquipmentTab() {
             <div class="task-table-wrapper"><div class="table-scroll">
                 <table class="equip-table">
                     <thead><tr>
-                        <th>סוג ציוד</th><th>מספר סידורי</th><th>כמות</th><th>מסגרת</th><th>מצב</th>
+                        <th>סוג ציוד</th><th>מספר סידורי</th><th>כמות</th><th>מחסן</th><th>מסגרת</th><th>מצב</th>
                         <th>סטטוס</th><th>מחזיק</th><th>טלפון</th><th>תאריך חתימה</th><th>פעולות</th>
                     </tr></thead>
                     <tbody>
                         ${items.map(e => {
-                            const statusClass = e.condition === 'תקול' ? 'faulty' : e.holderId ? 'assigned' : 'available';
-                            const statusText = e.condition === 'תקול' ? 'תקול' : e.holderId ? 'מוחזק' : 'פנוי';
+                            const statusClass = ['תקול','אובדן','מת"ש'].includes(e.condition) ? 'faulty' : e.holderId ? 'assigned' : 'available';
+                            const statusText = e.condition === 'תקול' ? 'תקול' : e.condition === 'אובדן' ? 'אובדן' : e.condition === 'מת"ש' ? 'מת"ש' : e.holderId ? 'מוחזק' : 'פנוי';
                             return `<tr>
                                 <td style="font-weight:600;">${e.type}</td>
                                 <td style="direction:ltr;font-family:monospace;">${e.serial}</td>
                                 <td>${e.defaultQty || 1}</td>
+                                <td style="font-size:0.82em;">${e.warehouse || 'מחסן גדוד'}</td>
                                 <td>${companyNames[e.company] || e.company}</td>
                                 <td>${e.condition}</td>
                                 <td><span class="equip-status ${statusClass}">${statusText}</span></td>
@@ -5419,11 +5592,11 @@ function _downloadPdfPrintFallback(htmlContent, filename) {
 // --- Equipment CSV Export ---
 function exportEquipmentCSV() {
     let csv = '\uFEFF' + 'ציוד לחימה מבוקר - צל"מ\n\n';
-    csv += 'סוג ציוד,מספר סידורי,מסגרת,מצב,סטטוס,מחזיק,טלפון,תאריך חתימה,הערות\n';
+    csv += 'סוג ציוד,מספר סידורי,קטגוריה,מחסן,מסגרת,מצב,סטטוס,מחזיק,טלפון,תאריך חתימה,הערות\n';
     const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
     state.equipment.forEach(e => {
         const status = e.condition === 'תקול' ? 'תקול' : e.holderId ? 'מוחזק' : 'פנוי';
-        csv += `${e.type},${e.serial},${companyNames[e.company] || e.company},${e.condition},${status},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
+        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company},${e.condition},${status},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -5432,6 +5605,521 @@ function exportEquipmentCSV() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     showToast('צל"מ יוצא ל-CSV');
+}
+
+// ==================== TRANSFER EQUIPMENT ====================
+
+let transferState = { step: 1, sourceId: null, targetId: null, selectedItems: [], notes: '' };
+
+const TRANSFER_STEPS = [
+    { num: 1, label: 'חייל מוסר' },
+    { num: 2, label: 'בחירת ציוד' },
+    { num: 3, label: 'חייל מקבל' },
+    { num: 4, label: 'חתימות' },
+    { num: 5, label: 'אישור' }
+];
+
+function renderTransferHistory() {
+    const container = document.getElementById('transferHistoryContent');
+    if (!container) return;
+    const transfers = state.signatureLog.filter(l => l.transferId);
+    // Group by transferId
+    const grouped = {};
+    transfers.forEach(l => {
+        if (!grouped[l.transferId]) grouped[l.transferId] = [];
+        grouped[l.transferId].push(l);
+    });
+    const entries = Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]));
+    if (!entries.length) {
+        container.innerHTML = '<div class="empty-state"><p>אין היסטוריית העברות</p></div>';
+        return;
+    }
+    container.innerHTML = entries.slice(0, 30).map(([tid, logs]) => {
+        const ret = logs.find(l => l.type === 'return');
+        const asgn = logs.find(l => l.type === 'assign');
+        const d = new Date(ret?.date || asgn?.date);
+        const itemCount = (ret?.equipItems || []).length;
+        return `<div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;border-right:4px solid #9C27B0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div><strong>${ret?.soldierName || '?'}</strong> ← <strong>${asgn?.soldierName || '?'}</strong> | ${itemCount} פריטים</div>
+                <span style="font-size:0.82em;color:var(--text-light);">${d.toLocaleDateString('he-IL')} ${d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</span>
+            </div>
+            <div style="font-size:0.82em;color:var(--text-light);margin-top:4px;">${(ret?.equipItems || []).map(i => i.equipType).join(', ')}</div>
+        </div>`;
+    }).join('');
+    refreshIcons();
+}
+
+function openTransferEquip() {
+    transferState = { step: 1, sourceId: null, targetId: null, selectedItems: [], notes: '' };
+    renderTransferWizard();
+    openModal('transferEquipModal');
+    refreshIcons();
+}
+
+function renderTransferWizard() {
+    // Steps indicator
+    const stepsHtml = TRANSFER_STEPS.map(s =>
+        `<div class="wizard-step ${s.num === transferState.step ? 'active' : s.num < transferState.step ? 'done' : ''}" data-step="${s.num}">
+            <span class="step-num">${s.num}</span><span class="step-label">${s.label}</span>
+        </div>`
+    ).join('');
+    document.getElementById('transferSteps').innerHTML = stepsHtml;
+
+    // Buttons
+    document.getElementById('transferPrevBtn').style.display = transferState.step > 1 ? '' : 'none';
+    const nextBtn = document.getElementById('transferNextBtn');
+    if (transferState.step === 5) {
+        nextBtn.textContent = 'אישור העברה';
+        nextBtn.className = 'btn btn-success';
+    } else {
+        nextBtn.textContent = 'הבא';
+        nextBtn.className = 'btn btn-primary';
+    }
+
+    // Content
+    const container = document.getElementById('transferStepContent');
+    if (transferState.step === 1) renderTransferStep1(container);
+    else if (transferState.step === 2) renderTransferStep2(container);
+    else if (transferState.step === 3) renderTransferStep3(container);
+    else if (transferState.step === 4) renderTransferStep4(container);
+    else if (transferState.step === 5) renderTransferStep5(container);
+    refreshIcons();
+}
+
+function renderTransferStep1(c) {
+    // Select source soldier (only soldiers with held equipment)
+    const holdersIds = [...new Set(state.equipment.filter(e => e.holderId).map(e => e.holderId))];
+    const holders = holdersIds.map(id => state.soldiers.find(s => s.id === id)).filter(Boolean);
+    c.innerHTML = `<div class="form-group" style="margin-top:12px;">
+        <label style="font-weight:600;">בחר חייל מוסר (בעל הציוד)</label>
+        <select id="transferSourceSoldier" class="form-control" style="font-size:1em;padding:8px;">
+            <option value="">-- בחר חייל --</option>
+            ${holders.map(s => `<option value="${s.id}" ${transferState.sourceId === s.id ? 'selected' : ''}>${s.name} (${s.company || ''})</option>`).join('')}
+        </select>
+    </div>`;
+}
+
+function renderTransferStep2(c) {
+    const heldItems = state.equipment.filter(e => e.holderId === transferState.sourceId);
+    const sourceSoldier = state.soldiers.find(s => s.id === transferState.sourceId);
+    c.innerHTML = `<div style="margin-top:12px;">
+        <p style="font-weight:600;margin-bottom:8px;">בחר ציוד להעברה מ: ${sourceSoldier?.name || ''}</p>
+        <div style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);">
+            ${heldItems.map(e => `<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;">
+                <input type="checkbox" class="transfer-item-check" value="${e.id}" ${transferState.selectedItems.includes(e.id) ? 'checked' : ''}>
+                <span style="flex:1;font-weight:600;">${e.type}</span>
+                <span style="font-family:monospace;color:var(--text-light);direction:ltr;">${e.serial}</span>
+            </label>`).join('')}
+        </div>
+    </div>`;
+}
+
+function renderTransferStep3(c) {
+    const allSoldiers = state.soldiers.filter(s => s.id !== transferState.sourceId);
+    c.innerHTML = `<div class="form-group" style="margin-top:12px;">
+        <label style="font-weight:600;">בחר חייל מקבל</label>
+        <select id="transferTargetSoldier" class="form-control" style="font-size:1em;padding:8px;">
+            <option value="">-- בחר חייל --</option>
+            ${allSoldiers.map(s => `<option value="${s.id}" ${transferState.targetId === s.id ? 'selected' : ''}>${s.name} (${s.company || ''})</option>`).join('')}
+        </select>
+    </div>`;
+}
+
+function renderTransferStep4(c) {
+    c.innerHTML = `<div style="margin-top:12px;">
+        <p style="font-weight:600;margin-bottom:12px;">חתימות דיגיטליות</p>
+        <div style="display:grid;gap:16px;">
+            <div>
+                <label style="font-size:0.88em;font-weight:600;display:block;margin-bottom:4px;">חתימת חייל מוסר</label>
+                <canvas id="transferSourceSig" width="400" height="120" style="border:1px solid var(--border);border-radius:var(--radius);width:100%;touch-action:none;"></canvas>
+                <button class="btn btn-sm" style="margin-top:4px;" onclick="clearCanvasById('transferSourceSig')">נקה</button>
+            </div>
+            <div>
+                <label style="font-size:0.88em;font-weight:600;display:block;margin-bottom:4px;">חתימת חייל מקבל</label>
+                <canvas id="transferTargetSig" width="400" height="120" style="border:1px solid var(--border);border-radius:var(--radius);width:100%;touch-action:none;"></canvas>
+                <button class="btn btn-sm" style="margin-top:4px;" onclick="clearCanvasById('transferTargetSig')">נקה</button>
+            </div>
+            <div>
+                <label style="font-size:0.88em;font-weight:600;display:block;margin-bottom:4px;">חתימת מחתים</label>
+                <canvas id="transferIssuerSig" width="400" height="120" style="border:1px solid var(--border);border-radius:var(--radius);width:100%;touch-action:none;"></canvas>
+                <button class="btn btn-sm" style="margin-top:4px;" onclick="clearCanvasById('transferIssuerSig')">נקה</button>
+            </div>
+        </div>
+    </div>`;
+    setTimeout(() => {
+        setupSignatureCanvas('transferSourceSig');
+        setupSignatureCanvas('transferTargetSig');
+        setupSignatureCanvas('transferIssuerSig');
+    }, 100);
+}
+
+function renderTransferStep5(c) {
+    const source = state.soldiers.find(s => s.id === transferState.sourceId);
+    const target = state.soldiers.find(s => s.id === transferState.targetId);
+    const items = transferState.selectedItems.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+    c.innerHTML = `<div style="margin-top:12px;">
+        <div style="background:var(--bg);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+            <p style="margin:0 0 8px;"><strong>מוסר:</strong> ${source?.name || '?'} (${source?.company || ''})</p>
+            <p style="margin:0 0 8px;"><strong>מקבל:</strong> ${target?.name || '?'} (${target?.company || ''})</p>
+            <p style="margin:0 0 4px;"><strong>פריטים (${items.length}):</strong></p>
+            <ul style="margin:0;padding-right:20px;">${items.map(e => `<li>${e.type} — ${e.serial}</li>`).join('')}</ul>
+        </div>
+        <div class="form-group">
+            <label>הערות (אופציונלי)</label>
+            <input type="text" id="transferNotes" placeholder="הערות להעברה" value="${transferState.notes || ''}">
+        </div>
+    </div>`;
+}
+
+function transferNextStep() {
+    if (transferState.step === 1) {
+        const sel = document.getElementById('transferSourceSoldier')?.value;
+        if (!sel) { showToast('יש לבחור חייל מוסר', 'error'); return; }
+        transferState.sourceId = sel;
+    } else if (transferState.step === 2) {
+        transferState.selectedItems = [...document.querySelectorAll('.transfer-item-check:checked')].map(cb => cb.value);
+        if (!transferState.selectedItems.length) { showToast('יש לבחור לפחות פריט אחד', 'error'); return; }
+    } else if (transferState.step === 3) {
+        const sel = document.getElementById('transferTargetSoldier')?.value;
+        if (!sel) { showToast('יש לבחור חייל מקבל', 'error'); return; }
+        transferState.targetId = sel;
+    } else if (transferState.step === 4) {
+        if (isCanvasEmpty('transferSourceSig') || isCanvasEmpty('transferTargetSig') || isCanvasEmpty('transferIssuerSig')) {
+            showToast('יש לחתום את כל 3 החתימות', 'error'); return;
+        }
+        transferState.sourceSigImg = getCanvasDataURL('transferSourceSig');
+        transferState.targetSigImg = getCanvasDataURL('transferTargetSig');
+        transferState.issuerSigImg = getCanvasDataURL('transferIssuerSig');
+    } else if (transferState.step === 5) {
+        transferState.notes = document.getElementById('transferNotes')?.value || '';
+        confirmTransferEquipment();
+        return;
+    }
+    transferState.step++;
+    renderTransferWizard();
+}
+
+function transferPrevStep() {
+    if (transferState.step > 1) {
+        if (transferState.step === 3) {
+            // Save selected items before going back
+            transferState.selectedItems = [...document.querySelectorAll('.transfer-item-check:checked')].map(cb => cb.value);
+        }
+        transferState.step--;
+        renderTransferWizard();
+    }
+}
+
+function confirmTransferEquipment() {
+    const transferId = 'xfr_' + Date.now();
+    const source = state.soldiers.find(s => s.id === transferState.sourceId);
+    const target = state.soldiers.find(s => s.id === transferState.targetId);
+    const items = transferState.selectedItems.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+    const now = new Date().toISOString();
+
+    const equipItems = items.map(e => ({ equipId: e.id, equipType: e.type, equipSerial: e.serial, equipQty: e.defaultQty || 1 }));
+
+    // Return log entry (from source)
+    state.signatureLog.push({
+        id: 'sig_' + Date.now() + '_ret',
+        type: 'return',
+        transferId,
+        equipId: items[0]?.id || '',
+        equipType: items[0]?.type || '',
+        equipSerial: items[0]?.serial || '',
+        equipItems,
+        soldierId: transferState.sourceId,
+        soldierName: source?.name || '',
+        soldierPhone: source?.phone || '',
+        soldierPersonalId: source?.personalId || '',
+        date: now,
+        signatureImg: transferState.sourceSigImg,
+        issuedBy: currentUser.name || '',
+        issuerUnit: currentUser.unit || '',
+        issuerRole: currentUser.role || '',
+        issuerSignatureImg: transferState.issuerSigImg,
+        notes: transferState.notes
+    });
+
+    // Assign log entry (to target)
+    state.signatureLog.push({
+        id: 'sig_' + Date.now() + '_asgn',
+        type: 'assign',
+        transferId,
+        equipId: items[0]?.id || '',
+        equipType: items[0]?.type || '',
+        equipSerial: items[0]?.serial || '',
+        equipItems,
+        soldierId: transferState.targetId,
+        soldierName: target?.name || '',
+        soldierPhone: target?.phone || '',
+        soldierPersonalId: target?.personalId || '',
+        date: now,
+        signatureImg: transferState.targetSigImg,
+        issuedBy: currentUser.name || '',
+        issuerUnit: currentUser.unit || '',
+        issuerRole: currentUser.role || '',
+        issuerSignatureImg: transferState.issuerSigImg,
+        notes: transferState.notes
+    });
+
+    // Update equipment holders
+    items.forEach(e => {
+        e.holderId = transferState.targetId;
+        e.holderName = target?.name || '';
+        e.holderPhone = target?.phone || '';
+        e.assignedDate = now;
+        e.signatureImg = transferState.targetSigImg;
+    });
+
+    saveState();
+    closeModal('transferEquipModal');
+    renderEquipmentTab();
+    renderTransferHistory();
+    showToast(`${items.length} פריטים הועברו מ${source?.name} ל${target?.name}`);
+}
+
+// ==================== EXPORT WITH FILTERS ====================
+
+function openExportFilter() {
+    // Populate category checkboxes
+    const cats = [...new Set(state.equipment.map(e => e.category || 'אחר'))].sort();
+    const container = document.getElementById('exportCategoryChecks');
+    container.innerHTML = cats.map(c =>
+        `<label style="display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--bg);border-radius:var(--radius);cursor:pointer;font-size:0.88em;">
+            <input type="checkbox" class="export-cat-check" value="${c}" checked onchange="updateExportPreviewCount()"> ${c}
+        </label>`
+    ).join('');
+    document.getElementById('exportWarehouseFilter').value = 'all';
+    document.getElementById('exportStatusFilter').value = 'all';
+    document.getElementById('exportCompanyFilter').value = 'all';
+    updateExportPreviewCount();
+    openModal('exportFilterModal');
+    refreshIcons();
+}
+
+function getFilteredEquipment() {
+    const checkedCats = [...document.querySelectorAll('.export-cat-check:checked')].map(cb => cb.value);
+    const wh = document.getElementById('exportWarehouseFilter').value;
+    const status = document.getElementById('exportStatusFilter').value;
+    const comp = document.getElementById('exportCompanyFilter').value;
+
+    return state.equipment.filter(e => {
+        if (!checkedCats.includes(e.category || 'אחר')) return false;
+        if (wh !== 'all' && (e.warehouse || 'מחסן גדוד') !== wh) return false;
+        if (comp !== 'all' && e.company !== comp) return false;
+        if (status === 'assigned' && !e.holderId) return false;
+        if (status === 'available' && (e.holderId || ['תקול','אובדן','מת"ש'].includes(e.condition))) return false;
+        if (status === 'faulty' && e.condition !== 'תקול') return false;
+        if (status === 'lost' && e.condition !== 'אובדן') return false;
+        if (status === 'writeoff' && e.condition !== 'מת"ש') return false;
+        return true;
+    });
+}
+
+function updateExportPreviewCount() {
+    const count = getFilteredEquipment().length;
+    document.getElementById('exportPreviewCount').textContent = `${count} פריטים לייצוא`;
+}
+
+function doFilteredExportCSV() {
+    const items = getFilteredEquipment();
+    if (!items.length) { showToast('אין פריטים לייצוא', 'error'); return; }
+    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
+    let csv = '\uFEFF' + 'ציוד לחימה מבוקר - צל"מ (מסונן)\n\n';
+    csv += 'סוג ציוד,מספר סידורי,קטגוריה,מחסן,מסגרת,מצב,סטטוס,מחזיק,טלפון,תאריך חתימה,הערות\n';
+    items.forEach(e => {
+        const st = ['תקול','אובדן','מת"ש'].includes(e.condition) ? e.condition : e.holderId ? 'מוחזק' : 'פנוי';
+        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company},${e.condition},${st},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `צלמ_מסונן_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    closeModal('exportFilterModal');
+    showToast(`יוצאו ${items.length} פריטים ל-CSV`);
+}
+
+function doFilteredExportPDF() {
+    const items = getFilteredEquipment();
+    if (!items.length) { showToast('אין פריטים לייצוא', 'error'); return; }
+    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
+    const htmlContent = `<div dir="rtl" style="font-family:Arial,sans-serif;padding:20px;">
+        <h2 style="text-align:center;margin-bottom:4px;">דוח ציוד מסונן</h2>
+        <p style="text-align:center;font-size:12px;color:#666;margin-bottom:16px;">${new Date().toLocaleDateString('he-IL')} | ${items.length} פריטים</p>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead><tr style="background:#263238;color:white;">
+                <th style="padding:6px;border:1px solid #ddd;">סוג</th>
+                <th style="padding:6px;border:1px solid #ddd;">מס' צ'</th>
+                <th style="padding:6px;border:1px solid #ddd;">קטגוריה</th>
+                <th style="padding:6px;border:1px solid #ddd;">מחסן</th>
+                <th style="padding:6px;border:1px solid #ddd;">מסגרת</th>
+                <th style="padding:6px;border:1px solid #ddd;">מצב</th>
+                <th style="padding:6px;border:1px solid #ddd;">מחזיק</th>
+            </tr></thead>
+            <tbody>${items.map(e => `<tr>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${e.type}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;direction:ltr;font-family:monospace;">${e.serial}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${e.category || '-'}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${e.warehouse || 'מחסן גדוד'}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${companyNames[e.company] || e.company}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${e.condition}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${e.holderName || '-'}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+    </div>`;
+    generatePDF(htmlContent, `צלמ_מסונן_${new Date().toISOString().split('T')[0]}`);
+    closeModal('exportFilterModal');
+}
+
+// ==================== IMPORT EQUIPMENT ====================
+
+let importPreviewData = [];
+
+function openImportEquipment() {
+    document.getElementById('importEquipFile').value = '';
+    document.getElementById('importPreviewContainer').style.display = 'none';
+    document.getElementById('importPreviewContainer').innerHTML = '';
+    document.getElementById('importSummary').style.display = 'none';
+    document.getElementById('importConfirmBtn').style.display = 'none';
+    document.getElementById('importWarehouse').value = 'מחסן גדוד';
+    document.getElementById('importCompany').value = 'gdudi';
+    importPreviewData = [];
+    openModal('importEquipmentModal');
+    refreshIcons();
+}
+
+function previewImportEquipment() {
+    const file = document.getElementById('importEquipFile').files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'csv') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            let text = e.target.result;
+            // Remove BOM
+            if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) { showToast('קובץ ריק', 'error'); return; }
+            const headers = parseCSVLine(lines[0]);
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cells = parseCSVLine(lines[i]);
+                if (cells.length < 2) continue;
+                rows.push(mapImportRow(headers, cells));
+            }
+            renderImportPreview(rows);
+        };
+        reader.readAsText(file, 'UTF-8');
+    } else if (ext === 'xlsx' || ext === 'xls') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const wb = XLSX.read(e.target.result, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                if (data.length < 2) { showToast('קובץ ריק', 'error'); return; }
+                const headers = data[0].map(h => String(h || '').trim());
+                const rows = [];
+                for (let i = 1; i < data.length; i++) {
+                    const cells = data[i].map(c => String(c || '').trim());
+                    if (cells.filter(c => c).length < 2) continue;
+                    rows.push(mapImportRow(headers, cells));
+                }
+                renderImportPreview(rows);
+            } catch (err) {
+                showToast('שגיאה בקריאת הקובץ: ' + err.message, 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        showToast('יש להעלות קובץ CSV או Excel', 'error');
+    }
+}
+
+const IMPORT_COL_MAP = {
+    'סוג ציוד': 'type', 'סוג': 'type', 'שם': 'type', 'פריט': 'type', 'type': 'type',
+    'מספר סידורי': 'serial', 'מספר צ': 'serial', "צ'": 'serial', 'צ': 'serial', 'serial': 'serial',
+    'קטגוריה': 'category', 'סוג קטגוריה': 'category', 'category': 'category',
+    'מצב': 'condition', 'condition': 'condition',
+    'הערות': 'notes', 'הערה': 'notes', 'notes': 'notes'
+};
+
+function mapImportRow(headers, cells) {
+    const row = { type: '', serial: '', category: '', condition: 'תקין', notes: '' };
+    headers.forEach((h, i) => {
+        const key = IMPORT_COL_MAP[h.trim()];
+        if (key && cells[i]) row[key] = cells[i].trim();
+    });
+    // Fallback: if no column mapping, use positional (type, serial, category, condition, notes)
+    if (!row.type && cells[0]) row.type = cells[0].trim();
+    if (!row.serial && cells[1]) row.serial = cells[1].trim();
+    if (!row.category && cells[2]) row.category = cells[2].trim();
+    if (!row.category) row.category = detectCategoryFromType(row.type);
+    return row;
+}
+
+function renderImportPreview(rows) {
+    const existingSerials = new Set(state.equipment.map(e => e.serial));
+    let newCount = 0, dupCount = 0;
+    rows.forEach(r => {
+        r._isDuplicate = existingSerials.has(r.serial);
+        if (r._isDuplicate) dupCount++; else newCount++;
+    });
+    importPreviewData = rows;
+
+    const container = document.getElementById('importPreviewContainer');
+    container.style.display = '';
+    container.innerHTML = `<table class="data-table" style="width:100%;font-size:0.85em;">
+        <thead><tr><th></th><th>סוג ציוד</th><th>מס' צ'</th><th>קטגוריה</th><th>מצב</th><th>הערות</th></tr></thead>
+        <tbody>${rows.map((r, i) => `<tr style="background:${r._isDuplicate ? '#FFF9C4' : '#E8F5E9'};">
+            <td style="text-align:center;">${r._isDuplicate ? '<span style="color:#F57F17;" title="כפילות - ידולג">&#9888;</span>' : '<span style="color:#2E7D32;">&#10003;</span>'}</td>
+            <td>${r.type}</td>
+            <td style="direction:ltr;font-family:monospace;">${r.serial}</td>
+            <td>${r.category || '-'}</td>
+            <td>${r.condition}</td>
+            <td>${r.notes || ''}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+
+    const summary = document.getElementById('importSummary');
+    summary.style.display = '';
+    summary.innerHTML = `<span style="color:#2E7D32;">${newCount} פריטים חדשים</span>${dupCount ? ` | <span style="color:#F57F17;">${dupCount} כפילויות (ידולגו)</span>` : ''}`;
+
+    const btn = document.getElementById('importConfirmBtn');
+    btn.style.display = newCount > 0 ? '' : 'none';
+}
+
+function confirmImportEquipment() {
+    const warehouse = document.getElementById('importWarehouse').value;
+    const company = document.getElementById('importCompany').value;
+    const newItems = importPreviewData.filter(r => !r._isDuplicate && r.type && r.serial);
+    if (!newItems.length) { showToast('אין פריטים חדשים לייבוא', 'error'); return; }
+
+    newItems.forEach(r => {
+        state.equipment.push({
+            id: 'eq_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+            type: r.type,
+            serial: r.serial,
+            category: r.category || detectCategoryFromType(r.type),
+            company,
+            condition: r.condition || 'תקין',
+            defaultQty: 1,
+            notes: r.notes || '',
+            warehouse,
+            holderId: null, holderName: '', holderPhone: '',
+            assignedDate: null, signatureImg: null
+        });
+    });
+
+    saveState();
+    closeModal('importEquipmentModal');
+    renderEquipmentTab();
+    showToast(`יובאו ${newItems.length} פריטי ציוד בהצלחה`);
 }
 
 // ==================== WEAPONS PROJECT ====================
@@ -6157,11 +6845,12 @@ function switchEquipmentSubTab(tab) {
     const target = document.getElementById('subtab-' + tab);
     if (target) target.style.display = '';
     const btns = document.querySelectorAll('#equipmentSubTabs .subtab-btn');
-    const idx = { items: 0, dashboard: 1, reports: 2 }[tab] || 0;
+    const idx = { items: 0, dashboard: 1, reports: 2, transfer: 3 }[tab] || 0;
     if (btns[idx]) btns[idx].classList.add('active');
 
     if (tab === 'dashboard') renderPalsamDashboard();
     if (tab === 'reports') renderEquipmentReports();
+    if (tab === 'transfer') renderTransferHistory();
 }
 
 // --- Equipment Reports ---
@@ -6190,7 +6879,7 @@ function renderEquipmentReports() {
         }
         filterSelect.innerHTML = opts;
         if (filterSelect.querySelector(`option[value="${prev}"]`)) filterSelect.value = prev;
-        filterGroup.style.display = (reportType === 'unsigned' || reportType === 'byHolder') ? 'none' : '';
+        filterGroup.style.display = ['unsigned','byHolder','byLoss','byFaulty'].includes(reportType) ? 'none' : '';
     }
 
     const filterVal = filterSelect?.value || 'all';
@@ -6206,6 +6895,10 @@ function renderEquipmentReports() {
         html = _reportByCompany(equip, filterVal);
     } else if (reportType === 'unsigned') {
         html = _reportUnsigned(equip);
+    } else if (reportType === 'byLoss') {
+        html = _reportByLoss(equip);
+    } else if (reportType === 'byFaulty') {
+        html = _reportByFaulty(equip);
     }
 
     container.innerHTML = html || '<div class="empty-state"><p>אין נתונים להצגה</p></div>';
@@ -6336,6 +7029,72 @@ function _reportUnsigned(equip) {
             </tr>`).join('')}</tbody>
         </table>
     </div>`;
+}
+
+function _getCategoryGroup(category) {
+    for (const [group, cats] of Object.entries(CATEGORY_GROUPS)) {
+        if (cats.includes(category)) return group;
+    }
+    return 'לוגיסטיקה';
+}
+
+function _reportByLoss(equip) {
+    const lostItems = equip.filter(e => e.condition === 'אובדן' || e.condition === 'מת"ש');
+    if (!lostItems.length) return '<div class="empty-state"><p>אין פריטי אובדן/מת"ש</p></div>';
+    const grouped = {};
+    lostItems.forEach(e => {
+        const grp = _getCategoryGroup(e.category || 'אחר');
+        if (!grouped[grp]) grouped[grp] = [];
+        grouped[grp].push(e);
+    });
+    return `<div class="sub-section" style="margin-bottom:12px;">
+        <div class="section-title"><div class="icon" style="background:#FCE4EC;color:#C62828;"><i data-lucide="alert-triangle"></i></div>דוח אובדן / מת"ש (${lostItems.length} פריטים)</div>
+    </div>` + Object.keys(grouped).sort().map(grp => {
+        const items = grouped[grp];
+        return `<div class="sub-section" style="margin-bottom:16px;">
+            <h4 style="margin:0 0 8px;color:var(--text-light);">${grp} (${items.length})</h4>
+            <table class="data-table" style="width:100%;font-size:0.88em;">
+                <thead><tr><th>פריט</th><th>מס' צ'</th><th>מצב</th><th>תאריך</th><th>מדווח</th><th>תיאור</th></tr></thead>
+                <tbody>${items.map(i => `<tr>
+                    <td>${i.type}</td>
+                    <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
+                    <td><span style="color:#C62828;font-weight:600;">${i.condition}</span></td>
+                    <td>${i.lossDate || '-'}</td>
+                    <td>${i.lossReportingSoldier || '-'}</td>
+                    <td style="font-size:0.85em;">${i.lossDescription || '-'}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+    }).join('');
+}
+
+function _reportByFaulty(equip) {
+    const faultyItems = equip.filter(e => e.condition === 'תקול');
+    if (!faultyItems.length) return '<div class="empty-state"><p>אין פריטים תקולים</p></div>';
+    const grouped = {};
+    faultyItems.forEach(e => {
+        const grp = _getCategoryGroup(e.category || 'אחר');
+        if (!grouped[grp]) grouped[grp] = [];
+        grouped[grp].push(e);
+    });
+    return `<div class="sub-section" style="margin-bottom:12px;">
+        <div class="section-title"><div class="icon" style="background:#FFF3E0;color:#E65100;"><i data-lucide="wrench"></i></div>דוח תקולים לתיקון (${faultyItems.length} פריטים)</div>
+    </div>` + Object.keys(grouped).sort().map(grp => {
+        const items = grouped[grp];
+        return `<div class="sub-section" style="margin-bottom:16px;">
+            <h4 style="margin:0 0 8px;color:var(--text-light);">${grp} (${items.length})</h4>
+            <table class="data-table" style="width:100%;font-size:0.88em;">
+                <thead><tr><th>פריט</th><th>מס' צ'</th><th>מחסן</th><th>מסגרת</th><th>הערות</th></tr></thead>
+                <tbody>${items.map(i => `<tr>
+                    <td>${i.type}</td>
+                    <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
+                    <td>${i.warehouse || 'מחסן גדוד'}</td>
+                    <td>${i.company || '-'}</td>
+                    <td style="font-size:0.85em;">${i.notes || '-'}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+    }).join('');
 }
 
 function _getReportData() {

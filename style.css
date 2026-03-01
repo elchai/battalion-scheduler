@@ -28,6 +28,16 @@
 .icon .lucide, .info-icon .lucide { width: 16px; height: 16px; }
 .btn .lucide { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: 4px; }
 
+/* Wizard steps */
+.wizard-steps { display:flex; gap:4px; margin-bottom:16px; }
+.wizard-step { flex:1; text-align:center; padding:8px 4px; background:var(--bg); border-radius:var(--radius); font-size:0.78em; color:var(--text-light); transition:all 0.2s; }
+.wizard-step .step-num { display:block; font-weight:700; font-size:1.2em; margin-bottom:2px; }
+.wizard-step.active { background:var(--primary); color:white; }
+.wizard-step.done { background:#E8F5E9; color:#2E7D32; }
+
+/* Soldier equipment card */
+.soldier-equip-card { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--card); border-radius:var(--radius); margin-bottom:10px; border-right:4px solid var(--success); box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+
 [data-theme="dark"] {
     --bg: #1a1a2e;
     --card: #16213e;
