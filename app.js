@@ -63,6 +63,11 @@ function loadSettings() {
             settings.equipmentSets = settings.equipmentSets || {};
             settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
             if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
+            // Migration: update baseSet to full 25-item list if user has old version
+            if ((!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 2) && defaults.equipmentSets.baseSet.items.length > settings.equipmentSets.baseSet.items.length) {
+                settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
+                settings.equipmentSets._baseSetVer = 2;
+            }
             settings.equipmentSets.roleSets = settings.equipmentSets.roleSets || defaults.equipmentSets.roleSets;
             settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || defaults.equipmentSets.savedSignatures || {};
         }
@@ -4493,17 +4498,39 @@ async function deleteEquipment(id) {
 function openSignEquipment() {
     const container = document.getElementById('signEquipCheckboxList');
     const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
+    const es = settings.equipmentSets || { baseSet: { items: [] } };
+    const baseItems = (es.baseSet && es.baseSet.items) || [];
+    const lblStyle = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;direction:rtl;';
 
-    container.innerHTML = availableEquip.length === 0
-        ? '<div style="padding:8px;color:var(--text-light);">אין פריטי ציוד פנויים</div>'
-        : availableEquip.map(e => `
-            <label class="sign-equip-checkbox-item" data-search="${e.type} ${e.serial} ${e.notes || ''}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;">
-                <input type="checkbox" value="${e.id}" onchange="updateSignEquipSelection()">
-                <span style="font-weight:600;flex:1;">${e.type}</span>
-                <span style="color:var(--text-light);font-size:0.85em;direction:ltr;font-family:monospace;">צ' ${e.serial}</span>
+    let html = '';
+
+    // Existing equipment (tracked inventory with serial)
+    if (availableEquip.length > 0) {
+        html += `<div style="padding:6px 10px;background:var(--bg);font-size:0.82em;color:var(--text-light);border-bottom:1px solid var(--border);text-align:right;">ציוד קיים במלאי</div>`;
+        html += availableEquip.map(e => `
+            <label class="sign-equip-checkbox-item" data-search="${esc(e.type)} ${esc(e.serial)} ${esc(e.notes || '')}" style="${lblStyle}">
+                <input type="checkbox" value="${e.id}" data-src="equip" onchange="updateSignEquipSelection()">
+                <span style="font-weight:600;flex:1;text-align:right;">${esc(e.type)}</span>
+                <span style="color:var(--text-light);font-size:0.85em;direction:ltr;">צ' ${esc(e.serial)}</span>
                 <span style="color:var(--text-light);font-size:0.8em;">x${e.defaultQty || 1}</span>
             </label>
         `).join('');
+    }
+
+    // BaseSet template items
+    if (baseItems.length > 0) {
+        html += `<div style="padding:6px 10px;background:var(--bg);font-size:0.82em;color:var(--text-light);border-bottom:1px solid var(--border);text-align:right;">פריטים מסט ציוד ללוחם</div>`;
+        html += baseItems.map((item, i) => `
+            <label class="sign-equip-checkbox-item" data-search="${esc(item.name)} ${item.category}" style="${lblStyle}">
+                <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()">
+                <span style="font-weight:600;flex:1;text-align:right;">${esc(item.name)}</span>
+                ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="מספר צ'" onclick="event.stopPropagation()" style="width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.85em;text-align:center;">` : ''}
+                <span style="color:var(--text-light);font-size:0.8em;">x${item.quantity}</span>
+            </label>
+        `).join('');
+    }
+
+    container.innerHTML = html || '<div style="padding:8px;color:var(--text-light);">אין פריטי ציוד</div>';
 
     document.getElementById('signEquipSelectedCount').textContent = '';
     document.getElementById('signEquipInfo').style.display = 'none';
@@ -4536,8 +4563,26 @@ function updateSignEquipSelection() {
     const info = document.getElementById('signEquipInfo');
     if (count === 0) { info.style.display = 'none'; info.innerHTML = ''; return; }
 
-    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-    const selectedEquip = selectedIds.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+    // Build display rows from both equip and baseset items
+    const rows = Array.from(checkboxes).map((cb, i) => {
+        if (cb.dataset.src === 'baseset') {
+            const serialInput = document.querySelector(`.sign-bs-serial[data-bs-idx="${cb.value.replace('bs_', '')}"]`);
+            return `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;">${i + 1}</td>
+                <td style="padding:4px 8px;font-weight:600;">${esc(cb.dataset.name)}</td>
+                <td style="padding:4px 8px;">${serialInput ? esc(serialInput.value) || '-' : '-'}</td>
+                <td style="padding:4px 8px;">${cb.dataset.qty || 1}</td>
+            </tr>`;
+        }
+        const eq = state.equipment.find(e => e.id === cb.value);
+        if (!eq) return '';
+        return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:4px 8px;">${i + 1}</td>
+            <td style="padding:4px 8px;font-weight:600;">${esc(eq.type)}</td>
+            <td style="padding:4px 8px;direction:ltr;">${esc(eq.serial)}</td>
+            <td style="padding:4px 8px;">${eq.defaultQty || 1}</td>
+        </tr>`;
+    });
 
     info.style.display = '';
     info.innerHTML = `
@@ -4548,19 +4593,30 @@ function updateSignEquipSelection() {
                 <th style="padding:4px 8px;text-align:right;">מספר צ'</th>
                 <th style="padding:4px 8px;text-align:right;">כמות</th>
             </tr></thead>
-            <tbody>${selectedEquip.map((e, i) => `
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:4px 8px;">${i + 1}</td>
-                    <td style="padding:4px 8px;font-weight:600;">${e.type}</td>
-                    <td style="padding:4px 8px;direction:ltr;font-family:monospace;">${e.serial}</td>
-                    <td style="padding:4px 8px;">${e.defaultQty || 1}</td>
-                </tr>`).join('')}
-            </tbody>
+            <tbody>${rows.join('')}</tbody>
         </table>`;
 }
 
+function getSelectedSignEquipItems() {
+    const checked = Array.from(document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked'));
+    return checked.map(cb => {
+        if (cb.dataset.src === 'baseset') {
+            const serialInput = document.querySelector(`.sign-bs-serial[data-bs-idx="${cb.value.replace('bs_', '')}"]`);
+            return {
+                src: 'baseset',
+                name: cb.dataset.name,
+                qty: parseInt(cb.dataset.qty) || 1,
+                category: cb.dataset.category,
+                serialRequired: cb.dataset.serialReq === 'true',
+                serial: serialInput ? serialInput.value.trim() : ''
+            };
+        }
+        return { src: 'equip', id: cb.value };
+    });
+}
+// Backward compat
 function getSelectedSignEquipIds() {
-    return Array.from(document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked')).map(cb => cb.value);
+    return getSelectedSignEquipItems().filter(i => i.src === 'equip').map(i => i.id);
 }
 
 function updateSignSoldiers() {
@@ -4639,11 +4695,11 @@ function onSignSoldierSelect() {
 }
 
 function confirmSignEquipment() {
-    const selectedIds = getSelectedSignEquipIds();
+    const selectedItems = getSelectedSignEquipItems();
     const soldierId = document.getElementById('signSoldier').value;
     const editLogId = document.getElementById('signEquipmentModal').dataset.editLogId || '';
 
-    if (selectedIds.length === 0) { showToast('יש לבחור לפחות פריט ציוד אחד', 'error'); return; }
+    if (selectedItems.length === 0) { showToast('יש לבחור לפחות פריט ציוד אחד', 'error'); return; }
     if (!soldierId) { showToast('יש לבחור חייל', 'error'); return; }
     if (isCanvasEmpty('signatureCanvas')) { showToast('יש לחתום על המסך', 'error'); return; }
 
@@ -4669,16 +4725,41 @@ function confirmSignEquipment() {
                     eq.signatureImg = null;
                 }
             });
-            // Remove old log entry
             state.signatureLog = state.signatureLog.filter(l => l.id !== editLogId);
         }
     }
 
-    // Collect all selected equipment
-    const selectedEquip = selectedIds.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
+    // Process selected items: existing equipment + baseSet templates
+    const allEquip = [];
+    selectedItems.forEach(item => {
+        if (item.src === 'equip') {
+            const eq = state.equipment.find(e => e.id === item.id);
+            if (eq) allEquip.push(eq);
+        } else if (item.src === 'baseset') {
+            // Auto-create equipment entry from baseSet template
+            const newEq = {
+                id: 'eq_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                type: item.name,
+                serial: item.serial || '',
+                company: sol.company,
+                condition: 'תקין',
+                holderId: null,
+                holderName: '',
+                holderPhone: '',
+                assignedDate: null,
+                signatureImg: null,
+                notes: '',
+                defaultQty: item.qty
+            };
+            state.equipment.push(newEq);
+            allEquip.push(newEq);
+        }
+    });
 
-    // Update each equipment item
-    selectedEquip.forEach(eq => {
+    if (allEquip.length === 0) { showToast('שגיאה בבחירת ציוד', 'error'); return; }
+
+    // Update each equipment item - assign to soldier
+    allEquip.forEach(eq => {
         eq.holderId = sol.id;
         eq.holderName = sol.name;
         eq.holderPhone = sol.phone || '';
@@ -4690,12 +4771,10 @@ function confirmSignEquipment() {
     const logEntry = {
         id: 'sig_' + Date.now(),
         type: 'assign',
-        // Legacy fields (first item) for backward compat
-        equipId: selectedEquip[0].id,
-        equipType: selectedEquip[0].type,
-        equipSerial: selectedEquip[0].serial,
-        // Batch: all items
-        equipItems: selectedEquip.map(eq => ({
+        equipId: allEquip[0].id,
+        equipType: allEquip[0].type,
+        equipSerial: allEquip[0].serial,
+        equipItems: allEquip.map(eq => ({
             equipId: eq.id,
             equipType: eq.type,
             equipSerial: eq.serial,
@@ -5840,15 +5919,14 @@ function renderEquipmentSetsSettings() {
         <h4 style="margin:0 0 10px;">סט ציוד ללוחם</h4>
         <p style="font-size:0.82em;color:var(--text-light);margin-bottom:10px;">רשימת הציוד שכל לוחם מקבל בעת ההצטיידות</p>
         <div class="table-scroll"><table style="width:100%;font-size:0.85em;">
-            <thead><tr><th>שם פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th><th></th></tr></thead>
+            <thead><tr><th>שם פריט</th><th>כמות</th><th>קטגוריה</th><th></th></tr></thead>
             <tbody>
                 ${es.baseSet.items.map((item, i) => `<tr>
-                    <td><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;"></td>
+                    <td><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;">${item.requiresSerial ? ' <span style="font-size:0.7em;color:var(--primary);font-weight:600;">צ\'</span>' : ''}</td>
                     <td><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:60px;"></td>
                     <td><select onchange="updateBaseSetItem(${i},'category',this.value)">
                         ${['מגן','נשק','קשר','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                     </select></td>
-                    <td><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)"></td>
                     <td><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})">&#10005;</button></td>
                 </tr>`).join('')}
             </tbody>
@@ -6295,13 +6373,13 @@ function openBulkSignModal(soldierId) {
 
     document.getElementById('bulkSignItemsList').innerHTML = `
         <div class="table-scroll"><table class="pakal-items-table">
-            <thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th><th>סריאלי</th></tr></thead>
+            <thead><tr><th>פריט</th><th>מספר צ'</th><th>כמות</th><th>קטגוריה</th></tr></thead>
             <tbody>
                 ${pe.items.map(item => `<tr>
                     <td style="text-align:right;">${item.name}</td>
+                    <td>${item.serialNumber || '-'}</td>
                     <td>${item.quantity}</td>
                     <td>${item.category}</td>
-                    <td>${item.requiresSerial ? 'כן' : '-'}</td>
                 </tr>`).join('')}
             </tbody>
         </table></div>
