@@ -10,6 +10,9 @@ const DEFAULT_SETTINGS = {
     },
     rotationDaysIn: 10,
     rotationDaysOut: 4,
+    operationStartDate: '',
+    operationEndDate: '',
+    closedDays: [],
     sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
     equipmentSets: {
         baseSet: {
@@ -809,7 +812,7 @@ function renderAll() {
     } else if (activeTab === 'morningreport') {
         generateMorningReport();
     } else if (activeTab === 'rollcall') {
-        renderRollCall();
+        renderReport1();
     } else if (activeTab === 'announcements') {
         renderAnnouncements();
     }
@@ -2405,7 +2408,7 @@ function switchTab(tab) {
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'morningreport') generateMorningReport();
-    if (tab === 'rollcall') renderRollCall();
+    if (tab === 'rollcall') renderReport1();
     if (tab === 'announcements') renderAnnouncements();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
@@ -3414,6 +3417,22 @@ function renderSettingsTab() {
         </div>
     </div>
 
+    <!-- Operation Dates -->
+    <div class="settings-card">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> תעסוקה נוכחית</h3>
+        <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">הגדר תאריכי תחילה וסיום של התעסוקה לדיוק דו"ח 1</p>
+        <div class="settings-row">
+            <div class="settings-field">
+                <label>תחילת תעסוקה</label>
+                <input type="date" value="${settings.operationStartDate || ''}" onchange="settings.operationStartDate=this.value;saveSettings();">
+            </div>
+            <div class="settings-field">
+                <label>סיום תעסוקה</label>
+                <input type="date" value="${settings.operationEndDate || ''}" onchange="settings.operationEndDate=this.value;saveSettings();">
+            </div>
+        </div>
+    </div>
+
     <!-- Security -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> אבטחה</h3>
@@ -3958,6 +3977,224 @@ function copyRollCallText() {
         document.execCommand('copy');
         ta.remove();
         showToast('מפקד הועתק ללוח');
+    });
+}
+
+// ==================== REPORT 1 - ATTENDANCE ====================
+let report1WeekOffset = 0;
+
+function report1Nav(dir) {
+    if (dir === 0) report1WeekOffset = 0;
+    else report1WeekOffset += dir;
+    renderReport1();
+}
+
+function getReport1WeekDays() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    // Find Sunday of current offset week
+    const dayOfWeek = today.getDay(); // 0=Sun
+    const sunday = new Date(today);
+    sunday.setDate(sunday.getDate() - dayOfWeek + (report1WeekOffset * 7));
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(sunday);
+        d.setDate(d.getDate() + i);
+        days.push(d);
+    }
+    return days;
+}
+
+function getReport1SoldierStatus(soldier, dateStr) {
+    // Priority: 1) שמ"פ סגור (closed day), 2) leave, 3) rotation, 4) in base
+    const closed = (settings.closedDays || []).includes(dateStr);
+
+    // Check if on leave
+    const onLeave = state.leaves.some(l => l.soldierId === soldier.id && isOnLeaveForDate(l, dateStr));
+
+    // Check rotation
+    const rotGroup = getRotationGroupForSoldier(soldier.id);
+    const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date(dateStr + 'T00:00:00')) : null;
+    const rotationOut = rotStatus && !rotStatus.inBase;
+
+    if (closed) return 'closed'; // שמ"פ סגור - everyone at base
+    if (onLeave || rotationOut) return 'leave'; // חופש / בבית
+    return 'base'; // נמצא בבסיס
+}
+
+function isDateInOperation(dateStr) {
+    if (!settings.operationStartDate && !settings.operationEndDate) return true;
+    if (settings.operationStartDate && dateStr < settings.operationStartDate) return false;
+    if (settings.operationEndDate && dateStr > settings.operationEndDate) return false;
+    return true;
+}
+
+function toggleClosedDay(dateStr) {
+    if (!settings.closedDays) settings.closedDays = [];
+    const idx = settings.closedDays.indexOf(dateStr);
+    if (idx >= 0) settings.closedDays.splice(idx, 1);
+    else settings.closedDays.push(dateStr);
+    saveSettings();
+    renderReport1();
+}
+
+function renderReport1() {
+    const container = document.getElementById('report1Content');
+    if (!container) return;
+
+    const compSelect = document.getElementById('report1Company');
+    const compKey = compSelect ? compSelect.value : 'a';
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const days = getReport1WeekDays();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const hebDays = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+
+    if (soldiers.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>אין חיילים בפלוגה זו</p></div>';
+        return;
+    }
+
+    // Operation period info
+    let opInfo = '';
+    if (settings.operationStartDate || settings.operationEndDate) {
+        const s = settings.operationStartDate ? formatDate(settings.operationStartDate) : '?';
+        const e = settings.operationEndDate ? formatDate(settings.operationEndDate) : '?';
+        opInfo = `<div style="font-size:0.82em;color:var(--text-light);margin-bottom:12px;">תעסוקה: ${s} – ${e}</div>`;
+    }
+
+    // Week header
+    const weekRange = `${formatDate(days[0].toISOString().split('T')[0])} – ${formatDate(days[6].toISOString().split('T')[0])}`;
+
+    // Build daily summaries
+    const dailySummary = days.map(d => {
+        const ds = d.toISOString().split('T')[0];
+        const inOp = isDateInOperation(ds);
+        if (!inOp) return { base: '-', leave: '-', closed: false };
+        let base = 0, leave = 0;
+        const closed = (settings.closedDays || []).includes(ds);
+        soldiers.forEach(s => {
+            const st = getReport1SoldierStatus(s, ds);
+            if (st === 'base' || st === 'closed') base++;
+            else leave++;
+        });
+        return { base, leave, closed };
+    });
+
+    // Table
+    container.innerHTML = `
+        ${opInfo}
+        <div style="font-weight:600;margin-bottom:8px;">${compNames[compKey]} | ${weekRange}</div>
+        <div class="table-scroll">
+        <table class="r1-table">
+            <thead>
+                <tr>
+                    <th style="text-align:right;min-width:140px;position:sticky;right:0;background:var(--card);z-index:2;">חייל</th>
+                    ${days.map((d, i) => {
+                        const ds = d.toISOString().split('T')[0];
+                        const isToday = ds === todayStr;
+                        const isClosed = (settings.closedDays || []).includes(ds);
+                        const inOp = isDateInOperation(ds);
+                        return `<th class="r1-day-header ${isToday ? 'r1-today' : ''} ${!inOp ? 'r1-out-of-op' : ''}" style="text-align:center;min-width:60px;">
+                            <div>${hebDays[i]}</div>
+                            <div style="font-size:0.75em;font-weight:400;">${d.getDate()}/${d.getMonth()+1}</div>
+                            ${inOp ? `<button class="r1-closed-btn ${isClosed ? 'active' : ''}" onclick="toggleClosedDay('${ds}')" title="${isClosed ? 'פתח שמ\"פ' : 'סגור שמ\"פ'}">${isClosed ? '🔒' : '🔓'}</button>` : ''}
+                        </th>`;
+                    }).join('')}
+                </tr>
+            </thead>
+            <tbody>
+                ${soldiers.map(s => `<tr>
+                    <td style="text-align:right;font-weight:600;white-space:nowrap;position:sticky;right:0;background:var(--card);z-index:1;">
+                        <a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>
+                        <div style="font-size:0.72em;color:var(--text-light);font-weight:400;">${esc(s.role || '')}</div>
+                    </td>
+                    ${days.map(d => {
+                        const ds = d.toISOString().split('T')[0];
+                        const inOp = isDateInOperation(ds);
+                        if (!inOp) return '<td class="r1-cell r1-out-of-op" style="text-align:center;">-</td>';
+                        const st = getReport1SoldierStatus(s, ds);
+                        const cls = st === 'base' ? 'r1-base' : st === 'closed' ? 'r1-closed' : 'r1-leave';
+                        const label = st === 'base' ? '✓' : st === 'closed' ? '🔒' : '✗';
+                        return `<td class="r1-cell ${cls}" style="text-align:center;">${label}</td>`;
+                    }).join('')}
+                </tr>`).join('')}
+            </tbody>
+            <tfoot>
+                <tr style="font-weight:700;background:var(--bg);">
+                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">סה"כ בבסיס</td>
+                    ${dailySummary.map((sum, i) => {
+                        const ds = days[i].toISOString().split('T')[0];
+                        const isToday = ds === todayStr;
+                        return `<td style="text-align:center;" class="${isToday ? 'r1-today' : ''}">${sum.base}</td>`;
+                    }).join('')}
+                </tr>
+                <tr style="font-weight:700;background:var(--bg);">
+                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">סה"כ בבית</td>
+                    ${dailySummary.map((sum, i) => {
+                        const ds = days[i].toISOString().split('T')[0];
+                        const isToday = ds === todayStr;
+                        return `<td style="text-align:center;" class="${isToday ? 'r1-today' : ''}">${sum.leave}</td>`;
+                    }).join('')}
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+        <div class="r1-legend">
+            <span class="r1-legend-item"><span class="r1-dot r1-base"></span> נמצא בבסיס</span>
+            <span class="r1-legend-item"><span class="r1-dot r1-leave"></span> חופש בשמ"פ</span>
+            <span class="r1-legend-item"><span class="r1-dot r1-closed"></span> שמ"פ סגור</span>
+        </div>
+    `;
+}
+
+function copyReport1Text() {
+    const compSelect = document.getElementById('report1Company');
+    const compKey = compSelect ? compSelect.value : 'a';
+    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const days = getReport1WeekDays();
+    const hebDays = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    let text = `*דו"ח 1 - ${compNames[compKey]}*\n`;
+
+    if (settings.operationStartDate || settings.operationEndDate) {
+        const s = settings.operationStartDate ? formatDate(settings.operationStartDate) : '?';
+        const e = settings.operationEndDate ? formatDate(settings.operationEndDate) : '?';
+        text += `תעסוקה: ${s} – ${e}\n`;
+    }
+
+    // Today summary
+    const todayDate = days.find(d => d.toISOString().split('T')[0] === todayStr) || new Date();
+    const baseToday = [], leaveToday = [], closedToday = [];
+    soldiers.forEach(s => {
+        const st = getReport1SoldierStatus(s, todayStr);
+        if (st === 'base' || st === 'closed') baseToday.push(s.name);
+        else leaveToday.push(s.name);
+    });
+
+    const isClosed = (settings.closedDays || []).includes(todayStr);
+    text += `\n*${formatDate(todayStr)}${isClosed ? ' (שמ"פ סגור)' : ''}*\n`;
+    text += `בבסיס: ${baseToday.length} | בבית: ${leaveToday.length}\n\n`;
+
+    if (leaveToday.length > 0) {
+        text += `*בבית (${leaveToday.length}):*\n${leaveToday.join(', ')}\n\n`;
+    }
+    if (baseToday.length > 0) {
+        text += `*בבסיס (${baseToday.length}):*\n${baseToday.join(', ')}\n`;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('דו"ח 1 הועתק ללוח');
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('דו"ח 1 הועתק ללוח');
     });
 }
 

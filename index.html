@@ -124,7 +124,7 @@
         </button>
         <button class="sidebar-item tab-rollcall" onclick="switchTab('rollcall')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-            <span>מפקד</span>
+            <span>דו"ח 1</span>
         </button>
         <button class="sidebar-item tab-announcements" onclick="switchTab('announcements')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -376,10 +376,10 @@
     <div class="main-content">
         <div class="section-title">
             <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><i data-lucide="check-square"></i></div>
-            <h2>מפקד</h2>
+            <h2>דו"ח 1 - נוכחות פלוגתי</h2>
         </div>
         <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <select id="rollcallCompany" onchange="renderRollCall()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
+            <select id="report1Company" onchange="renderReport1()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
                 <option value="a">פלוגה א</option>
                 <option value="b">פלוגה ב</option>
                 <option value="c">פלוגה ג</option>
@@ -387,12 +387,14 @@
                 <option value="hq">חפ"ק מג"ד</option>
                 <option value="palsam">פלס"ם</option>
             </select>
-            <button class="btn btn-success" onclick="markAllPresent()"><i data-lucide="check"></i> סמן הכל נוכח</button>
-            <button class="btn btn-secondary" onclick="saveRollCall()">שמור מפקד</button>
-            <button class="btn btn-secondary" onclick="copyRollCallText()">העתק לוואטסאפ</button>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button class="btn btn-sm" onclick="report1Nav(-1)" title="שבוע קודם">&rarr;</button>
+                <button class="btn btn-sm btn-primary" onclick="report1Nav(0)" title="שבוע נוכחי">היום</button>
+                <button class="btn btn-sm" onclick="report1Nav(1)" title="שבוע הבא">&larr;</button>
+            </div>
+            <button class="btn btn-secondary" onclick="copyReport1Text()">העתק לוואטסאפ</button>
         </div>
-        <div id="rollcallContent"></div>
-        <div id="rollcallHistory" style="margin-top:20px;"></div>
+        <div id="report1Content"></div>
     </div>
 </div>
 
