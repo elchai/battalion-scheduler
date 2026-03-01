@@ -212,12 +212,11 @@ function renderRoleHolders() {
     if (!container || !state.soldiers || !state.soldiers.length) return;
     const roleHolders = state.soldiers.filter(s => s.role && SIGNING_ROLES.includes(s.role));
     if (roleHolders.length === 0) return;
-    container.innerHTML = `<div style="font-size:0.8em;color:rgba(255,255,255,0.7);margin-bottom:6px;text-align:center;">בעלי תפקידים - לחץ לבחירה מהירה</div>` +
+    container.innerHTML = `<div style="font-size:0.72em;color:rgba(255,255,255,0.6);margin-bottom:4px;text-align:center;">בעלי תפקידים - לחץ לבחירה</div>` +
         roleHolders.map(s => `
-            <div class="role-holder-card" onclick="selectRoleHolder('${s.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;margin:4px 0;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;color:white;font-size:0.85em;transition:background 0.2s;">
+            <div class="role-holder-card" onclick="selectRoleHolder('${s.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;margin:2px 0;background:rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;color:white;font-size:0.78em;transition:background 0.2s;">
                 <span style="font-weight:600;">${esc(s.name)}</span>
                 <span style="opacity:0.7;">${esc(s.role || '')}</span>
-                <span style="opacity:0.5;font-family:monospace;direction:ltr;">${esc(s.personalId || '')}</span>
             </div>
         `).join('');
 }
@@ -5051,54 +5050,64 @@ function openSignEquipment() {
     const cmdSet = (es.roleSets || []).find(rs => rs.id === 'rs_commander');
     const cmdItems = cmdSet?.items || [];
 
+    // Commander set exclusion: רס"פ and סרס"פ don't get commander set
+    const CMD_SET_EXCLUDED_ROLES = ['רס"פ', 'סרס"פ'];
+
     let html = '';
 
-    // Section 1: סט ציוד ללוחם (checked by default)
-    html += `<div class="sign-group-header" style="display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="signBaseSetToggle" checked onchange="toggleSignSet('baseset', this.checked)">
-        <label for="signBaseSetToggle" style="font-weight:700;cursor:pointer;">סט ציוד ללוחם (${baseItems.length} פריטים)</label>
-    </div>`;
-    html += `<div id="signBaseSetItems">`;
-    html += baseItems.map((item, i) => `
-        <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}" data-set="baseset">
-            <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked onchange="updateSignEquipSelection()">
-            <span class="sign-equip-name">${esc(item.name)}</span>
-            ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" value="${item.serialNumber||''}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
-            <span class="sign-equip-qty">x${item.quantity}</span>
+    // Section 1: סט ציוד ללוחם - clean table
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--primary);color:white;border-radius:8px 8px 0 0;margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:0.9em;">
+            <input type="checkbox" id="signBaseSetToggle" checked onchange="toggleSignSet('baseset', this.checked)" style="accent-color:white;">
+            סט ציוד ללוחם (${baseItems.length})
         </label>
-    `).join('');
-    html += `</div>`;
+    </div>`;
+    html += `<div id="signBaseSetItems"><table style="width:100%;border-collapse:collapse;font-size:0.84em;">
+        <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 10px;">פריט</th><th style="padding:4px 6px;width:100px;">מס' צ'</th><th style="padding:4px 6px;width:40px;">כמות</th></tr></thead>
+        <tbody>${baseItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);" data-search="${esc(item.name)} ${item.category}" class="sign-equip-checkbox-item" data-set="baseset">
+            <td style="padding:5px 10px;text-align:right;">
+                <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked onchange="updateSignEquipSelection()" style="display:none;">
+                ${esc(item.name)}
+            </td>
+            <td style="padding:3px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" value="${item.serialNumber||''}" placeholder="צ'" style="width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.9em;text-align:center;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
+            <td style="padding:3px 4px;text-align:center;">${item.quantity}</td>
+        </tr>`).join('')}</tbody>
+    </table></div>`;
 
-    // Section 2: סט מפקד (optional, auto-checked for commanders)
+    // Section 2: סט מפקד - clean table (hidden by default)
     if (cmdItems.length > 0) {
-        html += `<div class="sign-group-header" style="display:flex;align-items:center;gap:8px;margin-top:12px;">
-            <input type="checkbox" id="signCmdSetToggle" onchange="toggleSignSet('cmdset', this.checked)">
-            <label for="signCmdSetToggle" style="font-weight:700;cursor:pointer;">סט מפקד (${cmdItems.length} פריטים נוספים)</label>
-        </div>`;
-        html += `<div id="signCmdSetItems" style="display:none;">`;
-        html += cmdItems.map((item, i) => `
-            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}" data-set="cmdset">
-                <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()">
-                <span class="sign-equip-name">${esc(item.name)}</span>
-                ${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" value="${item.serialNumber||''}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
-                <span class="sign-equip-qty">x${item.quantity}</span>
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#e65100;color:white;border-radius:8px 8px 0 0;margin-top:12px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:0.9em;">
+                <input type="checkbox" id="signCmdSetToggle" onchange="toggleSignSet('cmdset', this.checked)" style="accent-color:white;">
+                סט מפקד (${cmdItems.length})
             </label>
-        `).join('');
-        html += `</div>`;
+            <span style="font-size:0.72em;opacity:0.8;">לא כולל רס"פ/סרס"פ</span>
+        </div>`;
+        html += `<div id="signCmdSetItems" style="display:none;"><table style="width:100%;border-collapse:collapse;font-size:0.84em;">
+            <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 10px;">פריט</th><th style="padding:4px 6px;width:100px;">מס' צ'</th><th style="padding:4px 6px;width:40px;">כמות</th></tr></thead>
+            <tbody>${cmdItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);" data-search="${esc(item.name)} ${item.category}" class="sign-equip-checkbox-item" data-set="cmdset">
+                <td style="padding:5px 10px;text-align:right;">
+                    <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()" style="display:none;">
+                    ${esc(item.name)}
+                </td>
+                <td style="padding:3px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" value="${item.serialNumber||''}" placeholder="צ'" style="width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.9em;text-align:center;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
+                <td style="padding:3px 4px;text-align:center;">${item.quantity}</td>
+            </tr>`).join('')}</tbody>
+        </table></div>`;
     }
 
     // Section 3: Existing tracked equipment in inventory
     const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
     if (availableEquip.length > 0) {
-        html += `<div class="sign-group-header" style="margin-top:12px;">ציוד קיים במלאי (${availableEquip.length})</div>`;
-        html += availableEquip.map(e => `
-            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(e.type)} ${esc(e.serial)}">
-                <input type="checkbox" value="${e.id}" data-src="equip" onchange="updateSignEquipSelection()">
-                <span class="sign-equip-name">${esc(e.type)}</span>
-                <span class="sign-equip-serial">${esc(e.serial)}</span>
-                <span class="sign-equip-qty">x${e.defaultQty || 1}</span>
-            </label>
-        `).join('');
+        html += `<div style="padding:8px 12px;background:var(--bg);border-radius:8px 8px 0 0;margin-top:12px;font-weight:600;font-size:0.9em;">ציוד קיים במלאי (${availableEquip.length})</div>`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:0.84em;"><tbody>${availableEquip.map(e => `<tr style="border-bottom:1px solid var(--border);" data-search="${esc(e.type)} ${esc(e.serial)}" class="sign-equip-checkbox-item">
+            <td style="padding:5px 10px;text-align:right;">
+                <input type="checkbox" value="${e.id}" data-src="equip" onchange="updateSignEquipSelection()" style="margin-left:6px;">
+                ${esc(e.type)}
+            </td>
+            <td style="padding:3px 4px;text-align:center;font-family:monospace;direction:ltr;">${esc(e.serial)}</td>
+            <td style="padding:3px 4px;text-align:center;width:40px;">${e.defaultQty || 1}</td>
+        </tr>`).join('')}</tbody></table>`;
     }
 
     container.innerHTML = html || '<div style="padding:12px;color:var(--text-light);text-align:center;">אין פריטי ציוד</div>';
@@ -5149,7 +5158,9 @@ function onSignSoldierChange() {
     const sol = state.soldiers.find(s => s.id === soldierId);
     const cmdToggle = document.getElementById('signCmdSetToggle');
     if (cmdToggle && sol) {
-        const isCommander = sol.role && SIGNING_ROLES.includes(sol.role);
+        // רס"פ and סרס"פ are signing roles but do NOT get commander equipment set
+        const CMD_SET_EXCLUDED = ['רס"פ', 'סרס"פ'];
+        const isCommander = sol.role && SIGNING_ROLES.includes(sol.role) && !CMD_SET_EXCLUDED.includes(sol.role);
         cmdToggle.checked = isCommander;
         toggleSignSet('cmdset', isCommander);
     }
