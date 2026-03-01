@@ -24,13 +24,7 @@ const DEFAULT_SETTINGS = {
                 { name: 'כוונת לילה אקילה', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '992674' },
                 { name: 'ליונט', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '995831' },
                 { name: 'אול"ר', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '990456' },
-                { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '997319' },
-                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '993960' },
                 // ציוד ללא מספר צ'
-                { name: 'מע"ד למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
-                { name: 'ערכת מדונה למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
-                { name: 'סוללה ל-624', quantity: 1, category: 'קשר', requiresSerial: false },
-                { name: 'סוללה לעכבר', quantity: 1, category: 'קשר', requiresSerial: false },
                 { name: 'מדים (2 חולצות + 2 מכנסיים)', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'נעליים צבאיות', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'אפוד קרב', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
@@ -51,7 +45,13 @@ const DEFAULT_SETTINGS = {
             items: [
                 { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '993518' },
                 { name: 'משקפת שדה', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '998142' },
-                { name: 'מצפן', quantity: 1, category: 'לוגיסטיקה', requiresSerial: true, serialNumber: '996705' }
+                { name: 'מצפן', quantity: 1, category: 'לוגיסטיקה', requiresSerial: true, serialNumber: '996705' },
+                { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '997319' },
+                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '993960' },
+                { name: 'מע"ד למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'ערכת מדונה למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'סוללה ל-624', quantity: 1, category: 'קשר', requiresSerial: false },
+                { name: 'סוללה לעכבר', quantity: 1, category: 'קשר', requiresSerial: false }
             ]
         }],
         defaultSigningUnit: 'פלוגת פלס"ם',
@@ -79,12 +79,12 @@ function migrateEquipmentSets() {
     settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
     if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
 
-    // Migration v21: reset baseSet (new categories + אמר"ל עכבר) + commanderSet (מפרולייט moved here)
-    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 21) {
+    // Migration v22: move 624, מדונה, מע"ד, אמר"ל עכבר, סוללות from baseSet to commanderSet
+    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 22) {
         settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
         settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-        settings.equipmentSets._baseSetVer = 21;
-        settings.equipmentSets._roleSetVer = 21;
+        settings.equipmentSets._baseSetVer = 22;
+        settings.equipmentSets._roleSetVer = 22;
     }
     // Always clean up: remove empty/broken roleSets
     if (settings.equipmentSets.roleSets) {
@@ -5138,31 +5138,31 @@ function loadSignSetMode(includeCmd) {
     const cmdItems = includeCmd ? (cmdSet?.items || []) : [];
 
     let html = `
-    <div style="background:var(--primary);color:white;padding:8px 12px;border-radius:6px 6px 0 0;font-weight:600;font-size:0.88em;">סט ציוד ללוחם (${baseItems.length})</div>
-    <table style="width:100%;border-collapse:collapse;font-size:0.84em;margin-bottom:4px;">
-        <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 8px;">פריט</th><th style="padding:4px;width:95px;">מס' צ'</th><th style="padding:4px;width:50px;">כמות</th></tr></thead>
+    <div style="background:var(--primary);color:white;padding:6px 10px;border-radius:6px 6px 0 0;font-weight:600;font-size:0.85em;">סט ציוד ללוחם (${baseItems.length})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.82em;margin-bottom:4px;">
+        <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:3px 6px;">פריט</th><th style="padding:3px 4px;">מס' צ'</th><th style="padding:3px 2px;width:42px;">כמות</th></tr></thead>
         <tbody>${baseItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:4px 8px;text-align:right;">
+            <td style="padding:2px 6px;text-align:right;white-space:nowrap;font-size:0.92em;">
                 <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked style="display:none;">
                 ${esc(item.name)}
             </td>
-            <td style="padding:2px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;">` : '—'}</td>
-            <td style="padding:2px 4px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-bs-qty="${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
+            <td style="padding:2px 3px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="מס' צ'" style="width:100%;min-width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:1em;text-align:center;direction:ltr;">` : '—'}</td>
+            <td style="padding:2px 2px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-bs-qty="${i}" style="width:38px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.92em;"></td>
         </tr>`).join('')}</tbody>
     </table>`;
 
     if (cmdItems.length > 0) {
         html += `
-        <div style="background:#e65100;color:white;padding:8px 12px;border-radius:6px 6px 0 0;font-weight:600;font-size:0.88em;margin-top:8px;">סט מפקד (${cmdItems.length})</div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.84em;">
-            <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 8px;">פריט</th><th style="padding:4px;width:95px;">מס' צ'</th><th style="padding:4px;width:50px;">כמות</th></tr></thead>
+        <div style="background:#e65100;color:white;padding:6px 10px;border-radius:6px 6px 0 0;font-weight:600;font-size:0.85em;margin-top:8px;">סט מפקד (${cmdItems.length})</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.82em;">
+            <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:3px 6px;">פריט</th><th style="padding:3px 4px;">מס' צ'</th><th style="padding:3px 2px;width:42px;">כמות</th></tr></thead>
             <tbody>${cmdItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);">
-                <td style="padding:4px 8px;text-align:right;">
+                <td style="padding:2px 6px;text-align:right;white-space:nowrap;font-size:0.92em;">
                     <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked style="display:none;">
                     ${esc(item.name)}
                 </td>
-                <td style="padding:2px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;">` : '—'}</td>
-                <td style="padding:2px 4px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-cmd-qty="${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
+                <td style="padding:2px 3px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" placeholder="מס' צ'" style="width:100%;min-width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:1em;text-align:center;direction:ltr;">` : '—'}</td>
+                <td style="padding:2px 2px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-cmd-qty="${i}" style="width:38px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.92em;"></td>
             </tr>`).join('')}</tbody>
         </table>`;
     }
