@@ -1483,14 +1483,14 @@ function renderCompanyTab(compKey) {
             <div class="task-table-wrapper"><div class="table-scroll">
                 <table>
                     <thead><tr>
-                        <th>משימה / פעילות</th>
-                        <th>חיילים למשמרת</th>
-                        <th>מפקדים למשמרת</th>
-                        <th>קצינים למשמרת</th>
-                        <th>כמות משמרות</th>
-                        <th>סה"כ חיילים</th>
-                        <th>סה"כ מפקדים</th>
-                        <th>סה"כ קצינים</th>
+                        <th style="text-align:right;">משימה</th>
+                        <th>חיי׳/מש׳</th>
+                        <th>מפק׳/מש׳</th>
+                        <th>קצי׳/מש׳</th>
+                        <th>משמרות</th>
+                        <th>סה״כ חיי׳</th>
+                        <th>סה״כ מפק׳</th>
+                        <th>סה״כ קצי׳</th>
                         <th>משובצים</th>
                     </tr></thead>
                     <tbody>
