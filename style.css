@@ -1154,19 +1154,22 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 .r1-day-header { vertical-align: top; }
 .r1-today { background: rgba(26,58,92,0.08) !important; }
 .r1-out-of-op { opacity: 0.4; }
-.r1-cell { font-size: 1.1em; }
+.r1-cell { line-height: 1; }
+.r1-cell svg { vertical-align: middle; }
+.r1-active { background: #e3f2fd; color: #1565c0; }
 .r1-base { background: #e8f5e9; color: #2e7d32; }
-.r1-leave { background: #ffebee; color: #c62828; }
-.r1-closed { background: #fff8e1; color: #f57f17; }
+.r1-home { background: #fff3e0; color: #e65100; }
+.r1-notserving { background: #fafafa; color: #bdbdbd; }
 .r1-closed-btn { display: block; margin: 4px auto 0; padding: 2px 4px; font-size: 0.8em; background: none; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; line-height: 1; }
 .r1-closed-btn.active { background: #fff3e0; border-color: #f57f17; }
 .r1-closed-btn:hover { background: var(--bg); }
 .r1-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 0.82em; flex-wrap: wrap; }
 .r1-legend-item { display: flex; align-items: center; gap: 4px; }
 .r1-dot { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-.r1-dot.r1-base { background: #4caf50; }
-.r1-dot.r1-leave { background: #e53935; }
-.r1-dot.r1-closed { background: #fdd835; }
+.r1-dot.r1-active { background: #1565c0; }
+.r1-dot.r1-base { background: #2e7d32; }
+.r1-dot.r1-home { background: #e65100; }
+.r1-dot.r1-notserving { background: #bdbdbd; }
 
 @media (max-width: 768px) {
     .r1-table { font-size: 0.78em; }

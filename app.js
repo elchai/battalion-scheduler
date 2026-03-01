@@ -4006,20 +4006,27 @@ function getReport1WeekDays() {
 }
 
 function getReport1SoldierStatus(soldier, dateStr) {
-    // Priority: 1) שמ"פ סגור (closed day), 2) leave, 3) rotation, 4) in base
-    const closed = (settings.closedDays || []).includes(dateStr);
+    // Check if soldier is in a rotation group (i.e., called up for reserves)
+    const rotGroup = getRotationGroupForSoldier(soldier.id);
+    if (!rotGroup) return 'notserving'; // לא במילואים
+
+    // Check rotation status
+    const rotStatus = getRotationStatus(rotGroup, new Date(dateStr + 'T00:00:00'));
+    const rotationOut = rotStatus && !rotStatus.inBase;
 
     // Check if on leave
     const onLeave = state.leaves.some(l => l.soldierId === soldier.id && isOnLeaveForDate(l, dateStr));
 
-    // Check rotation
-    const rotGroup = getRotationGroupForSoldier(soldier.id);
-    const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date(dateStr + 'T00:00:00')) : null;
-    const rotationOut = rotStatus && !rotStatus.inBase;
+    // שמ"פ סגור - everyone stays at base
+    const closed = (settings.closedDays || []).includes(dateStr);
+    if (closed && !onLeave && !rotationOut) return 'base'; // forced at base
+    if (onLeave || rotationOut) return 'home'; // בבית
 
-    if (closed) return 'closed'; // שמ"פ סגור - everyone at base
-    if (onLeave || rotationOut) return 'leave'; // חופש / בבית
-    return 'base'; // נמצא בבסיס
+    // At base - check if assigned to a shift that day
+    const hasShift = state.shifts.some(sh => sh.date === dateStr && sh.soldiers.includes(soldier.id));
+    if (hasShift) return 'active'; // בפעילות
+
+    return 'base'; // בבסיס (no shift)
 }
 
 function isDateInOperation(dateStr) {
@@ -4066,19 +4073,28 @@ function renderReport1() {
     // Week header
     const weekRange = `${formatDate(days[0].toISOString().split('T')[0])} – ${formatDate(days[6].toISOString().split('T')[0])}`;
 
+    // SVG icons for statuses
+    const ICONS = {
+        active: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 2 4 5 4 9c0 1 .2 2 .5 3h15c.3-1 .5-2 .5-3 0-4-4-7-8-7z"/><path d="M4.5 12C3 12 2 13 2 14h20c0-1-1-2-2.5-2"/><path d="M8 14v2"/><path d="M16 14v2"/></svg>',
+        home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+        base: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
+        notserving: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+    };
+
     // Build daily summaries
     const dailySummary = days.map(d => {
         const ds = d.toISOString().split('T')[0];
         const inOp = isDateInOperation(ds);
-        if (!inOp) return { base: '-', leave: '-', closed: false };
-        let base = 0, leave = 0;
-        const closed = (settings.closedDays || []).includes(ds);
+        if (!inOp) return { active: '-', base: '-', home: '-', notserving: '-' };
+        let active = 0, base = 0, home = 0, notserving = 0;
         soldiers.forEach(s => {
             const st = getReport1SoldierStatus(s, ds);
-            if (st === 'base' || st === 'closed') base++;
-            else leave++;
+            if (st === 'active') active++;
+            else if (st === 'base') base++;
+            else if (st === 'home') home++;
+            else notserving++;
         });
-        return { base, leave, closed };
+        return { active, base, home, notserving };
     });
 
     // Table
@@ -4114,36 +4130,44 @@ function renderReport1() {
                         const inOp = isDateInOperation(ds);
                         if (!inOp) return '<td class="r1-cell r1-out-of-op" style="text-align:center;">-</td>';
                         const st = getReport1SoldierStatus(s, ds);
-                        const cls = st === 'base' ? 'r1-base' : st === 'closed' ? 'r1-closed' : 'r1-leave';
-                        const label = st === 'base' ? '✓' : st === 'closed' ? '🔒' : '✗';
-                        return `<td class="r1-cell ${cls}" style="text-align:center;">${label}</td>`;
+                        const cls = 'r1-' + st;
+                        return `<td class="r1-cell ${cls}" style="text-align:center;">${ICONS[st]}</td>`;
                     }).join('')}
                 </tr>`).join('')}
             </tbody>
             <tfoot>
                 <tr style="font-weight:700;background:var(--bg);">
-                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">סה"כ בבסיס</td>
+                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">בפעילות</td>
                     ${dailySummary.map((sum, i) => {
                         const ds = days[i].toISOString().split('T')[0];
                         const isToday = ds === todayStr;
-                        return `<td style="text-align:center;" class="${isToday ? 'r1-today' : ''}">${sum.base}</td>`;
+                        return `<td style="text-align:center;color:#1565c0;" class="${isToday ? 'r1-today' : ''}">${sum.active}</td>`;
                     }).join('')}
                 </tr>
                 <tr style="font-weight:700;background:var(--bg);">
-                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">סה"כ בבית</td>
+                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">בבסיס</td>
                     ${dailySummary.map((sum, i) => {
                         const ds = days[i].toISOString().split('T')[0];
                         const isToday = ds === todayStr;
-                        return `<td style="text-align:center;" class="${isToday ? 'r1-today' : ''}">${sum.leave}</td>`;
+                        return `<td style="text-align:center;color:#2e7d32;" class="${isToday ? 'r1-today' : ''}">${sum.base}</td>`;
+                    }).join('')}
+                </tr>
+                <tr style="font-weight:700;background:var(--bg);">
+                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">בבית</td>
+                    ${dailySummary.map((sum, i) => {
+                        const ds = days[i].toISOString().split('T')[0];
+                        const isToday = ds === todayStr;
+                        return `<td style="text-align:center;color:#e65100;" class="${isToday ? 'r1-today' : ''}">${sum.home}</td>`;
                     }).join('')}
                 </tr>
             </tfoot>
         </table>
         </div>
         <div class="r1-legend">
-            <span class="r1-legend-item"><span class="r1-dot r1-base"></span> נמצא בבסיס</span>
-            <span class="r1-legend-item"><span class="r1-dot r1-leave"></span> חופש בשמ"פ</span>
-            <span class="r1-legend-item"><span class="r1-dot r1-closed"></span> שמ"פ סגור</span>
+            <span class="r1-legend-item"><span class="r1-dot r1-active"></span> בפעילות (קסדה)</span>
+            <span class="r1-legend-item"><span class="r1-dot r1-base"></span> בבסיס (דגל)</span>
+            <span class="r1-legend-item"><span class="r1-dot r1-home"></span> בבית (בית)</span>
+            <span class="r1-legend-item"><span class="r1-dot r1-notserving"></span> לא במילואים (X)</span>
         </div>
     `;
 }
@@ -4166,24 +4190,23 @@ function copyReport1Text() {
     }
 
     // Today summary
-    const todayDate = days.find(d => d.toISOString().split('T')[0] === todayStr) || new Date();
-    const baseToday = [], leaveToday = [], closedToday = [];
+    const activeToday = [], baseToday = [], homeToday = [], notServingToday = [];
     soldiers.forEach(s => {
         const st = getReport1SoldierStatus(s, todayStr);
-        if (st === 'base' || st === 'closed') baseToday.push(s.name);
-        else leaveToday.push(s.name);
+        if (st === 'active') activeToday.push(s.name);
+        else if (st === 'base') baseToday.push(s.name);
+        else if (st === 'home') homeToday.push(s.name);
+        else notServingToday.push(s.name);
     });
 
     const isClosed = (settings.closedDays || []).includes(todayStr);
     text += `\n*${formatDate(todayStr)}${isClosed ? ' (שמ"פ סגור)' : ''}*\n`;
-    text += `בבסיס: ${baseToday.length} | בבית: ${leaveToday.length}\n\n`;
+    text += `בפעילות: ${activeToday.length} | בבסיס: ${baseToday.length} | בבית: ${homeToday.length}${notServingToday.length ? ' | לא במילואים: '+notServingToday.length : ''}\n\n`;
 
-    if (leaveToday.length > 0) {
-        text += `*בבית (${leaveToday.length}):*\n${leaveToday.join(', ')}\n\n`;
-    }
-    if (baseToday.length > 0) {
-        text += `*בבסיס (${baseToday.length}):*\n${baseToday.join(', ')}\n`;
-    }
+    if (activeToday.length > 0) text += `*⛑️ בפעילות (${activeToday.length}):*\n${activeToday.join(', ')}\n\n`;
+    if (baseToday.length > 0) text += `*🚩 בבסיס (${baseToday.length}):*\n${baseToday.join(', ')}\n\n`;
+    if (homeToday.length > 0) text += `*🏠 בבית (${homeToday.length}):*\n${homeToday.join(', ')}\n\n`;
+    if (notServingToday.length > 0) text += `*✗ לא במילואים (${notServingToday.length}):*\n${notServingToday.join(', ')}\n`;
 
     navigator.clipboard.writeText(text).then(() => {
         showToast('דו"ח 1 הועתק ללוח');
