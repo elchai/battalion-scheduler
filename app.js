@@ -5035,10 +5035,35 @@ async function deleteEquipment(id) {
     } else {
         if (!await customConfirm('למחוק פריט ציוד?')) return;
     }
+    logEquipDeletion([eq]);
     state.equipment = state.equipment.filter(e => e.id !== id);
     saveState();
     renderEquipmentTab();
     showToast('פריט נמחק');
+}
+
+function logEquipDeletion(items) {
+    items.forEach(eq => {
+        state.signatureLog.push({
+            id: 'sig_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            type: 'delete',
+            equipId: eq.id,
+            equipType: eq.type,
+            equipSerial: eq.serial || '',
+            equipItems: [{ equipId: eq.id, equipType: eq.type, equipSerial: eq.serial || '', equipQty: eq.defaultQty || 1 }],
+            soldierId: eq.holderId || '',
+            soldierName: eq.holderName || '-',
+            soldierPhone: eq.holderPhone || '',
+            soldierPersonalId: '',
+            date: new Date().toISOString(),
+            signatureImg: '',
+            issuedBy: currentUser.name || '',
+            issuerUnit: currentUser.unit || '',
+            issuerRole: '',
+            issuerPersonalId: currentUser.personalId || '',
+            notes: eq.holderId ? `נמחק בעת שהיה מוחזק ע"י ${eq.holderName}` : 'נמחק ממלאי'
+        });
+    });
 }
 
 // --- Sign Equipment ---
@@ -5146,7 +5171,7 @@ function loadSignSetMode(includeCmd) {
                 <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked style="display:none;">
                 ${esc(item.name)}
             </td>
-            <td style="padding:2px 3px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="מס' צ'" style="width:100%;min-width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:1em;text-align:center;direction:ltr;">` : '—'}</td>
+            <td style="padding:2px 3px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="הזן מספר" style="width:100%;min-width:120px;padding:5px 8px;border:2px solid #90CAF9;border-radius:5px;font-size:1.05em;text-align:center;direction:ltr;background:#f8fbff;">` : '<span style="color:#bbb;">—</span>'}</td>
             <td style="padding:2px 2px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-bs-qty="${i}" style="width:38px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.92em;"></td>
         </tr>`).join('')}</tbody>
     </table>`;
@@ -5161,7 +5186,7 @@ function loadSignSetMode(includeCmd) {
                     <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked style="display:none;">
                     ${esc(item.name)}
                 </td>
-                <td style="padding:2px 3px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" placeholder="מס' צ'" style="width:100%;min-width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:1em;text-align:center;direction:ltr;">` : '—'}</td>
+                <td style="padding:2px 3px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" placeholder="הזן מספר" style="width:100%;min-width:120px;padding:5px 8px;border:2px solid #FFCC80;border-radius:5px;font-size:1.05em;text-align:center;direction:ltr;background:#fffbf5;">` : '<span style="color:#bbb;">—</span>'}</td>
                 <td style="padding:2px 2px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-cmd-qty="${i}" style="width:38px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.92em;"></td>
             </tr>`).join('')}</tbody>
         </table>`;
@@ -5793,6 +5818,8 @@ async function deleteSelectedEquipment() {
 
     if (!await customConfirm(msg)) return;
 
+    const deletedItems = state.equipment.filter(e => checkedIds.includes(e.id));
+    logEquipDeletion(deletedItems);
     state.equipment = state.equipment.filter(e => !checkedIds.includes(e.id));
     saveState();
     renderEquipmentTab();
@@ -5815,6 +5842,7 @@ function renderSignatureHistory() {
 
     container.innerHTML = logs.map(log => {
         const isReturn = log.type === 'return';
+        const isDelete = log.type === 'delete';
         const d = new Date(log.date);
         const dateFormatted = d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
@@ -5823,20 +5851,23 @@ function renderSignatureHistory() {
         if (log.equipItems && log.equipItems.length > 1) {
             equipDisplay = `${log.equipItems.length} פריטים: ${log.equipItems.map(i => i.equipType).join(', ')}`;
         } else {
-            equipDisplay = `${log.equipType} (${log.equipSerial})`;
+            equipDisplay = `${log.equipType}${log.equipSerial ? ' (' + log.equipSerial + ')' : ''}`;
         }
 
-        return `<div class="sig-history-card ${isReturn ? 'return' : ''}">
+        const typeLabel = isDelete ? 'מחיקה' : isReturn ? 'זיכוי' : 'חתימה';
+        const cardClass = isDelete ? 'delete' : isReturn ? 'return' : '';
+
+        return `<div class="sig-history-card ${cardClass}" ${isDelete ? 'style="border-right:3px solid #9C27B0;opacity:0.85;"' : ''}>
             <div class="sig-info">
-                <h4>${isReturn ? 'זיכוי' : 'חתימה'} — ${equipDisplay}</h4>
-                <div class="meta">${log.soldierName} | ${log.soldierPersonalId || ''} | ${log.soldierPhone || ''}</div>
-                <div class="meta">${dateFormatted}${log.issuedBy ? ' | מחתים: ' + log.issuedBy : ''}${log.notes ? ' | ' + log.notes : ''}</div>
+                <h4>${typeLabel} — ${equipDisplay}</h4>
+                <div class="meta">${log.soldierName || '-'} | ${log.soldierPersonalId || ''} | ${log.soldierPhone || ''}</div>
+                <div class="meta">${dateFormatted}${log.issuedBy ? ' | ' + (isDelete ? 'מחק: ' : 'מחתים: ') + log.issuedBy : ''}${log.notes ? ' | ' + log.notes : ''}</div>
             </div>
             <div class="sig-actions">
-                <img class="sig-preview" src="${log.signatureImg}" alt="חתימה">
+                ${log.signatureImg ? `<img class="sig-preview" src="${log.signatureImg}" alt="חתימה">` : ''}
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    <button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">PDF</button>
-                    ${!isReturn ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="עריכה">עריכה</button>` : ''}
+                    ${!isDelete ? `<button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">PDF</button>` : ''}
+                    ${!isReturn && !isDelete ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="עריכה">עריכה</button>` : ''}
                     <button class="btn btn-danger btn-sm" onclick="deleteSignatureLog('${log.id}')" title="מחיקה">מחק</button>
                 </div>
             </div>
@@ -6108,9 +6139,9 @@ function downloadPDF(htmlContent, filename) {
         return;
     }
 
-    // Place wrapper on-screen for html2canvas (briefly visible during capture)
+    // Create off-screen but RENDERED wrapper (must have real dimensions for html2canvas)
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;z-index:99999;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;';
+    wrapper.style.cssText = 'position:absolute;top:0;left:0;width:794px;z-index:99999;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;overflow:hidden;';
     wrapper.innerHTML = htmlContent;
     document.body.appendChild(wrapper);
 
@@ -6122,14 +6153,15 @@ function downloadPDF(htmlContent, filename) {
     });
 
     Promise.all(imagePromises).then(() => {
-        // Give browser a frame to paint before capture
-        return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        // Give browser frames to paint
+        return new Promise(r => setTimeout(r, 200));
     }).then(() => {
+        const wrapperHeight = wrapper.scrollHeight;
         return html2pdf().set({
             margin: [10, 10, 10, 10],
             filename: (filename || 'document') + '.pdf',
             image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: wrapper.scrollWidth || 794 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, width: 794, height: wrapperHeight, scrollY: 0, scrollX: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['css', 'legacy'] }
         }).from(wrapper).save();
