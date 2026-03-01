@@ -16,13 +16,13 @@ const DEFAULT_SETTINGS = {
             name: 'סט ציוד ללוחם',
             items: [
                 // ציוד עם מספר צ'
-                { name: 'נשק', quantity: 1, category: 'נשק', requiresSerial: true },
-                { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'נשק', requiresSerial: true },
-                { name: 'כוונת טריג\'יקון', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'כוונת לילה אקילה', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'ליונט', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'אול"ר', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true },
+                { name: 'נשק', quantity: 1, category: 'נשק', requiresSerial: true, serialNumber: '991247' },
+                { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'נשק', requiresSerial: true, serialNumber: '993518' },
+                { name: 'כוונת טריג\'יקון', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '994082' },
+                { name: 'כוונת לילה אקילה', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '992674' },
+                { name: 'ליונט', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '995831' },
+                { name: 'אול"ר', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '990456' },
+                { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '997319' },
                 // ציוד ללא מספר צ'
                 { name: 'מע"ד למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
                 { name: 'ערכת מדונה למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
@@ -46,9 +46,9 @@ const DEFAULT_SETTINGS = {
             name: 'ערכת מפקד',
             roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'סמ"ח'],
             items: [
-                { name: 'משקפת שדה', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'מצפן', quantity: 1, category: 'שטח', requiresSerial: true },
-                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true }
+                { name: 'משקפת שדה', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '998142' },
+                { name: 'מצפן', quantity: 1, category: 'שטח', requiresSerial: true, serialNumber: '996705' },
+                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '993960' }
             ]
         }],
         defaultSigningUnit: 'פלוגת פלס"ם',
@@ -69,11 +69,11 @@ function loadSettings() {
             settings.equipmentSets = settings.equipmentSets || {};
             settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
             if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
-            // Migration v5: force-reset baseSet to full 22 items + clean roleSets
-            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 5) {
+            // Migration v6: force-reset baseSet with serial numbers + clean roleSets
+            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 6) {
                 settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
                 settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-                settings.equipmentSets._baseSetVer = 5;
+                settings.equipmentSets._baseSetVer = 6;
                 settings.equipmentSets._roleSetVer = 2;
             }
             settings.equipmentSets.roleSets = settings.equipmentSets.roleSets || defaults.equipmentSets.roleSets;
@@ -4568,7 +4568,7 @@ function openSignEquipment() {
             <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}">
                 <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()">
                 <span class="sign-equip-name">${esc(item.name)}</span>
-                ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
+                ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" value="${item.serialNumber||''}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
                 <span class="sign-equip-qty">x${item.quantity}</span>
             </label>
         `).join('');
@@ -6052,6 +6052,7 @@ function renderEquipmentSetsSettings() {
                 <th style="padding:6px 8px;text-align:center;width:55px;">כמות</th>
                 <th style="padding:6px 8px;text-align:center;">קטגוריה</th>
                 <th style="padding:6px 8px;text-align:center;width:40px;">צ'</th>
+                <th style="padding:6px 8px;text-align:center;width:90px;">מס' צ'</th>
                 <th style="padding:6px 8px;width:36px;"></th>
             </tr></thead>
             <tbody>
@@ -6062,6 +6063,7 @@ function renderEquipmentSetsSettings() {
                         ${['מגן','נשק','קשר','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                     </select></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)" title="דורש מספר צ'"></td>
+                    <td style="padding:5px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" value="${item.serialNumber||''}" onchange="updateBaseSetItem(${i},'serialNumber',this.value)" style="width:80px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;font-family:monospace;font-size:0.85em;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
                     <td style="padding:5px 4px;text-align:center;"><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})" style="padding:2px 6px;font-size:0.8em;">X</button></td>
                 </tr>`).join('')}
             </tbody>
@@ -6080,11 +6082,13 @@ function renderEquipmentSetsSettings() {
                         <th style="padding:6px 8px;text-align:right;">שם פריט</th>
                         <th style="padding:6px 8px;text-align:center;width:55px;">כמות</th>
                         <th style="padding:6px 8px;text-align:center;">קטגוריה</th>
+                        <th style="padding:6px 8px;text-align:center;width:90px;">מס' צ'</th>
                     </tr></thead>
                     <tbody>${rs.items.map(item => `<tr style="border-bottom:1px solid var(--border);">
                         <td style="padding:5px 8px;">${item.name}</td>
                         <td style="padding:5px 8px;text-align:center;">${item.quantity}</td>
                         <td style="padding:5px 8px;text-align:center;">${item.category}</td>
+                        <td style="padding:5px 8px;text-align:center;font-family:monospace;direction:ltr;">${item.requiresSerial && item.serialNumber ? item.serialNumber : '—'}</td>
                     </tr>`).join('')}</tbody>
                 </table></div>
             </div>`;
