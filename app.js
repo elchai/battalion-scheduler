@@ -175,6 +175,10 @@ function doLogout() {
     document.getElementById('loginUnit').value = '';
 }
 
+function refreshIcons() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 function activateApp() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').style.display = '';
@@ -206,6 +210,7 @@ function activateApp() {
         if (sidebar) sidebar.classList.remove('open');
         document.body.classList.remove('sidebar-open');
     }
+    refreshIcons();
 }
 
 function applyUnitFilter() {
@@ -2238,6 +2243,7 @@ function switchTab(tab) {
         document.getElementById('sidebarOverlay').classList.remove('active');
         document.body.classList.remove('sidebar-open');
     }
+    setTimeout(refreshIcons, 50);
 }
 
 // ==================== SOLDIER ====================
@@ -5089,6 +5095,7 @@ function renderEquipmentTab() {
     renderSignatureHistory();
     // Equipment Sets (סט ציוד ללוחם)
     renderEquipmentSetsSettings();
+    refreshIcons();
 }
 
 function renderSignatureHistory() {
@@ -6198,6 +6205,7 @@ function renderEquipmentReports() {
     }
 
     container.innerHTML = html || '<div class="empty-state"><p>אין נתונים להצגה</p></div>';
+    refreshIcons();
 }
 
 function _reportByCategory(equip, filterVal) {
@@ -6213,7 +6221,7 @@ function _reportByCategory(equip, filterVal) {
         const items = grouped[cat];
         const assigned = items.filter(i => i.holderId).length;
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;">&#9632;</div>${cat} (${items.length} פריטים, ${assigned} מוחזקים)</div>
+            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;"><i data-lucide="box"></i></div>${cat} (${items.length} פריטים, ${assigned} מוחזקים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>מחזיק</th><th>סטטוס</th></tr></thead>
                 <tbody>${items.map(i => `<tr>
@@ -6238,7 +6246,7 @@ function _reportByType(equip, filterVal) {
         const items = grouped[type];
         const assigned = items.filter(i => i.holderId).length;
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;">&#9642;</div>${type} (${items.length} יחידות, ${assigned} מוחזקים)</div>
+            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;"><i data-lucide="wrench"></i></div>${type} (${items.length} יחידות, ${assigned} מוחזקים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>מס' צ'</th><th>קטגוריה</th><th>מחזיק</th><th>מ.א</th><th>פלוגה</th></tr></thead>
                 <tbody>${items.map(i => {
@@ -6266,7 +6274,7 @@ function _reportByHolder(equip) {
     return Object.entries(holders).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
         const sol = state.soldiers.find(s => s.id === id);
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;">&#9679;</div>${h.name} ${sol ? '(' + (sol.personalId || '') + ' | ' + (sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
+            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;"><i data-lucide="user"></i></div>${h.name} ${sol ? '(' + (sol.personalId || '') + ' | ' + (sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>תאריך קבלה</th></tr></thead>
                 <tbody>${h.items.map(i => `<tr>
@@ -6294,7 +6302,7 @@ function _reportByCompany(equip, filterVal) {
         const soldiers = companies[comp];
         const totalItems = Object.values(soldiers).reduce((s, h) => s + h.items.length, 0);
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;">&#9670;</div>${comp} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
+            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;"><i data-lucide="building"></i></div>${comp} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>חייל</th><th>מ.א</th><th>מספר פריטים</th><th>פריטים</th></tr></thead>
                 <tbody>${Object.entries(soldiers).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
@@ -6315,7 +6323,7 @@ function _reportUnsigned(equip) {
     const unsigned = equip.filter(e => !e.holderId && e.status !== 'faulty');
     if (!unsigned.length) return '<div class="empty-state"><p>כל הציוד מוחזק &#10003;</p></div>';
     return `<div class="sub-section">
-        <div class="section-title"><div class="icon" style="background:#FFF3E0;color:#E65100;">&#9651;</div>ציוד לא מוחתם (${unsigned.length} פריטים)</div>
+        <div class="section-title"><div class="icon" style="background:#FFF3E0;color:#E65100;"><i data-lucide="alert-triangle"></i></div>ציוד לא מוחתם (${unsigned.length} פריטים)</div>
         <table class="data-table" style="width:100%;font-size:0.88em;">
             <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>הערות</th></tr></thead>
             <tbody>${unsigned.map(i => `<tr>
