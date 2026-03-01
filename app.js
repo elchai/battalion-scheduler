@@ -5711,9 +5711,15 @@ function renderEquipmentTab() {
         tableContainer.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><p>אין פריטי ציוד</p></div>';
     } else {
         tableContainer.innerHTML = `
+            <div id="equipBulkBar" style="display:none;background:#fff3e0;padding:8px 12px;border-radius:6px;margin-bottom:8px;display:none;align-items:center;gap:10px;">
+                <span id="equipSelectedCount" style="font-weight:600;font-size:0.88em;">0 נבחרו</span>
+                <button class="btn btn-danger btn-sm" onclick="deleteSelectedEquipment()" style="font-size:0.82em;">מחק נבחרים</button>
+                <button class="btn btn-sm" onclick="clearEquipSelection()" style="background:var(--bg);font-size:0.82em;">בטל בחירה</button>
+            </div>
             <div class="task-table-wrapper"><div class="table-scroll">
                 <table class="equip-table">
                     <thead><tr>
+                        <th style="width:30px;"><input type="checkbox" id="equipSelectAll" onchange="toggleEquipSelectAll(this.checked)" title="בחר הכל"></th>
                         <th>סוג ציוד</th><th>מספר סידורי</th><th>כמות</th><th>מחסן</th><th>מסגרת</th><th>מצב</th>
                         <th>סטטוס</th><th>מחזיק</th><th>טלפון</th><th>תאריך חתימה</th><th>פעולות</th>
                     </tr></thead>
@@ -5722,6 +5728,7 @@ function renderEquipmentTab() {
                             const statusClass = ['תקול','אובדן','מת"ש'].includes(e.condition) ? 'faulty' : e.holderId ? 'assigned' : 'available';
                             const statusText = e.condition === 'תקול' ? 'תקול' : e.condition === 'אובדן' ? 'אובדן' : e.condition === 'מת"ש' ? 'מת"ש' : e.holderId ? 'מוחזק' : 'פנוי';
                             return `<tr>
+                                <td style="text-align:center;"><input type="checkbox" class="equip-select-cb" value="${e.id}" onchange="updateEquipBulkBar()"></td>
                                 <td style="font-weight:600;">${e.type}</td>
                                 <td style="direction:ltr;font-family:monospace;">${e.serial}</td>
                                 <td>${e.defaultQty || 1}</td>
@@ -5748,6 +5755,48 @@ function renderEquipmentTab() {
     renderSignatureHistory();
     // Equipment Sets (סט ציוד ללוחם)
     renderEquipmentSetsSettings();
+}
+
+function toggleEquipSelectAll(checked) {
+    document.querySelectorAll('.equip-select-cb').forEach(cb => { cb.checked = checked; });
+    updateEquipBulkBar();
+}
+
+function updateEquipBulkBar() {
+    const checked = document.querySelectorAll('.equip-select-cb:checked');
+    const bar = document.getElementById('equipBulkBar');
+    const countEl = document.getElementById('equipSelectedCount');
+    if (bar) bar.style.display = checked.length > 0 ? 'flex' : 'none';
+    if (countEl) countEl.textContent = `${checked.length} נבחרו`;
+    // Sync "select all" checkbox
+    const allCb = document.getElementById('equipSelectAll');
+    const total = document.querySelectorAll('.equip-select-cb').length;
+    if (allCb) allCb.checked = checked.length === total && total > 0;
+}
+
+function clearEquipSelection() {
+    document.querySelectorAll('.equip-select-cb').forEach(cb => { cb.checked = false; });
+    const allCb = document.getElementById('equipSelectAll');
+    if (allCb) allCb.checked = false;
+    updateEquipBulkBar();
+}
+
+async function deleteSelectedEquipment() {
+    const checkedIds = Array.from(document.querySelectorAll('.equip-select-cb:checked')).map(cb => cb.value);
+    if (checkedIds.length === 0) return;
+
+    // Check if any are assigned to soldiers
+    const assignedItems = checkedIds.filter(id => { const eq = state.equipment.find(e => e.id === id); return eq && eq.holderId; });
+    const msg = assignedItems.length > 0
+        ? `למחוק ${checkedIds.length} פריטים? (${assignedItems.length} מהם מוקצים לחיילים!)`
+        : `למחוק ${checkedIds.length} פריטים?`;
+
+    if (!await customConfirm(msg)) return;
+
+    state.equipment = state.equipment.filter(e => !checkedIds.includes(e.id));
+    saveState();
+    renderEquipmentTab();
+    showToast(`${checkedIds.length} פריטים נמחקו`);
     refreshIcons();
 }
 
