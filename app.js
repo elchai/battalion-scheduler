@@ -69,14 +69,22 @@ function loadSettings() {
             settings.equipmentSets = settings.equipmentSets || {};
             settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
             if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
-            // Migration v6: force-reset baseSet with serial numbers + clean roleSets
-            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 6) {
+            // Migration v10: force-reset baseSet (22 items + serial numbers) + clean roleSets (1 commander set only)
+            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 10) {
                 settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
                 settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-                settings.equipmentSets._baseSetVer = 6;
-                settings.equipmentSets._roleSetVer = 2;
+                settings.equipmentSets._baseSetVer = 10;
+                settings.equipmentSets._roleSetVer = 10;
             }
-            settings.equipmentSets.roleSets = settings.equipmentSets.roleSets || defaults.equipmentSets.roleSets;
+            // Always clean up: remove empty/broken roleSets
+            if (settings.equipmentSets.roleSets) {
+                settings.equipmentSets.roleSets = settings.equipmentSets.roleSets.filter(rs => rs.id && rs.name && rs.name !== 'סט חדש');
+                if (!settings.equipmentSets.roleSets.length) {
+                    settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
+                }
+            } else {
+                settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
+            }
             settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || defaults.equipmentSets.savedSignatures || {};
         }
         // Persist migration changes
