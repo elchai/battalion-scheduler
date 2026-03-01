@@ -20,9 +20,6 @@ const DEFAULT_SETTINGS = {
                 { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'נשק', requiresSerial: true },
                 { name: 'כוונת טריג\'יקון', quantity: 1, category: 'תצפית', requiresSerial: true },
                 { name: 'כוונת לילה אקילה', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'משקפת שדה', quantity: 1, category: 'תצפית', requiresSerial: true },
-                { name: 'מצפן', quantity: 1, category: 'שטח', requiresSerial: true },
-                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true },
                 { name: 'ליונט', quantity: 1, category: 'תצפית', requiresSerial: true },
                 { name: 'אול"ר', quantity: 1, category: 'תצפית', requiresSerial: true },
                 { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true },
@@ -44,7 +41,16 @@ const DEFAULT_SETTINGS = {
                 { name: 'חגורה צבאית', quantity: 1, category: 'אחר', requiresSerial: false }
             ]
         },
-        roleSets: [],
+        roleSets: [{
+            id: 'rs_commander',
+            name: 'ערכת מפקד',
+            roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'סמ"ח'],
+            items: [
+                { name: 'משקפת שדה', quantity: 1, category: 'תצפית', requiresSerial: true },
+                { name: 'מצפן', quantity: 1, category: 'שטח', requiresSerial: true },
+                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true }
+            ]
+        }],
         defaultSigningUnit: 'פלוגת פלס"ם',
         savedSignatures: {} // לחתימות קבועות של מחתימים
     }
@@ -63,10 +69,20 @@ function loadSettings() {
             settings.equipmentSets = settings.equipmentSets || {};
             settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
             if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
-            // Migration: update baseSet to full 25-item list if user has old version
-            if ((!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 2) && defaults.equipmentSets.baseSet.items.length > settings.equipmentSets.baseSet.items.length) {
-                settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
-                settings.equipmentSets._baseSetVer = 2;
+            // Migration v2→v3: move commander items from baseSet to roleSet
+            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 3) {
+                const cmdItemNames = ['משקפת שדה', 'מצפן', 'אמר"ל עכבר'];
+                settings.equipmentSets.baseSet.items = settings.equipmentSets.baseSet.items.filter(i => !cmdItemNames.includes(i.name));
+                // Ensure we have the defaults for remaining baseSet items
+                if (settings.equipmentSets.baseSet.items.length < defaults.equipmentSets.baseSet.items.length) {
+                    settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
+                }
+                settings.equipmentSets._baseSetVer = 3;
+            }
+            // Migration: add commander roleSet if missing
+            if (!settings.equipmentSets._roleSetVer || settings.equipmentSets._roleSetVer < 1) {
+                settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
+                settings.equipmentSets._roleSetVer = 1;
             }
             settings.equipmentSets.roleSets = settings.equipmentSets.roleSets || defaults.equipmentSets.roleSets;
             settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || defaults.equipmentSets.savedSignatures || {};
@@ -94,6 +110,33 @@ function canView(compKey) {
     if (!currentUser) return false;
     if (currentUser.unit === 'gdudi') return true;
     return currentUser.unit === compKey;
+}
+
+// --- Role detection & equipment signing permissions ---
+const SIGNING_ROLES = ['רס"פ', 'סרס"פ', 'סמ"ח', 'מ"כ', 'מ"פ', 'סמ"פ'];
+
+function detectUserRole() {
+    if (!currentUser) return null;
+    const match = state.soldiers.find(s =>
+        s.name === currentUser.name &&
+        (currentUser.unit === 'palsam' || currentUser.unit === 'gdudi' || s.company === currentUser.unit)
+    );
+    if (match) {
+        currentUser.role = match.role || '';
+        currentUser.soldierId = match.id;
+    } else {
+        currentUser.role = '';
+        currentUser.soldierId = null;
+    }
+    return currentUser.role;
+}
+
+function canSignEquipment() {
+    if (!currentUser) return false;
+    if (currentUser.unit === 'palsam' || currentUser.unit === 'gdudi') return true;
+    if (isAdmin()) return true;
+    if (!currentUser.role) return false;
+    return SIGNING_ROLES.some(r => currentUser.role.includes(r));
 }
 
 // ==================== LOGIN ====================
@@ -146,6 +189,7 @@ function activateApp() {
     const sidebarUser = document.getElementById('sidebarUser');
     if (sidebarUser) sidebarUser.textContent = currentUser.name;
 
+    detectUserRole();
     applyUnitFilter();
 
     // Set calendar filter to user's company
@@ -4537,7 +4581,16 @@ function openSignEquipment() {
     document.getElementById('signEquipInfo').innerHTML = '';
     document.getElementById('signEquipSearch').value = '';
     document.getElementById('signSoldierInfo').style.display = 'none';
-    document.getElementById('signCompany').value = 'all';
+    // Company filtering: non-palsam/gdudi locked to own company
+    const signCompGroup = document.getElementById('signCompanyGroup');
+    const signCompDd = document.getElementById('signCompany');
+    if (currentUser.unit !== 'palsam' && currentUser.unit !== 'gdudi') {
+        signCompDd.value = currentUser.unit;
+        if (signCompGroup) signCompGroup.style.display = 'none';
+    } else {
+        signCompDd.value = 'all';
+        if (signCompGroup) signCompGroup.style.display = '';
+    }
     updateSignSoldiers();
     // Clear edit context
     delete document.getElementById('signEquipmentModal').dataset.editLogId;
@@ -4695,6 +4748,7 @@ function onSignSoldierSelect() {
 }
 
 function confirmSignEquipment() {
+    if (!canSignEquipment()) { showToast('אין לך הרשאה להחתים ציוד', 'error'); return; }
     const selectedItems = getSelectedSignEquipItems();
     const soldierId = document.getElementById('signSoldier').value;
     const editLogId = document.getElementById('signEquipmentModal').dataset.editLogId || '';
@@ -4785,7 +4839,10 @@ function confirmSignEquipment() {
         soldierPhone: sol.phone || '',
         soldierPersonalId: sol.personalId || '',
         date: dateStr,
-        signatureImg
+        signatureImg,
+        issuedBy: currentUser.name || '',
+        issuerUnit: currentUser.unit || '',
+        issuerRole: currentUser.role || ''
     };
     state.signatureLog.push(logEntry);
     saveState();
@@ -4801,17 +4858,19 @@ function confirmSignEquipment() {
     showToast(`${sol.name} חתם על ${selectedEquip.length} פריטים: ${itemNames}`);
 }
 
-// --- Return Equipment ---
+// --- Return Equipment (soldier-first flow) ---
 function openReturnEquipment() {
-    const sel = document.getElementById('returnEquipSelect');
-    sel.innerHTML = '<option value="">-- בחר פריט --</option>';
-    state.equipment.filter(e => e.holderId).forEach(e => {
-        const opt = document.createElement('option');
-        opt.value = e.id;
-        opt.textContent = `${e.type} | ${e.serial} | מחזיק: ${e.holderName}`;
-        sel.appendChild(opt);
-    });
-    document.getElementById('returnEquipInfo').style.display = 'none';
+    const compDd = document.getElementById('returnCompany');
+    const compGroup = document.getElementById('returnCompanyGroup');
+    if (currentUser.unit !== 'palsam' && currentUser.unit !== 'gdudi') {
+        compDd.value = currentUser.unit;
+        if (compGroup) compGroup.style.display = 'none';
+    } else {
+        compDd.value = 'all';
+        if (compGroup) compGroup.style.display = '';
+    }
+    updateReturnSoldiers();
+    document.getElementById('returnSoldierEquipCard').style.display = 'none';
     document.getElementById('returnNotes').value = '';
     openModal('returnEquipmentModal');
     setTimeout(() => {
@@ -4820,67 +4879,119 @@ function openReturnEquipment() {
     }, 100);
 }
 
-function onReturnEquipSelect() {
-    const id = document.getElementById('returnEquipSelect').value;
-    const info = document.getElementById('returnEquipInfo');
-    if (!id) { info.style.display = 'none'; return; }
-    const eq = state.equipment.find(e => e.id === id);
-    if (!eq) return;
-    info.style.display = '';
-    const sol = state.soldiers.find(s => s.id === eq.holderId);
-    info.innerHTML = `
-        <strong>${eq.type}</strong> | מס': <strong>${eq.serial}</strong><br>
-        מחזיק: <strong>${eq.holderName}</strong> | ${eq.holderPhone || ''}<br>
-        תאריך חתימה: ${eq.assignedDate ? formatDate(eq.assignedDate.split('T')[0]) : '-'}
-    `;
+function updateReturnSoldiers() {
+    const company = document.getElementById('returnCompany').value;
+    const sel = document.getElementById('returnSoldier');
+    sel.innerHTML = '<option value="">-- בחר חייל --</option>';
+    const holdingIds = new Set(state.equipment.filter(e => e.holderId).map(e => e.holderId));
+    let soldiers = state.soldiers.filter(s => holdingIds.has(s.id));
+    if (company !== 'all') soldiers = soldiers.filter(s => s.company === company);
+    soldiers.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+    soldiers.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        const compName = companyData[s.company]?.name || s.company;
+        opt.textContent = `${s.name} (${s.role || 'לוחם'}) - ${compName}`;
+        sel.appendChild(opt);
+    });
+    document.getElementById('returnSoldierEquipCard').style.display = 'none';
+}
+
+function onReturnSoldierSelect() {
+    const soldierId = document.getElementById('returnSoldier').value;
+    const card = document.getElementById('returnSoldierEquipCard');
+    if (!soldierId) { card.style.display = 'none'; return; }
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    const heldItems = state.equipment.filter(e => e.holderId === soldierId);
+    if (!sol || heldItems.length === 0) {
+        card.style.display = '';
+        card.innerHTML = '<p style="color:var(--text-light);padding:8px;">לחייל זה אין ציוד מוחזק</p>';
+        return;
+    }
+    card.style.display = '';
+    card.innerHTML = `
+        <div style="background:var(--bg);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px;">
+            <strong>${esc(sol.name)}</strong> | ${esc(sol.role || 'לוחם')} | מ.א: ${esc(sol.personalId || '-')}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong>ציוד מוחזק (${heldItems.length} פריטים)</strong>
+            <div style="display:flex;gap:6px;">
+                <button type="button" class="btn btn-sm" style="background:var(--success);color:#fff;font-size:0.8em;" onclick="document.querySelectorAll('.return-equip-cb').forEach(c=>c.checked=true)">בחר הכל</button>
+                <button type="button" class="btn btn-sm" style="background:var(--bg);font-size:0.8em;" onclick="document.querySelectorAll('.return-equip-cb').forEach(c=>c.checked=false)">נקה הכל</button>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+                <thead><tr style="background:var(--primary);color:#fff;">
+                    <th style="padding:6px;width:30px;"></th>
+                    <th style="padding:6px;text-align:right;">סוג ציוד</th>
+                    <th style="padding:6px;">מספר צ'</th>
+                    <th style="padding:6px;">כמות</th>
+                    <th style="padding:6px;">תאריך חתימה</th>
+                </tr></thead>
+                <tbody>
+                    ${heldItems.map(e => `<tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:4px;text-align:center;"><input type="checkbox" class="return-equip-cb" value="${e.id}" checked></td>
+                        <td style="padding:4px 6px;font-weight:600;text-align:right;">${esc(e.type)}</td>
+                        <td style="padding:4px 6px;direction:ltr;text-align:center;">${esc(e.serial || '-')}</td>
+                        <td style="padding:4px 6px;text-align:center;">${e.defaultQty || 1}</td>
+                        <td style="padding:4px 6px;text-align:center;">${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
 }
 
 function confirmReturnEquipment() {
-    const equipId = document.getElementById('returnEquipSelect').value;
-    if (!equipId) { showToast('יש לבחור פריט', 'error'); return; }
+    if (!canSignEquipment()) { showToast('אין לך הרשאה לזכות ציוד', 'error'); return; }
+    const checkedIds = Array.from(document.querySelectorAll('.return-equip-cb:checked')).map(cb => cb.value);
+    if (checkedIds.length === 0) { showToast('יש לבחור לפחות פריט אחד להחזרה', 'error'); return; }
     if (isCanvasEmpty('returnSignatureCanvas')) { showToast('יש לחתום על המסך', 'error'); return; }
 
-    const eq = state.equipment.find(e => e.id === equipId);
-    if (!eq) return;
-
+    const soldierId = document.getElementById('returnSoldier').value;
+    const sol = state.soldiers.find(s => s.id === soldierId);
     const signatureImg = getCanvasDataURL('returnSignatureCanvas');
     const returnNotes = document.getElementById('returnNotes').value.trim();
     const now = new Date();
-    const sol = state.soldiers.find(s => s.id === eq.holderId);
 
-    // Log entry
+    const returnedItems = [];
+    checkedIds.forEach(equipId => {
+        const eq = state.equipment.find(e => e.id === equipId);
+        if (!eq) return;
+        returnedItems.push({ equipId: eq.id, equipType: eq.type, equipSerial: eq.serial, equipQty: eq.defaultQty || 1 });
+        eq.holderId = null;
+        eq.holderName = '';
+        eq.holderPhone = '';
+        eq.assignedDate = null;
+        eq.signatureImg = null;
+        if (returnNotes) eq.notes = returnNotes;
+    });
+
+    if (returnedItems.length === 0) return;
+
     const logEntry = {
         id: 'sig_' + Date.now(),
         type: 'return',
-        equipId: eq.id,
-        equipType: eq.type,
-        equipSerial: eq.serial,
-        soldierId: eq.holderId,
-        soldierName: eq.holderName,
-        soldierPhone: eq.holderPhone || '',
-        soldierPersonalId: sol ? sol.personalId || '' : '',
+        equipId: returnedItems[0].equipId,
+        equipType: returnedItems[0].equipType,
+        equipSerial: returnedItems[0].equipSerial,
+        equipItems: returnedItems,
+        soldierId: soldierId,
+        soldierName: sol?.name || '',
+        soldierPhone: sol?.phone || '',
+        soldierPersonalId: sol?.personalId || '',
         date: now.toISOString(),
         signatureImg,
-        notes: returnNotes
+        notes: returnNotes,
+        issuedBy: currentUser.name,
+        issuerUnit: currentUser.unit
     };
     state.signatureLog.push(logEntry);
-
-    // Clear equipment holder
-    eq.holderId = null;
-    eq.holderName = '';
-    eq.holderPhone = '';
-    eq.assignedDate = null;
-    eq.signatureImg = null;
-    if (returnNotes) eq.notes = returnNotes;
-
     saveState();
-
-    // Generate PDF
-    generateReturnPDF(logEntry, eq);
 
     closeModal('returnEquipmentModal');
     renderEquipmentTab();
-    showToast(`ציוד ${eq.type} (${eq.serial}) זוכה בהצלחה`);
+    showToast(`${returnedItems.length} פריטים זוכו בהצלחה מ-${sol?.name || ''}`);
 }
 
 // --- Render Equipment Tab ---
@@ -4893,6 +5004,12 @@ function setEquipmentFilter(filter, btn) {
 }
 
 function renderEquipmentTab() {
+    // Toggle sign/return buttons based on permission
+    const btnSign = document.getElementById('btnSignEquip');
+    const btnReturn = document.getElementById('btnReturnEquip');
+    if (btnSign) btnSign.style.display = canSignEquipment() ? '' : 'none';
+    if (btnReturn) btnReturn.style.display = canSignEquipment() ? '' : 'none';
+
     const searchInput = document.getElementById('equipmentSearch');
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
@@ -5010,7 +5127,7 @@ function renderSignatureHistory() {
             <div class="sig-info">
                 <h4>${isReturn ? '&#8634; זיכוי' : '&#9998; חתימה'} - ${equipDisplay}</h4>
                 <div class="meta">${log.soldierName} | ${log.soldierPersonalId || ''} | ${log.soldierPhone || ''}</div>
-                <div class="meta">${dateFormatted}${log.notes ? ' | ' + log.notes : ''}</div>
+                <div class="meta">${dateFormatted}${log.issuedBy ? ' | מחתים: ' + log.issuedBy : ''}${log.notes ? ' | ' + log.notes : ''}</div>
             </div>
             <div class="sig-actions">
                 <img class="sig-preview" src="${log.signatureImg}" alt="חתימה">
@@ -5174,6 +5291,15 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             <tbody>${itemRows}</tbody>
         </table>
 
+        <!-- Issuer -->
+        ${logEntry.issuedBy ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;border-bottom:1px solid #d0d7de;">מחתים</div>
+            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${logEntry.issuedBy}</div>
+            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;">תפקיד / יחידה</div>
+            <div style="padding:9px 14px;border-right:1px solid #d0d7de;">${logEntry.issuerRole || ''} ${logEntry.issuerUnit ? '| ' + logEntry.issuerUnit : ''}</div>
+        </div>` : ''}
+
         <!-- Declaration -->
         <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:12px 16px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:24px;line-height:1.6;">
             אני הח"מ מאשר/ת שקיבלתי לידי את הציוד המפורט לעיל במצב תקין, ואני מתחייב/ת לשמור עליו ולהחזירו במצבו כפי שקיבלתי אותו.
@@ -5222,6 +5348,8 @@ function generateReturnPDF(logEntry, eq) {
             <tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">טלפון:</td><td style="padding:8px;direction:ltr;">${logEntry.soldierPhone || '-'}</td>
                 <td style="padding:8px;font-weight:700;background:#FFF3E0;">סוג פעולה:</td><td style="padding:8px;color:#E65100;font-weight:700;">זיכוי / החזרת ציוד</td></tr>
             ${logEntry.notes ? `<tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">הערות:</td><td colspan="3" style="padding:8px;">${logEntry.notes}</td></tr>` : ''}
+            ${logEntry.issuedBy ? `<tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">מזכה:</td><td style="padding:8px;">${logEntry.issuedBy}</td>
+                <td style="padding:8px;font-weight:700;background:#FFF3E0;">תפקיד:</td><td style="padding:8px;">${logEntry.issuerRole || ''} ${logEntry.issuerUnit ? '| ' + logEntry.issuerUnit : ''}</td></tr>` : ''}
         </table>
         <div style="text-align:center;margin-bottom:10px;font-weight:700;">חתימת מחזיר:</div>
         <div style="text-align:center;">
@@ -5995,11 +6123,272 @@ function switchEquipmentSubTab(tab) {
     const target = document.getElementById('subtab-' + tab);
     if (target) target.style.display = '';
     const btns = document.querySelectorAll('#equipmentSubTabs .subtab-btn');
-    const idx = { items: 0, pakal: 1, dashboard: 2 }[tab] || 0;
+    const idx = { items: 0, pakal: 1, dashboard: 2, reports: 3 }[tab] || 0;
     if (btns[idx]) btns[idx].classList.add('active');
 
     if (tab === 'pakal') renderPakalSubTab();
     if (tab === 'dashboard') renderPalsamDashboard();
+    if (tab === 'reports') renderEquipmentReports();
+}
+
+// --- Equipment Reports ---
+function renderEquipmentReports() {
+    const container = document.getElementById('equipmentReportContent');
+    const filterGroup = document.getElementById('reportFilterGroup');
+    const filterSelect = document.getElementById('reportFilter');
+    const reportType = document.getElementById('reportType')?.value || 'byCategory';
+    if (!container) return;
+
+    const equip = state.equipment || [];
+
+    // Update filter options based on report type
+    if (filterSelect) {
+        const prev = filterSelect.value;
+        let opts = '<option value="all">הכל</option>';
+        if (reportType === 'byCategory') {
+            const cats = [...new Set(equip.map(e => e.category || 'כללי'))].sort();
+            cats.forEach(c => opts += `<option value="${c}">${c}</option>`);
+        } else if (reportType === 'byType') {
+            const types = [...new Set(equip.map(e => e.type))].sort();
+            types.forEach(t => opts += `<option value="${t}">${t}</option>`);
+        } else if (reportType === 'byCompany') {
+            const companies = [...new Set(state.soldiers.map(s => s.company).filter(Boolean))].sort();
+            companies.forEach(c => opts += `<option value="${c}">${c}</option>`);
+        }
+        filterSelect.innerHTML = opts;
+        if (filterSelect.querySelector(`option[value="${prev}"]`)) filterSelect.value = prev;
+        filterGroup.style.display = (reportType === 'unsigned' || reportType === 'byHolder') ? 'none' : '';
+    }
+
+    const filterVal = filterSelect?.value || 'all';
+    let html = '';
+
+    if (reportType === 'byCategory') {
+        html = _reportByCategory(equip, filterVal);
+    } else if (reportType === 'byType') {
+        html = _reportByType(equip, filterVal);
+    } else if (reportType === 'byHolder') {
+        html = _reportByHolder(equip);
+    } else if (reportType === 'byCompany') {
+        html = _reportByCompany(equip, filterVal);
+    } else if (reportType === 'unsigned') {
+        html = _reportUnsigned(equip);
+    }
+
+    container.innerHTML = html || '<div class="empty-state"><p>אין נתונים להצגה</p></div>';
+}
+
+function _reportByCategory(equip, filterVal) {
+    const grouped = {};
+    equip.forEach(e => {
+        const cat = e.category || 'כללי';
+        if (filterVal !== 'all' && cat !== filterVal) return;
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(e);
+    });
+    if (!Object.keys(grouped).length) return '';
+    return Object.keys(grouped).sort().map(cat => {
+        const items = grouped[cat];
+        const assigned = items.filter(i => i.holderId).length;
+        return `<div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;">&#128230;</div>${cat} (${items.length} פריטים, ${assigned} מוחזקים)</div>
+            <table class="data-table" style="width:100%;font-size:0.88em;">
+                <thead><tr><th>פריט</th><th>מס' צ'</th><th>מחזיק</th><th>סטטוס</th></tr></thead>
+                <tbody>${items.map(i => `<tr>
+                    <td>${i.type}</td><td style="direction:ltr;font-family:monospace;">${i.serial}</td>
+                    <td>${i.holderName || '-'}</td>
+                    <td>${i.holderId ? '<span style="color:#27ae60;">מוחזק</span>' : i.status === 'faulty' ? '<span style="color:#e74c3c;">תקול</span>' : '<span style="color:#7f8c8d;">פנוי</span>'}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+    }).join('');
+}
+
+function _reportByType(equip, filterVal) {
+    const grouped = {};
+    equip.forEach(e => {
+        if (filterVal !== 'all' && e.type !== filterVal) return;
+        if (!grouped[e.type]) grouped[e.type] = [];
+        grouped[e.type].push(e);
+    });
+    if (!Object.keys(grouped).length) return '';
+    return Object.keys(grouped).sort().map(type => {
+        const items = grouped[type];
+        const assigned = items.filter(i => i.holderId).length;
+        return `<div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;">&#128295;</div>${type} (${items.length} יחידות, ${assigned} מוחזקים)</div>
+            <table class="data-table" style="width:100%;font-size:0.88em;">
+                <thead><tr><th>מס' צ'</th><th>קטגוריה</th><th>מחזיק</th><th>מ.א</th><th>פלוגה</th></tr></thead>
+                <tbody>${items.map(i => {
+                    const sol = i.holderId ? state.soldiers.find(s => s.id === i.holderId) : null;
+                    return `<tr>
+                        <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
+                        <td>${i.category || '-'}</td>
+                        <td>${i.holderName || '-'}</td>
+                        <td>${sol?.personalId || '-'}</td>
+                        <td>${sol?.company || '-'}</td>
+                    </tr>`;
+                }).join('')}</tbody>
+            </table>
+        </div>`;
+    }).join('');
+}
+
+function _reportByHolder(equip) {
+    const holders = {};
+    equip.filter(e => e.holderId).forEach(e => {
+        if (!holders[e.holderId]) holders[e.holderId] = { name: e.holderName, items: [] };
+        holders[e.holderId].items.push(e);
+    });
+    if (!Object.keys(holders).length) return '<div class="empty-state"><p>אין ציוד מוחזק</p></div>';
+    return Object.entries(holders).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
+        const sol = state.soldiers.find(s => s.id === id);
+        return `<div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;">&#128100;</div>${h.name} ${sol ? '(' + (sol.personalId || '') + ' | ' + (sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
+            <table class="data-table" style="width:100%;font-size:0.88em;">
+                <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>תאריך קבלה</th></tr></thead>
+                <tbody>${h.items.map(i => `<tr>
+                    <td>${i.type}</td><td style="direction:ltr;font-family:monospace;">${i.serial}</td>
+                    <td>${i.category || '-'}</td>
+                    <td>${i.assignedDate ? new Date(i.assignedDate).toLocaleDateString('he-IL') : '-'}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+    }).join('');
+}
+
+function _reportByCompany(equip, filterVal) {
+    const companies = {};
+    equip.filter(e => e.holderId).forEach(e => {
+        const sol = state.soldiers.find(s => s.id === e.holderId);
+        const comp = sol?.company || 'לא משויך';
+        if (filterVal !== 'all' && comp !== filterVal) return;
+        if (!companies[comp]) companies[comp] = {};
+        if (!companies[comp][e.holderId]) companies[comp][e.holderId] = { name: e.holderName, items: [] };
+        companies[comp][e.holderId].items.push(e);
+    });
+    if (!Object.keys(companies).length) return '<div class="empty-state"><p>אין נתונים</p></div>';
+    return Object.keys(companies).sort().map(comp => {
+        const soldiers = companies[comp];
+        const totalItems = Object.values(soldiers).reduce((s, h) => s + h.items.length, 0);
+        return `<div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;">&#127968;</div>${comp} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
+            <table class="data-table" style="width:100%;font-size:0.88em;">
+                <thead><tr><th>חייל</th><th>מ.א</th><th>מספר פריטים</th><th>פריטים</th></tr></thead>
+                <tbody>${Object.entries(soldiers).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
+                    const sol = state.soldiers.find(s => s.id === id);
+                    return `<tr>
+                        <td>${h.name}</td>
+                        <td>${sol?.personalId || '-'}</td>
+                        <td>${h.items.length}</td>
+                        <td style="font-size:0.85em;">${h.items.map(i => i.type).join(', ')}</td>
+                    </tr>`;
+                }).join('')}</tbody>
+            </table>
+        </div>`;
+    }).join('');
+}
+
+function _reportUnsigned(equip) {
+    const unsigned = equip.filter(e => !e.holderId && e.status !== 'faulty');
+    if (!unsigned.length) return '<div class="empty-state"><p>כל הציוד מוחזק &#10003;</p></div>';
+    return `<div class="sub-section">
+        <div class="section-title"><div class="icon" style="background:#FFF3E0;color:#E65100;">&#9888;</div>ציוד לא מוחתם (${unsigned.length} פריטים)</div>
+        <table class="data-table" style="width:100%;font-size:0.88em;">
+            <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>הערות</th></tr></thead>
+            <tbody>${unsigned.map(i => `<tr>
+                <td>${i.type}</td><td style="direction:ltr;font-family:monospace;">${i.serial}</td>
+                <td>${i.category || '-'}</td><td>${i.notes || '-'}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+    </div>`;
+}
+
+function _getReportData() {
+    const reportType = document.getElementById('reportType')?.value || 'byCategory';
+    const filterVal = document.getElementById('reportFilter')?.value || 'all';
+    const equip = state.equipment || [];
+    const rows = [];
+
+    if (reportType === 'byCategory' || reportType === 'byType') {
+        equip.forEach(e => {
+            const cat = e.category || 'כללי';
+            if (reportType === 'byCategory' && filterVal !== 'all' && cat !== filterVal) return;
+            if (reportType === 'byType' && filterVal !== 'all' && e.type !== filterVal) return;
+            const sol = e.holderId ? state.soldiers.find(s => s.id === e.holderId) : null;
+            rows.push({
+                'סוג': e.type, 'מס צ': e.serial, 'קטגוריה': cat,
+                'מחזיק': e.holderName || '', 'מ.א': sol?.personalId || '', 'פלוגה': sol?.company || '',
+                'סטטוס': e.holderId ? 'מוחזק' : e.status === 'faulty' ? 'תקול' : 'פנוי'
+            });
+        });
+    } else if (reportType === 'byHolder') {
+        equip.filter(e => e.holderId).forEach(e => {
+            const sol = state.soldiers.find(s => s.id === e.holderId);
+            rows.push({
+                'חייל': e.holderName || '', 'מ.א': sol?.personalId || '', 'פלוגה': sol?.company || '',
+                'פריט': e.type, 'מס צ': e.serial, 'קטגוריה': e.category || '',
+                'תאריך קבלה': e.assignedDate ? new Date(e.assignedDate).toLocaleDateString('he-IL') : ''
+            });
+        });
+    } else if (reportType === 'byCompany') {
+        equip.filter(e => e.holderId).forEach(e => {
+            const sol = state.soldiers.find(s => s.id === e.holderId);
+            const comp = sol?.company || 'לא משויך';
+            if (filterVal !== 'all' && comp !== filterVal) return;
+            rows.push({
+                'פלוגה': comp, 'חייל': e.holderName || '', 'מ.א': sol?.personalId || '',
+                'פריט': e.type, 'מס צ': e.serial, 'קטגוריה': e.category || ''
+            });
+        });
+    } else if (reportType === 'unsigned') {
+        equip.filter(e => !e.holderId && e.status !== 'faulty').forEach(e => {
+            rows.push({ 'פריט': e.type, 'מס צ': e.serial, 'קטגוריה': e.category || '', 'הערות': e.notes || '' });
+        });
+    }
+    return rows;
+}
+
+function exportReportCSV() {
+    const rows = _getReportData();
+    if (!rows.length) { showToast('אין נתונים לייצוא', 'error'); return; }
+    const headers = Object.keys(rows[0]);
+    const bom = '\uFEFF';
+    const csv = bom + headers.join(',') + '\n' + rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const reportType = document.getElementById('reportType')?.value || 'report';
+    a.download = `דוח_ציוד_${reportType}_${new Date().toLocaleDateString('he-IL').replace(/\./g, '-')}.csv`;
+    a.click();
+    showToast('קובץ CSV הורד');
+}
+
+function exportReportPDF() {
+    const rows = _getReportData();
+    if (!rows.length) { showToast('אין נתונים לייצוא', 'error'); return; }
+    const headers = Object.keys(rows[0]);
+    const reportType = document.getElementById('reportType')?.value || '';
+    const reportNames = { byCategory: 'לפי קטגוריה', byType: 'לפי סוג ציוד', byHolder: 'לפי מחזיק', byCompany: 'לפי פלוגה', unsigned: 'ציוד לא מוחתם' };
+    const title = 'דוח ציוד — ' + (reportNames[reportType] || reportType);
+    const dateStr = new Date().toLocaleDateString('he-IL');
+
+    const thStyle = 'padding:7px 10px;background:#1a3a5c;color:white;text-align:right;border:1px solid #1a3a5c;font-size:0.85em;';
+    const tdStyle = 'padding:6px 10px;border:1px solid #dfe6e9;font-size:0.83em;text-align:right;';
+
+    const html = `<div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:780px;margin:auto;padding:28px;">
+        <div style="text-align:center;margin-bottom:18px;">
+            <h2 style="color:#1a3a5c;margin:0 0 4px;">${title}</h2>
+            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">תאריך: ${dateStr} | סה"כ ${rows.length} שורות</p>
+            <hr style="border:none;border-top:2px solid #1a3a5c;margin:12px 0;">
+        </div>
+        <table style="width:100%;border-collapse:collapse;">
+            <thead><tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map(r => `<tr>${headers.map(h => `<td style="${tdStyle}">${r[h] || ''}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+        <div style="text-align:center;margin-top:16px;font-size:0.72em;color:#aaa;">מערכת ניהול גדודי | ${dateStr}</div>
+    </div>`;
+    downloadPDF(html, `דוח_ציוד_${reportType}_${dateStr.replace(/\./g, '-')}`);
 }
 
 // --- Generate Personal Equipment ---
