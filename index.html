@@ -21,6 +21,14 @@
         <img src="logo.png" alt="גדוד יהודה" style="width:100px;height:100px;border-radius:50%;margin-bottom:16px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
         <h2>מערכת ניהול גדודי</h2>
         <div class="subtitle">תעסוקה מבצעית - כניסה למערכת</div>
+
+        <!-- Role holders quick-select -->
+        <div id="roleHoldersList" style="margin:12px 0;max-height:180px;overflow-y:auto;"></div>
+
+        <div class="login-field">
+            <label>מספר אישי (מ.א)</label>
+            <input type="text" id="loginPersonalId" placeholder="הזן מ.א לזיהוי מהיר" autocomplete="off" oninput="autoIdentifyByPersonalId()">
+        </div>
         <div class="login-field">
             <label>שם מלא</label>
             <input type="text" id="loginName" placeholder="הכנס את שמך" autocomplete="off">

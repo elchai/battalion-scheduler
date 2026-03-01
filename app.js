@@ -17,28 +17,28 @@ const DEFAULT_SETTINGS = {
             items: [
                 // ציוד עם מספר צ'
                 { name: 'נשק', quantity: 1, category: 'נשק', requiresSerial: true, serialNumber: '991247' },
-                { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'נשק', requiresSerial: true, serialNumber: '993518' },
-                { name: 'כוונת טריג\'יקון', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '994082' },
-                { name: 'כוונת לילה אקילה', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '992674' },
-                { name: 'ליונט', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '995831' },
-                { name: 'אול"ר', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '990456' },
+                { name: 'כוונת טריג\'יקון', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '994082' },
+                { name: 'כוונת לילה אקילה', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '992674' },
+                { name: 'ליונט', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '995831' },
+                { name: 'אול"ר', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '990456' },
                 { name: 'מכשיר קשר 624', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '997319' },
+                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '993960' },
                 // ציוד ללא מספר צ'
                 { name: 'מע"ד למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
                 { name: 'ערכת מדונה למכשיר קשר', quantity: 1, category: 'קשר', requiresSerial: false },
                 { name: 'סוללה ל-624', quantity: 1, category: 'קשר', requiresSerial: false },
                 { name: 'סוללה לעכבר', quantity: 1, category: 'קשר', requiresSerial: false },
-                { name: 'מדים (2 חולצות + 2 מכנסיים)', quantity: 1, category: 'אחר', requiresSerial: false },
-                { name: 'נעליים צבאיות', quantity: 1, category: 'אחר', requiresSerial: false },
-                { name: 'אפוד קרב', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'כיסוי קסדה', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'מחסניות M16', quantity: 5, category: 'תחמושת', requiresSerial: false },
-                { name: 'תחבושת אישית', quantity: 1, category: 'רפואי', requiresSerial: false },
-                { name: 'חוסם עורקים CAT', quantity: 1, category: 'רפואי', requiresSerial: false },
-                { name: 'מצנפת לקסדה', quantity: 1, category: 'מגן', requiresSerial: false },
-                { name: 'ברכיות', quantity: 2, category: 'מגן', requiresSerial: false },
-                { name: 'חגורה צבאית', quantity: 1, category: 'אחר', requiresSerial: false }
+                { name: 'מדים (2 חולצות + 2 מכנסיים)', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'נעליים צבאיות', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'אפוד קרב', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'קסדה', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'כיסוי קסדה', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'מחסניות M16', quantity: 5, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'תחבושת אישית', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'חוסם עורקים CAT', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'מצנפת לקסדה', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'ברכיות', quantity: 2, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'חגורה צבאית', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false }
             ]
         },
         roleSets: [{
@@ -46,9 +46,9 @@ const DEFAULT_SETTINGS = {
             name: 'ערכת מפקד',
             roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'סמ"ח'],
             items: [
-                { name: 'משקפת שדה', quantity: 1, category: 'תצפית', requiresSerial: true, serialNumber: '998142' },
-                { name: 'מצפן', quantity: 1, category: 'שטח', requiresSerial: true, serialNumber: '996705' },
-                { name: 'אמר"ל עכבר', quantity: 1, category: 'קשר', requiresSerial: true, serialNumber: '993960' }
+                { name: 'כוונת השלכה מפרולייט', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '993518' },
+                { name: 'משקפת שדה', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '998142' },
+                { name: 'מצפן', quantity: 1, category: 'לוגיסטיקה', requiresSerial: true, serialNumber: '996705' }
             ]
         }],
         defaultSigningUnit: 'פלוגת פלס"ם',
@@ -76,12 +76,12 @@ function migrateEquipmentSets() {
     settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
     if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
 
-    // Migration v20: force-reset baseSet (22 items + serial numbers) + clean roleSets
-    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 20) {
+    // Migration v21: reset baseSet (new categories + אמר"ל עכבר) + commanderSet (מפרולייט moved here)
+    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 21) {
         settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
         settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-        settings.equipmentSets._baseSetVer = 20;
-        settings.equipmentSets._roleSetVer = 20;
+        settings.equipmentSets._baseSetVer = 21;
+        settings.equipmentSets._roleSetVer = 21;
     }
     // Always clean up: remove empty/broken roleSets
     if (settings.equipmentSets.roleSets) {
@@ -127,13 +127,13 @@ function canView(compKey) {
 // --- Role detection & equipment signing permissions ---
 const SIGNING_ROLES = ['רס"פ', 'סרס"פ', 'סמ"ח', 'מ"כ', 'מ"פ', 'סמ"פ'];
 const WAREHOUSES = ['מחסן גדוד', 'מחסן אוגדה', 'ימ"ח רנטיס', 'אחר'];
+const EQUIPMENT_CATEGORIES = ['נשק', 'אופטיקה', 'קשר', 'לוגיסטיקה', 'אחר'];
 const CATEGORY_GROUPS = {
     'נשק': ['נשק'],
-    'אופטיקה': ['תצפית'],
+    'אופטיקה': ['אופטיקה', 'תצפית'],
     'קשר': ['קשר'],
-    'לוגיסטיקה': ['אחר', 'מגן', 'שטח'],
-    'רפואי': ['רפואי'],
-    'תחמושת': ['תחמושת']
+    'לוגיסטיקה': ['לוגיסטיקה', 'מגן', 'רפואי', 'שטח', 'תחמושת', 'טנ"א', 'אחר'],
+    'אחר': ['אחר']
 };
 
 function detectUserRole() {
@@ -175,6 +175,7 @@ function doLogin() {
     const name = document.getElementById('loginName').value.trim();
     const unit = document.getElementById('loginUnit').value;
     const password = document.getElementById('loginPassword').value;
+    const personalId = (document.getElementById('loginPersonalId')?.value || '').trim();
 
     if (!name) {
         document.getElementById('loginError').textContent = 'יש להזין שם';
@@ -192,11 +193,47 @@ function doLogin() {
         return;
     }
 
-    currentUser = { name, unit };
+    currentUser = { name, unit, personalId };
     sessionStorage.setItem('battalionUser', JSON.stringify(currentUser));
     document.getElementById('loginError').classList.remove('show');
     document.getElementById('loginPassword').value = '';
     activateApp();
+}
+
+function renderRoleHolders() {
+    const container = document.getElementById('roleHoldersList');
+    if (!container || !state.soldiers || !state.soldiers.length) return;
+    const roleHolders = state.soldiers.filter(s => s.role && SIGNING_ROLES.includes(s.role));
+    if (roleHolders.length === 0) return;
+    container.innerHTML = `<div style="font-size:0.8em;color:rgba(255,255,255,0.7);margin-bottom:6px;text-align:center;">בעלי תפקידים - לחץ לבחירה מהירה</div>` +
+        roleHolders.map(s => `
+            <div class="role-holder-card" onclick="selectRoleHolder('${s.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;margin:4px 0;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;color:white;font-size:0.85em;transition:background 0.2s;">
+                <span style="font-weight:600;">${esc(s.name)}</span>
+                <span style="opacity:0.7;">${esc(s.role || '')}</span>
+                <span style="opacity:0.5;font-family:monospace;direction:ltr;">${esc(s.personalId || '')}</span>
+            </div>
+        `).join('');
+}
+
+function selectRoleHolder(soldierId) {
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+    document.getElementById('loginName').value = sol.name;
+    const pidField = document.getElementById('loginPersonalId');
+    if (pidField) pidField.value = sol.personalId || '';
+    if (sol.company) document.getElementById('loginUnit').value = sol.company;
+    document.getElementById('loginPassword').focus();
+}
+
+function autoIdentifyByPersonalId() {
+    const pid = (document.getElementById('loginPersonalId')?.value || '').trim();
+    if (pid.length < 5) return;
+    const sol = state.soldiers.find(s => s.personalId === pid);
+    if (sol) {
+        document.getElementById('loginName').value = sol.name;
+        if (sol.company) document.getElementById('loginUnit').value = sol.company;
+        document.getElementById('loginPassword').focus();
+    }
 }
 
 function doLogout() {
@@ -579,19 +616,19 @@ function loadState() {
         saveState();
     }
 
+    // Migration: simplify categories to 5 (נשק, אופטיקה, קשר, לוגיסטיקה, אחר)
+    const CAT_MIGRATION = { 'תצפית':'אופטיקה', 'מגן':'לוגיסטיקה', 'רפואי':'לוגיסטיקה', 'שטח':'לוגיסטיקה', 'תחמושת':'לוגיסטיקה', 'טנ"א':'לוגיסטיקה' };
+    state.equipment.forEach(e => { if (CAT_MIGRATION[e.category]) e.category = CAT_MIGRATION[e.category]; });
+
     seedTestSoldier();
 }
 
 function detectCategoryFromType(type) {
-    if (!type) return 'אחר';
+    if (!type) return 'לוגיסטיקה';
     if (['נשק','M16','M4','MAG','נגב','רובה'].some(t => type.includes(t))) return 'נשק';
-    if (['כוונת','משקפת','אמר"ל','ליונט','אול"ר','תצפית'].some(t => type.includes(t))) return 'תצפית';
-    if (['קשר','624','מע"ד','מדונה','עכבר'].some(t => type.includes(t))) return 'קשר';
-    if (['קסדה','אפוד','מגן','ברכיות','כיסוי','מצנפת'].some(t => type.includes(t))) return 'מגן';
-    if (['תחבושת','CAT','רפואי','חובש'].some(t => type.includes(t))) return 'רפואי';
-    if (['מחסנית','תחמושת'].some(t => type.includes(t))) return 'תחמושת';
-    if (['מצפן'].some(t => type.includes(t))) return 'שטח';
-    return 'אחר';
+    if (['כוונת','משקפת','ליונט','אול"ר','תצפית','אקילה','טריגיקון','מפרולייט'].some(t => type.includes(t))) return 'אופטיקה';
+    if (['קשר','624','מע"ד','מדונה','עכבר','אמר"ל','סוללה'].some(t => type.includes(t))) return 'קשר';
+    return 'לוגיסטיקה';
 }
 
 function seedTestSoldier() {
@@ -730,6 +767,7 @@ async function init() {
     }
     // Auto-cleanup: remove shifts/leaves older than 30 days
     cleanupOldData();
+    renderRoleHolders();
     renderAll();
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('shiftDate').value = today;
@@ -4744,34 +4782,57 @@ async function deleteEquipment(id) {
 // --- Sign Equipment ---
 function openSignEquipment() {
     const container = document.getElementById('signEquipCheckboxList');
-    const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
-    const es = settings.equipmentSets || { baseSet: { items: [] } };
-    const baseItems = (es.baseSet && es.baseSet.items) || [];
+    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
+    const baseItems = (es.baseSet?.items) || [];
+    const cmdSet = (es.roleSets || []).find(rs => rs.id === 'rs_commander');
+    const cmdItems = cmdSet?.items || [];
 
     let html = '';
 
-    // Existing equipment (tracked inventory with serial)
+    // Section 1: סט ציוד ללוחם (checked by default)
+    html += `<div class="sign-group-header" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="signBaseSetToggle" checked onchange="toggleSignSet('baseset', this.checked)">
+        <label for="signBaseSetToggle" style="font-weight:700;cursor:pointer;">סט ציוד ללוחם (${baseItems.length} פריטים)</label>
+    </div>`;
+    html += `<div id="signBaseSetItems">`;
+    html += baseItems.map((item, i) => `
+        <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}" data-set="baseset">
+            <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked onchange="updateSignEquipSelection()">
+            <span class="sign-equip-name">${esc(item.name)}</span>
+            ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" value="${item.serialNumber||''}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
+            <span class="sign-equip-qty">x${item.quantity}</span>
+        </label>
+    `).join('');
+    html += `</div>`;
+
+    // Section 2: סט מפקד (optional, auto-checked for commanders)
+    if (cmdItems.length > 0) {
+        html += `<div class="sign-group-header" style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+            <input type="checkbox" id="signCmdSetToggle" onchange="toggleSignSet('cmdset', this.checked)">
+            <label for="signCmdSetToggle" style="font-weight:700;cursor:pointer;">סט מפקד (${cmdItems.length} פריטים נוספים)</label>
+        </div>`;
+        html += `<div id="signCmdSetItems" style="display:none;">`;
+        html += cmdItems.map((item, i) => `
+            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}" data-set="cmdset">
+                <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()">
+                <span class="sign-equip-name">${esc(item.name)}</span>
+                ${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" value="${item.serialNumber||''}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
+                <span class="sign-equip-qty">x${item.quantity}</span>
+            </label>
+        `).join('');
+        html += `</div>`;
+    }
+
+    // Section 3: Existing tracked equipment in inventory
+    const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
     if (availableEquip.length > 0) {
-        html += `<div class="sign-group-header">ציוד קיים במלאי</div>`;
+        html += `<div class="sign-group-header" style="margin-top:12px;">ציוד קיים במלאי (${availableEquip.length})</div>`;
         html += availableEquip.map(e => `
-            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(e.type)} ${esc(e.serial)} ${esc(e.notes || '')}">
+            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(e.type)} ${esc(e.serial)}">
                 <input type="checkbox" value="${e.id}" data-src="equip" onchange="updateSignEquipSelection()">
                 <span class="sign-equip-name">${esc(e.type)}</span>
                 <span class="sign-equip-serial">${esc(e.serial)}</span>
                 <span class="sign-equip-qty">x${e.defaultQty || 1}</span>
-            </label>
-        `).join('');
-    }
-
-    // BaseSet template items
-    if (baseItems.length > 0) {
-        html += `<div class="sign-group-header">סט ציוד ללוחם (${baseItems.length} פריטים)</div>`;
-        html += baseItems.map((item, i) => `
-            <label class="sign-equip-checkbox-item sign-equip-row" data-search="${esc(item.name)} ${item.category}">
-                <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()">
-                <span class="sign-equip-name">${esc(item.name)}</span>
-                ${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" value="${item.serialNumber||''}" placeholder="מס' צ'" onclick="event.stopPropagation()" style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82em;text-align:center;direction:ltr;">` : '<span class="sign-equip-serial" style="color:var(--text-light);font-size:0.78em;">—</span>'}
-                <span class="sign-equip-qty">x${item.quantity}</span>
             </label>
         `).join('');
     }
@@ -4808,6 +4869,26 @@ function filterSignEquipCheckboxes() {
     document.querySelectorAll('#signEquipCheckboxList .sign-equip-checkbox-item').forEach(item => {
         item.style.display = item.getAttribute('data-search').toLowerCase().includes(query) ? '' : 'none';
     });
+}
+
+function toggleSignSet(setType, checked) {
+    const container = setType === 'cmdset' ? document.getElementById('signCmdSetItems') : document.getElementById('signBaseSetItems');
+    if (!container) return;
+    container.style.display = checked ? '' : 'none';
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = checked; });
+    updateSignEquipSelection();
+}
+
+function onSignSoldierChange() {
+    const soldierId = document.getElementById('signSoldier')?.value;
+    if (!soldierId) return;
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    const cmdToggle = document.getElementById('signCmdSetToggle');
+    if (cmdToggle && sol) {
+        const isCommander = sol.role && SIGNING_ROLES.includes(sol.role);
+        cmdToggle.checked = isCommander;
+        toggleSignSet('cmdset', isCommander);
+    }
 }
 
 function updateSignEquipSelection() {
@@ -4854,11 +4935,24 @@ function updateSignEquipSelection() {
 
 function getSelectedSignEquipItems() {
     const checked = Array.from(document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked'));
-    return checked.map(cb => {
+    return checked.filter(cb => cb.dataset.src).map(cb => {
         if (cb.dataset.src === 'baseset') {
             const serialInput = document.querySelector(`.sign-bs-serial[data-bs-idx="${cb.value.replace('bs_', '')}"]`);
             return {
                 src: 'baseset',
+                id: cb.value,
+                name: cb.dataset.name,
+                qty: parseInt(cb.dataset.qty) || 1,
+                category: cb.dataset.category,
+                serialRequired: cb.dataset.serialReq === 'true',
+                serial: serialInput ? serialInput.value.trim() : ''
+            };
+        }
+        if (cb.dataset.src === 'cmdset') {
+            const serialInput = document.querySelector(`.sign-cmd-serial[data-cmd-idx="${cb.value.replace('cmd_', '')}"]`);
+            return {
+                src: 'cmdset',
+                id: cb.value,
                 name: cb.dataset.name,
                 qty: parseInt(cb.dataset.qty) || 1,
                 category: cb.dataset.category,
@@ -4947,6 +5041,8 @@ function onSignSoldierSelect() {
     if (!sol) return;
     info.style.display = '';
     info.innerHTML = `<strong>${esc(sol.name)}</strong> | ${esc(sol.role)} | ${esc(sol.personalId)} | ${esc(sol.phone) || 'אין טלפון'}`;
+    // Auto-toggle commander set based on soldier role
+    onSignSoldierChange();
 }
 
 function confirmSignEquipment() {
@@ -4999,6 +5095,26 @@ function confirmSignEquipment() {
                 serial: item.serial || '',
                 company: sol.company,
                 condition: 'תקין',
+                category: item.category || 'לוגיסטיקה',
+                holderId: null,
+                holderName: '',
+                holderPhone: '',
+                assignedDate: null,
+                signatureImg: null,
+                notes: '',
+                defaultQty: item.qty
+            };
+            state.equipment.push(newEq);
+            allEquip.push(newEq);
+        } else if (item.src === 'cmdset') {
+            // Auto-create equipment entry from commander set template
+            const newEq = {
+                id: 'eq_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                type: item.name,
+                serial: item.serial || '',
+                company: sol.company,
+                condition: 'תקין',
+                category: item.category || 'אחר',
                 holderId: null,
                 holderName: '',
                 holderPhone: '',
@@ -5014,6 +5130,27 @@ function confirmSignEquipment() {
 
     if (allEquip.length === 0) { showToast('שגיאה בבחירת ציוד', 'error'); return; }
 
+    // Validate no serial duplicates - prevent same צ' assigned to multiple soldiers
+    const serialErrors = [];
+    allEquip.forEach(eq => {
+        if (eq.serial) {
+            const existing = state.equipment.find(e => e.id !== eq.id && e.serial === eq.serial && e.holderId);
+            if (existing) {
+                const holder = state.soldiers.find(s => s.id === existing.holderId);
+                serialErrors.push(`מספר צ' ${eq.serial} (${eq.type}) כבר מוקצה ל-${holder?.name || 'חייל אחר'}`);
+            }
+        }
+    });
+    if (serialErrors.length > 0) {
+        showToast(serialErrors.join('\n'), 'error');
+        // Remove newly created equipment entries that failed validation
+        allEquip.forEach(eq => {
+            const idx = state.equipment.indexOf(eq);
+            if (idx !== -1 && !eq.holderId) state.equipment.splice(idx, 1);
+        });
+        return;
+    }
+
     // Update each equipment item - assign to soldier
     allEquip.forEach(eq => {
         eq.holderId = sol.id;
@@ -5021,6 +5158,8 @@ function confirmSignEquipment() {
         eq.holderPhone = sol.phone || '';
         eq.assignedDate = dateStr;
         eq.signatureImg = signatureImg;
+        eq.issuerId = currentUser.personalId || '';
+        eq.issuerName = currentUser.name || '';
     });
 
     // Create ONE batch log entry
@@ -5044,7 +5183,8 @@ function confirmSignEquipment() {
         signatureImg,
         issuedBy: currentUser.name || '',
         issuerUnit: currentUser.unit || '',
-        issuerRole: currentUser.role || ''
+        issuerRole: currentUser.role || '',
+        issuerPersonalId: currentUser.personalId || ''
     };
     state.signatureLog.push(logEntry);
     saveState();
@@ -5056,8 +5196,8 @@ function confirmSignEquipment() {
     closeModal('signEquipmentModal');
     renderEquipmentTab();
 
-    const itemNames = selectedEquip.map(e => e.type).join(', ');
-    showToast(`${sol.name} חתם על ${selectedEquip.length} פריטים: ${itemNames}`);
+    const itemNames = allEquip.map(e => e.type).join(', ');
+    showToast(`${sol.name} חתם על ${allEquip.length} פריטים: ${itemNames}`);
 }
 
 // --- Return Equipment (soldier-first flow) ---
@@ -5185,8 +5325,10 @@ function confirmReturnEquipment() {
         date: now.toISOString(),
         signatureImg,
         notes: returnNotes,
-        issuedBy: currentUser.name,
-        issuerUnit: currentUser.unit
+        issuedBy: currentUser.name || '',
+        issuerUnit: currentUser.unit || '',
+        issuerRole: currentUser.role || '',
+        issuerPersonalId: currentUser.personalId || ''
     };
     state.signatureLog.push(logEntry);
     saveState();
@@ -5507,10 +5649,12 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <!-- Issuer -->
         ${logEntry.issuedBy ? `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;margin-bottom:20px;">
-            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;border-bottom:1px solid #d0d7de;">מחתים</div>
+            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;border-bottom:1px solid #d0d7de;">מנפיק</div>
             <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${logEntry.issuedBy}</div>
-            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;">תפקיד / יחידה</div>
-            <div style="padding:9px 14px;border-right:1px solid #d0d7de;">${logEntry.issuerRole || ''} ${logEntry.issuerUnit ? '| ' + logEntry.issuerUnit : ''}</div>
+            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;border-bottom:1px solid #d0d7de;">תפקיד</div>
+            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</div>
+            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;">מ.א</div>
+            <div style="padding:9px 14px;border-right:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</div>
         </div>` : ''}
 
         <!-- Declaration -->
@@ -5562,7 +5706,8 @@ function generateReturnPDF(logEntry, eq) {
                 <td style="padding:8px;font-weight:700;background:#FFF3E0;">סוג פעולה:</td><td style="padding:8px;color:#E65100;font-weight:700;">זיכוי / החזרת ציוד</td></tr>
             ${logEntry.notes ? `<tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">הערות:</td><td colspan="3" style="padding:8px;">${logEntry.notes}</td></tr>` : ''}
             ${logEntry.issuedBy ? `<tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">מזכה:</td><td style="padding:8px;">${logEntry.issuedBy}</td>
-                <td style="padding:8px;font-weight:700;background:#FFF3E0;">תפקיד:</td><td style="padding:8px;">${logEntry.issuerRole || ''} ${logEntry.issuerUnit ? '| ' + logEntry.issuerUnit : ''}</td></tr>` : ''}
+                <td style="padding:8px;font-weight:700;background:#FFF3E0;">תפקיד:</td><td style="padding:8px;">${logEntry.issuerRole || ''} ${logEntry.issuerUnit ? '| ' + logEntry.issuerUnit : ''}</td></tr>
+            <tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">מ.א מזכה:</td><td colspan="3" style="padding:8px;">${logEntry.issuerPersonalId || '-'}</td></tr>` : ''}
         </table>
         <div style="text-align:center;margin-bottom:10px;font-weight:700;">חתימת מחזיר:</div>
         <div style="text-align:center;">
@@ -5912,6 +6057,7 @@ function confirmTransferEquipment() {
         issuedBy: currentUser.name || '',
         issuerUnit: currentUser.unit || '',
         issuerRole: currentUser.role || '',
+        issuerPersonalId: currentUser.personalId || '',
         issuerSignatureImg: transferState.issuerSigImg,
         notes: transferState.notes
     });
@@ -5934,6 +6080,7 @@ function confirmTransferEquipment() {
         issuedBy: currentUser.name || '',
         issuerUnit: currentUser.unit || '',
         issuerRole: currentUser.role || '',
+        issuerPersonalId: currentUser.personalId || '',
         issuerSignatureImg: transferState.issuerSigImg,
         notes: transferState.notes
     });
@@ -5957,8 +6104,8 @@ function confirmTransferEquipment() {
 // ==================== EXPORT WITH FILTERS ====================
 
 function openExportFilter() {
-    // Populate category checkboxes
-    const cats = [...new Set(state.equipment.map(e => e.category || 'אחר'))].sort();
+    // Populate category checkboxes (use standard 5 categories)
+    const cats = EQUIPMENT_CATEGORIES;
     const container = document.getElementById('exportCategoryChecks');
     container.innerHTML = cats.map(c =>
         `<label style="display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--bg);border-radius:var(--radius);cursor:pointer;font-size:0.88em;">
@@ -6822,7 +6969,7 @@ function renderEquipmentSetsSettings() {
                     <td style="padding:5px 8px;"><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;border:1px solid var(--border);padding:3px 6px;border-radius:4px;"></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:48px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;"></td>
                     <td style="padding:5px 4px;"><select onchange="updateBaseSetItem(${i},'category',this.value)" style="width:100%;border:1px solid var(--border);padding:3px;border-radius:4px;">
-                        ${['מגן','נשק','קשר','רפואי','שטח','תחמושת','תצפית','טנ"א','אחר'].map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+                        ${EQUIPMENT_CATEGORIES.map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                     </select></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)" title="דורש מספר צ'"></td>
                     <td style="padding:5px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" value="${item.serialNumber||''}" onchange="updateBaseSetItem(${i},'serialNumber',this.value)" style="width:80px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;font-family:monospace;font-size:0.85em;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
