@@ -65,30 +65,40 @@ function loadSettings() {
         const defaults = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         settings = { ...defaults, ...parsed };
         if (parsed.shiftPresets) settings.shiftPresets = { ...defaults.shiftPresets, ...parsed.shiftPresets };
-        if (defaults.equipmentSets) {
-            settings.equipmentSets = settings.equipmentSets || {};
-            settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
-            if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
-            // Migration v10: force-reset baseSet (22 items + serial numbers) + clean roleSets (1 commander set only)
-            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 10) {
-                settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
-                settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-                settings.equipmentSets._baseSetVer = 10;
-                settings.equipmentSets._roleSetVer = 10;
-            }
-            // Always clean up: remove empty/broken roleSets
-            if (settings.equipmentSets.roleSets) {
-                settings.equipmentSets.roleSets = settings.equipmentSets.roleSets.filter(rs => rs.id && rs.name && rs.name !== 'סט חדש');
-                if (!settings.equipmentSets.roleSets.length) {
-                    settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-                }
-            } else {
-                settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-            }
-            settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || defaults.equipmentSets.savedSignatures || {};
+        // equipmentSets migration moved to migrateEquipmentSets() - runs AFTER Firebase sync
+    }
+}
+
+// Must run AFTER Firebase sync completes to prevent Firestore from overwriting migrated data
+function migrateEquipmentSets() {
+    const defaults = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    if (!settings.equipmentSets) settings.equipmentSets = {};
+    settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
+    if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
+
+    // Migration v20: force-reset baseSet (22 items + serial numbers) + clean roleSets
+    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 20) {
+        settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
+        settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
+        settings.equipmentSets._baseSetVer = 20;
+        settings.equipmentSets._roleSetVer = 20;
+    }
+    // Always clean up: remove empty/broken roleSets
+    if (settings.equipmentSets.roleSets) {
+        settings.equipmentSets.roleSets = settings.equipmentSets.roleSets.filter(rs => rs.id && rs.name && rs.name !== 'סט חדש');
+        if (!settings.equipmentSets.roleSets.length) {
+            settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
         }
-        // Persist migration changes
-        saveSettings();
+    } else {
+        settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
+    }
+    settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || {};
+
+    // Save locally + FORCE push to Firestore (bypass debounce)
+    localStorage.setItem('battalionSettings', JSON.stringify(settings));
+    if (typeof db !== 'undefined' && db && firestoreReady) {
+        db.collection('battalion').doc('settings').set(JSON.parse(JSON.stringify(settings)))
+            .catch(err => console.warn('Migration Firestore save error:', err));
     }
 }
 
@@ -705,6 +715,9 @@ async function init() {
             console.warn('Firebase init load failed:', err);
         }
     }
+
+    // Run equipment migration AFTER Firestore data loaded (prevents overwrite race condition)
+    migrateEquipmentSets();
 
     // Force re-sync if data version changed (multi-sheet support)
     const dataVersion = 'v4_allsheets_fix';
@@ -4585,10 +4598,27 @@ function toggleCustomWarehouse() {
     if (grp) grp.style.display = sel && sel.value === 'אחר' ? '' : 'none';
 }
 
+function getEquipmentTypes() {
+    const types = new Set();
+    const es = settings.equipmentSets || {};
+    (es.baseSet?.items || []).forEach(item => types.add(item.name));
+    (es.roleSets || []).forEach(rs => (rs.items || []).forEach(item => types.add(item.name)));
+    types.add('אחר');
+    return [...types];
+}
+
+function populateEquipTypeDropdown() {
+    const select = document.getElementById('equipType');
+    if (!select) return;
+    const types = getEquipmentTypes();
+    select.innerHTML = types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+}
+
 function openAddEquipment() {
     document.getElementById('equipmentModalTitle').textContent = 'הוספת פריט ציוד';
     document.getElementById('equipEditId').value = '';
-    document.getElementById('equipType').value = 'נשק';
+    populateEquipTypeDropdown();
+    document.getElementById('equipType').value = getEquipmentTypes()[0] || 'נשק';
     document.getElementById('equipCustomTypeGroup').style.display = 'none';
     document.getElementById('equipSerial').value = '';
     document.getElementById('equipCompany').value = 'gdudi';
@@ -4605,7 +4635,8 @@ function openEditEquipment(id) {
     if (!eq) return;
     document.getElementById('equipmentModalTitle').textContent = 'עריכת פריט ציוד';
     document.getElementById('equipEditId').value = id;
-    const knownTypes = ['נשק','משקפת','אמר"ל','מצפן','מכ"מ','קשר','מגן בליסטי','קסדה','אפוד'];
+    populateEquipTypeDropdown();
+    const knownTypes = getEquipmentTypes();
     if (knownTypes.includes(eq.type)) {
         document.getElementById('equipType').value = eq.type;
         document.getElementById('equipCustomTypeGroup').style.display = 'none';
@@ -5740,13 +5771,22 @@ function renderTransferStep1(c) {
 function renderTransferStep2(c) {
     const heldItems = state.equipment.filter(e => e.holderId === transferState.sourceId);
     const sourceSoldier = state.soldiers.find(s => s.id === transferState.sourceId);
+    if (heldItems.length === 0) {
+        c.innerHTML = `<div style="margin-top:12px;text-align:center;padding:40px 20px;">
+            <i data-lucide="package-x" style="width:48px;height:48px;color:var(--text-light);margin-bottom:12px;"></i>
+            <p style="font-weight:600;margin-bottom:8px;">לחייל ${esc(sourceSoldier?.name || '')} אין ציוד מוקצה</p>
+            <p style="color:var(--text-light);font-size:0.9em;">יש להקצות ציוד דרך חתימה לפני ביצוע העברה</p>
+        </div>`;
+        refreshIcons();
+        return;
+    }
     c.innerHTML = `<div style="margin-top:12px;">
-        <p style="font-weight:600;margin-bottom:8px;">בחר ציוד להעברה מ: ${sourceSoldier?.name || ''}</p>
+        <p style="font-weight:600;margin-bottom:8px;">בחר ציוד להעברה מ: ${esc(sourceSoldier?.name || '')}</p>
         <div style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);">
             ${heldItems.map(e => `<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;">
                 <input type="checkbox" class="transfer-item-check" value="${e.id}" ${transferState.selectedItems.includes(e.id) ? 'checked' : ''}>
-                <span style="flex:1;font-weight:600;">${e.type}</span>
-                <span style="font-family:monospace;color:var(--text-light);direction:ltr;">${e.serial}</span>
+                <span style="flex:1;font-weight:600;">${esc(e.type)}</span>
+                <span style="font-family:monospace;color:var(--text-light);direction:ltr;">${esc(e.serial)}</span>
             </label>`).join('')}
         </div>
     </div>`;

@@ -81,8 +81,18 @@ async function firebaseLoadSettings() {
         const doc = await db.collection(DB_COLLECTION).doc('settings').get();
         if (doc.exists) {
             const remote = doc.data();
+            // Deep merge: preserve local equipmentSets if migration ran (more items = newer)
+            const localES = settings.equipmentSets;
             settings = { ...settings, ...remote };
             if (remote.shiftPresets) settings.shiftPresets = { ...settings.shiftPresets, ...remote.shiftPresets };
+            // Restore local equipmentSets if it has more baseSet items (migration ran locally)
+            if (localES && localES.baseSet && remote.equipmentSets && remote.equipmentSets.baseSet) {
+                const localCount = localES.baseSet.items?.length || 0;
+                const remoteCount = remote.equipmentSets.baseSet.items?.length || 0;
+                if (localCount > remoteCount) {
+                    settings.equipmentSets = localES;
+                }
+            }
             localStorage.setItem('battalionSettings', JSON.stringify(settings));
             return true;
         } else {
@@ -181,8 +191,17 @@ function setupRealtimeListeners() {
             const localJSON = JSON.stringify(settings);
             const remoteJSON = JSON.stringify(remote);
             if (localJSON !== remoteJSON) {
+                // Preserve local equipmentSets if migration gave it more items
+                const localES = settings.equipmentSets;
                 settings = { ...settings, ...remote };
                 if (remote.shiftPresets) settings.shiftPresets = { ...settings.shiftPresets, ...remote.shiftPresets };
+                if (localES && localES.baseSet && remote.equipmentSets && remote.equipmentSets.baseSet) {
+                    const localCount = localES.baseSet.items?.length || 0;
+                    const remoteCount = remote.equipmentSets.baseSet.items?.length || 0;
+                    if (localCount > remoteCount) {
+                        settings.equipmentSets = localES;
+                    }
+                }
                 localStorage.setItem('battalionSettings', JSON.stringify(settings));
             }
         }, err => console.warn('Settings listener error:', err));
