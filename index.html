@@ -1233,50 +1233,47 @@
 
 <!-- Sign Equipment Modal -->
 <div class="modal-overlay" id="signEquipmentModal">
-    <div class="modal" style="max-width:700px;">
+    <div class="modal" style="max-width:600px;">
         <div class="modal-header" style="background:#4CAF50;">
             <h3 id="signModalTitle">חתימה על ציוד</h3>
             <button class="modal-close" onclick="closeModal('signEquipmentModal')">&times;</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group" id="signEquipSelectGroup">
-                <label>בחר פריטי ציוד <span id="signEquipSelectedCount" style="color:var(--success);font-weight:700;"></span></label>
-                <input type="text" id="signEquipSearch" placeholder="חיפוש לפי שם פריט או מספר סידורי..." oninput="filterSignEquipCheckboxes()" style="margin-bottom:8px;">
-                <div id="signEquipCheckboxList" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);background:white;">
-                </div>
-            </div>
-            <div id="signEquipInfo" style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;display:none;">
-            </div>
-            <div class="form-group" id="signCompanyGroup">
-                <label>סנן לפי פלוגה</label>
-                <select id="signCompany" onchange="updateSignSoldiers()">
+        <div class="modal-body" style="padding:16px;">
+            <!-- Step 1: Soldier selection -->
+            <div class="form-group" id="signCompanyGroup" style="margin-bottom:8px;">
+                <select id="signCompany" onchange="updateSignSoldiers()" style="padding:6px 10px;font-size:0.85em;">
                     <option value="all">כל הפלוגות</option>
-                    <option value="a">פלוגה א (עתודה)</option>
-                    <option value="b">פלוגה ב (מבוא חורון)</option>
-                    <option value="c">פלוגה ג (חשמונאים)</option>
-                    <option value="d">פלוגה ד (443)</option>
-                    <option value="hq">חפ"ק מג"ד</option>
-                    <option value="palsam">פלס"ם</option>
+                    <option value="a">פלוגה א</option><option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option><option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק</option><option value="palsam">פלס"ם</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>חייל</label>
-                <select id="signSoldier" onchange="onSignSoldierSelect()">
+            <div class="form-group" style="margin-bottom:8px;">
+                <input type="text" id="signSoldierSearch" placeholder="חפש חייל לפי שם..." oninput="filterSignSoldiers()" style="padding:8px 12px;font-size:0.9em;">
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <select id="signSoldier" onchange="onSignSoldierSelect()" style="padding:8px 12px;font-size:0.9em;">
                     <option value="">-- בחר חייל --</option>
                 </select>
             </div>
-            <div id="signSoldierInfo" style="display:none;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;">
+            <div id="signSoldierInfo" style="display:none;background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;"></div>
+
+            <!-- Step 2: Equipment sets (shown after soldier selected) -->
+            <div id="signEquipSection" style="display:none;">
+                <div id="signEquipCheckboxList"></div>
             </div>
-            <div class="form-group">
-                <label>חתימה דיגיטלית (חתום עם האצבע או העכבר)</label>
+
+            <!-- Step 3: Signature -->
+            <div id="signSignatureSection" style="display:none;">
+                <div style="font-weight:600;font-size:0.85em;margin-bottom:6px;">חתימה דיגיטלית:</div>
                 <div class="signature-container">
-                    <canvas id="signatureCanvas" width="600" height="200"></canvas>
-                    <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearSignatureCanvas()">נקה חתימה</button>
+                    <canvas id="signatureCanvas" width="600" height="160"></canvas>
+                    <button class="btn btn-sm" style="background:var(--bg);margin-top:4px;" onclick="clearSignatureCanvas()">נקה</button>
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-success" onclick="confirmSignEquipment()">אשר חתימה</button>
+            <button class="btn btn-success" onclick="confirmSignEquipment()">אשר חתימה והדפס</button>
             <button class="btn" style="background:var(--bg)" onclick="closeModal('signEquipmentModal')">ביטול</button>
         </div>
     </div>

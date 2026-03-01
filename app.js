@@ -5043,82 +5043,16 @@ async function deleteEquipment(id) {
 
 // --- Sign Equipment ---
 function openSignEquipment() {
-    const container = document.getElementById('signEquipCheckboxList');
-    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
-    const baseItems = (es.baseSet?.items) || [];
-    const cmdSet = (es.roleSets || []).find(rs => rs.id === 'rs_commander');
-    const cmdItems = cmdSet?.items || [];
-
-    // Commander set exclusion: רס"פ and סרס"פ don't get commander set
-    const CMD_SET_EXCLUDED_ROLES = ['רס"פ', 'סרס"פ'];
-
-    let html = '';
-
-    // Section 1: סט ציוד ללוחם - clean table
-    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--primary);color:white;border-radius:8px 8px 0 0;margin-top:8px;">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:0.9em;">
-            <input type="checkbox" id="signBaseSetToggle" checked onchange="toggleSignSet('baseset', this.checked)" style="accent-color:white;">
-            סט ציוד ללוחם (${baseItems.length})
-        </label>
-    </div>`;
-    html += `<div id="signBaseSetItems"><table style="width:100%;border-collapse:collapse;font-size:0.84em;">
-        <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 10px;">פריט</th><th style="padding:4px 6px;width:100px;">מס' צ'</th><th style="padding:4px 6px;width:40px;">כמות</th></tr></thead>
-        <tbody>${baseItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);" data-search="${esc(item.name)} ${item.category}" class="sign-equip-checkbox-item" data-set="baseset">
-            <td style="padding:5px 10px;text-align:right;">
-                <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked onchange="updateSignEquipSelection()" style="display:none;">
-                ${esc(item.name)}
-            </td>
-            <td style="padding:3px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" value="${item.serialNumber||''}" placeholder="צ'" style="width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.9em;text-align:center;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
-            <td style="padding:3px 4px;text-align:center;">${item.quantity}</td>
-        </tr>`).join('')}</tbody>
-    </table></div>`;
-
-    // Section 2: סט מפקד - clean table (hidden by default)
-    if (cmdItems.length > 0) {
-        html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#e65100;color:white;border-radius:8px 8px 0 0;margin-top:12px;">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:0.9em;">
-                <input type="checkbox" id="signCmdSetToggle" onchange="toggleSignSet('cmdset', this.checked)" style="accent-color:white;">
-                סט מפקד (${cmdItems.length})
-            </label>
-            <span style="font-size:0.72em;opacity:0.8;">לא כולל רס"פ/סרס"פ</span>
-        </div>`;
-        html += `<div id="signCmdSetItems" style="display:none;"><table style="width:100%;border-collapse:collapse;font-size:0.84em;">
-            <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 10px;">פריט</th><th style="padding:4px 6px;width:100px;">מס' צ'</th><th style="padding:4px 6px;width:40px;">כמות</th></tr></thead>
-            <tbody>${cmdItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);" data-search="${esc(item.name)} ${item.category}" class="sign-equip-checkbox-item" data-set="cmdset">
-                <td style="padding:5px 10px;text-align:right;">
-                    <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" onchange="updateSignEquipSelection()" style="display:none;">
-                    ${esc(item.name)}
-                </td>
-                <td style="padding:3px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" value="${item.serialNumber||''}" placeholder="צ'" style="width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.9em;text-align:center;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
-                <td style="padding:3px 4px;text-align:center;">${item.quantity}</td>
-            </tr>`).join('')}</tbody>
-        </table></div>`;
-    }
-
-    // Section 3: Existing tracked equipment in inventory
-    const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
-    if (availableEquip.length > 0) {
-        html += `<div style="padding:8px 12px;background:var(--bg);border-radius:8px 8px 0 0;margin-top:12px;font-weight:600;font-size:0.9em;">ציוד קיים במלאי (${availableEquip.length})</div>`;
-        html += `<table style="width:100%;border-collapse:collapse;font-size:0.84em;"><tbody>${availableEquip.map(e => `<tr style="border-bottom:1px solid var(--border);" data-search="${esc(e.type)} ${esc(e.serial)}" class="sign-equip-checkbox-item">
-            <td style="padding:5px 10px;text-align:right;">
-                <input type="checkbox" value="${e.id}" data-src="equip" onchange="updateSignEquipSelection()" style="margin-left:6px;">
-                ${esc(e.type)}
-            </td>
-            <td style="padding:3px 4px;text-align:center;font-family:monospace;direction:ltr;">${esc(e.serial)}</td>
-            <td style="padding:3px 4px;text-align:center;width:40px;">${e.defaultQty || 1}</td>
-        </tr>`).join('')}</tbody></table>`;
-    }
-
-    container.innerHTML = html || '<div style="padding:12px;color:var(--text-light);text-align:center;">אין פריטי ציוד</div>';
-
-    document.getElementById('signEquipSelectedCount').textContent = '';
-    document.getElementById('signEquipInfo').style.display = 'none';
-    document.getElementById('signEquipInfo').innerHTML = '';
-    document.getElementById('signEquipSearch').value = '';
+    // Reset UI
+    document.getElementById('signSoldierSearch').value = '';
     document.getElementById('signSoldierInfo').style.display = 'none';
-    // Company filtering: non-palsam/gdudi locked to own company
-    const signCompGroup = document.getElementById('signCompanyGroup');
+    document.getElementById('signEquipSection').style.display = 'none';
+    document.getElementById('signSignatureSection').style.display = 'none';
+    document.getElementById('signEquipCheckboxList').innerHTML = '';
+
+    // Company filtering
     const signCompDd = document.getElementById('signCompany');
+    const signCompGroup = document.getElementById('signCompanyGroup');
     if (currentUser.unit !== 'palsam' && currentUser.unit !== 'gdudi') {
         signCompDd.value = currentUser.unit;
         if (signCompGroup) signCompGroup.style.display = 'none';
@@ -5127,115 +5061,167 @@ function openSignEquipment() {
         if (signCompGroup) signCompGroup.style.display = '';
     }
     updateSignSoldiers();
-    // Clear edit context
     delete document.getElementById('signEquipmentModal').dataset.editLogId;
     openModal('signEquipmentModal');
-    setTimeout(() => {
-        setupSignatureCanvas('signatureCanvas');
-        clearSignatureCanvas();
-    }, 100);
+    setTimeout(() => { setupSignatureCanvas('signatureCanvas'); clearSignatureCanvas(); }, 100);
 }
 
-function filterSignEquipCheckboxes() {
-    const query = document.getElementById('signEquipSearch').value.trim().toLowerCase();
-    document.querySelectorAll('#signEquipCheckboxList .sign-equip-checkbox-item').forEach(item => {
-        item.style.display = item.getAttribute('data-search').toLowerCase().includes(query) ? '' : 'none';
+function filterSignSoldiers() {
+    const query = document.getElementById('signSoldierSearch').value.trim().toLowerCase();
+    const sel = document.getElementById('signSoldier');
+    const opts = sel.querySelectorAll('option');
+    opts.forEach(opt => {
+        if (!opt.value) return; // skip placeholder
+        opt.style.display = opt.textContent.toLowerCase().includes(query) ? '' : 'none';
     });
+    // Auto-select if single match
+    const visible = Array.from(opts).filter(o => o.value && o.style.display !== 'none');
+    if (visible.length === 1) { sel.value = visible[0].value; onSignSoldierSelect(); }
 }
 
-function toggleSignSet(setType, checked) {
-    const container = setType === 'cmdset' ? document.getElementById('signCmdSetItems') : document.getElementById('signBaseSetItems');
-    if (!container) return;
-    container.style.display = checked ? '' : 'none';
-    container.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = checked; });
-    updateSignEquipSelection();
-}
-
-function onSignSoldierChange() {
+function onSignSoldierSelect() {
     const soldierId = document.getElementById('signSoldier')?.value;
-    if (!soldierId) return;
-    const sol = state.soldiers.find(s => s.id === soldierId);
-    const cmdToggle = document.getElementById('signCmdSetToggle');
-    if (cmdToggle && sol) {
-        // רס"פ and סרס"פ are signing roles but do NOT get commander equipment set
-        const CMD_SET_EXCLUDED = ['רס"פ', 'סרס"פ'];
-        const isCommander = sol.role && SIGNING_ROLES.includes(sol.role) && !CMD_SET_EXCLUDED.includes(sol.role);
-        cmdToggle.checked = isCommander;
-        toggleSignSet('cmdset', isCommander);
+    if (!soldierId) {
+        document.getElementById('signEquipSection').style.display = 'none';
+        document.getElementById('signSignatureSection').style.display = 'none';
+        document.getElementById('signSoldierInfo').style.display = 'none';
+        return;
     }
-}
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
 
-function updateSignEquipSelection() {
-    const checkboxes = document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked');
-    const count = checkboxes.length;
-    document.getElementById('signEquipSelectedCount').textContent = count > 0 ? `(${count} נבחרו)` : '';
-
-    const info = document.getElementById('signEquipInfo');
-    if (count === 0) { info.style.display = 'none'; info.innerHTML = ''; return; }
-
-    // Build display rows from both equip and baseset items
-    const rows = Array.from(checkboxes).map((cb, i) => {
-        if (cb.dataset.src === 'baseset') {
-            const serialInput = document.querySelector(`.sign-bs-serial[data-bs-idx="${cb.value.replace('bs_', '')}"]`);
-            return `<tr style="border-bottom:1px solid var(--border);">
-                <td style="padding:4px 8px;">${i + 1}</td>
-                <td style="padding:4px 8px;font-weight:600;">${esc(cb.dataset.name)}</td>
-                <td style="padding:4px 8px;">${serialInput ? esc(serialInput.value) || '-' : '-'}</td>
-                <td style="padding:4px 8px;">${cb.dataset.qty || 1}</td>
-            </tr>`;
-        }
-        const eq = state.equipment.find(e => e.id === cb.value);
-        if (!eq) return '';
-        return `<tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:4px 8px;">${i + 1}</td>
-            <td style="padding:4px 8px;font-weight:600;">${esc(eq.type)}</td>
-            <td style="padding:4px 8px;direction:ltr;">${esc(eq.serial)}</td>
-            <td style="padding:4px 8px;">${eq.defaultQty || 1}</td>
-        </tr>`;
-    });
-
+    // Show soldier info
+    const info = document.getElementById('signSoldierInfo');
     info.style.display = '';
-    info.innerHTML = `
-        <table style="width:100%;font-size:0.85em;border-collapse:collapse;">
-            <thead><tr style="background:var(--primary);color:white;">
-                <th style="padding:4px 8px;text-align:right;">#</th>
-                <th style="padding:4px 8px;text-align:right;">שם פריט</th>
-                <th style="padding:4px 8px;text-align:right;">מספר צ'</th>
-                <th style="padding:4px 8px;text-align:right;">כמות</th>
-            </tr></thead>
-            <tbody>${rows.join('')}</tbody>
-        </table>`;
+    info.innerHTML = `<strong>${esc(sol.name)}</strong> | ${esc(sol.role||'')} | מ.א: ${esc(sol.personalId||'-')}`;
+
+    // Show equipment mode selection
+    const CMD_SET_EXCLUDED = ['רס"פ', 'סרס"פ'];
+    const isCommander = sol.role && SIGNING_ROLES.includes(sol.role) && !CMD_SET_EXCLUDED.includes(sol.role);
+
+    const container = document.getElementById('signEquipCheckboxList');
+    container.innerHTML = `
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="btn btn-primary" onclick="loadSignSetMode(${isCommander})" style="flex:1;padding:10px;">סט ציוד ללוחם</button>
+            <button class="btn" onclick="loadSignManualMode()" style="flex:1;padding:10px;background:var(--bg);">בחירת פריטים ידנית</button>
+        </div>`;
+    document.getElementById('signEquipSection').style.display = '';
+    document.getElementById('signSignatureSection').style.display = '';
 }
+
+function loadSignSetMode(includeCmd) {
+    const es = settings.equipmentSets || { baseSet: { items: [] }, roleSets: [] };
+    const baseItems = (es.baseSet?.items) || [];
+    const cmdSet = (es.roleSets || []).find(rs => rs.id === 'rs_commander');
+    const cmdItems = includeCmd ? (cmdSet?.items || []) : [];
+
+    let html = `
+    <div style="background:var(--primary);color:white;padding:8px 12px;border-radius:6px 6px 0 0;font-weight:600;font-size:0.88em;">סט ציוד ללוחם (${baseItems.length})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.84em;margin-bottom:4px;">
+        <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 8px;">פריט</th><th style="padding:4px;width:95px;">מס' צ'</th><th style="padding:4px;width:50px;">כמות</th></tr></thead>
+        <tbody>${baseItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:4px 8px;text-align:right;">
+                <input type="checkbox" value="bs_${i}" data-src="baseset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked style="display:none;">
+                ${esc(item.name)}
+            </td>
+            <td style="padding:2px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;">` : '—'}</td>
+            <td style="padding:2px 4px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-bs-qty="${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+
+    if (cmdItems.length > 0) {
+        html += `
+        <div style="background:#e65100;color:white;padding:8px 12px;border-radius:6px 6px 0 0;font-weight:600;font-size:0.88em;margin-top:8px;">סט מפקד (${cmdItems.length})</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.84em;">
+            <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 8px;">פריט</th><th style="padding:4px;width:95px;">מס' צ'</th><th style="padding:4px;width:50px;">כמות</th></tr></thead>
+            <tbody>${cmdItems.map((item, i) => `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;text-align:right;">
+                    <input type="checkbox" value="cmd_${i}" data-src="cmdset" data-name="${esc(item.name)}" data-qty="${item.quantity}" data-category="${esc(item.category)}" data-serial-req="${item.requiresSerial}" checked style="display:none;">
+                    ${esc(item.name)}
+                </td>
+                <td style="padding:2px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" class="sign-cmd-serial" data-cmd-idx="${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;">` : '—'}</td>
+                <td style="padding:2px 4px;text-align:center;"><input type="number" min="0" value="${item.quantity}" data-cmd-qty="${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    document.getElementById('signEquipCheckboxList').innerHTML = html;
+}
+
+function loadSignManualMode() {
+    const allTypes = new Set();
+    const es = settings.equipmentSets || {};
+    (es.baseSet?.items || []).forEach(item => allTypes.add(item.name));
+    (es.roleSets || []).forEach(rs => (rs.items || []).forEach(item => allTypes.add(item.name)));
+    state.equipment.forEach(e => allTypes.add(e.type));
+    const types = [...allTypes].sort();
+
+    let html = `<input type="text" id="signManualSearch" placeholder="חפש ציוד..." oninput="filterManualEquip()" style="padding:6px 10px;font-size:0.88em;margin-bottom:6px;width:100%;">`;
+    html += `<div id="signManualList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.84em;">
+        <tbody>${types.map((t, i) => `<tr class="sign-manual-row" data-name="${esc(t)}" style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 8px;text-align:right;">
+                <input type="checkbox" value="manual_${i}" data-src="baseset" data-name="${esc(t)}" data-qty="1" data-category="${esc(detectCategoryFromType(t))}" data-serial-req="true" style="margin-left:6px;">
+                ${esc(t)}
+            </td>
+            <td style="padding:2px 4px;text-align:center;width:95px;"><input type="text" class="sign-bs-serial" data-bs-idx="m${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;"></td>
+            <td style="padding:2px 4px;text-align:center;width:50px;"><input type="number" min="1" value="1" data-bs-qty="m${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
+        </tr>`).join('')}</tbody>
+        </table>
+    </div>`;
+
+    document.getElementById('signEquipCheckboxList').innerHTML = html;
+}
+
+function filterManualEquip() {
+    const q = document.getElementById('signManualSearch').value.trim().toLowerCase();
+    document.querySelectorAll('.sign-manual-row').forEach(row => {
+        row.style.display = row.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+// Old filterSignEquipCheckboxes, toggleSignSet, onSignSoldierChange, updateSignEquipSelection
+// removed — replaced by onSignSoldierSelect() + loadSignSetMode() + loadSignManualMode()
 
 function getSelectedSignEquipItems() {
     const checked = Array.from(document.querySelectorAll('#signEquipCheckboxList input[type="checkbox"]:checked'));
     return checked.filter(cb => cb.dataset.src).map(cb => {
         if (cb.dataset.src === 'baseset') {
-            const serialInput = document.querySelector(`.sign-bs-serial[data-bs-idx="${cb.value.replace('bs_', '')}"]`);
+            // Handle both set mode (bs_N) and manual mode (manual_N)
+            let idx;
+            if (cb.value.startsWith('bs_')) idx = cb.value.replace('bs_', '');
+            else if (cb.value.startsWith('manual_')) idx = 'm' + cb.value.replace('manual_', '');
+            else idx = cb.value;
+            const qtyInput = document.querySelector(`input[data-bs-qty="${idx}"]`);
+            const serialInput = document.querySelector(`.sign-bs-serial[data-bs-idx="${idx}"]`);
+            const qty = qtyInput ? parseInt(qtyInput.value) || 0 : parseInt(cb.dataset.qty) || 1;
             return {
                 src: 'baseset',
                 id: cb.value,
                 name: cb.dataset.name,
-                qty: parseInt(cb.dataset.qty) || 1,
+                qty,
                 category: cb.dataset.category,
                 serialRequired: cb.dataset.serialReq === 'true',
                 serial: serialInput ? serialInput.value.trim() : ''
             };
         }
         if (cb.dataset.src === 'cmdset') {
-            const serialInput = document.querySelector(`.sign-cmd-serial[data-cmd-idx="${cb.value.replace('cmd_', '')}"]`);
+            const idx = cb.value.replace('cmd_', '');
+            const qtyInput = document.querySelector(`input[data-cmd-qty="${idx}"]`);
+            const serialInput = document.querySelector(`.sign-cmd-serial[data-cmd-idx="${idx}"]`);
+            const qty = qtyInput ? parseInt(qtyInput.value) || 0 : parseInt(cb.dataset.qty) || 1;
             return {
                 src: 'cmdset',
                 id: cb.value,
                 name: cb.dataset.name,
-                qty: parseInt(cb.dataset.qty) || 1,
+                qty,
                 category: cb.dataset.category,
                 serialRequired: cb.dataset.serialReq === 'true',
                 serial: serialInput ? serialInput.value.trim() : ''
             };
         }
         return { src: 'equip', id: cb.value };
-    });
+    }).filter(item => item.src === 'equip' || item.qty > 0);
 }
 // Backward compat
 function getSelectedSignEquipIds() {
@@ -5307,17 +5293,7 @@ function updateSignSoldiers() {
     document.getElementById('signSoldierInfo').style.display = 'none';
 }
 
-function onSignSoldierSelect() {
-    const id = document.getElementById('signSoldier').value;
-    const info = document.getElementById('signSoldierInfo');
-    if (!id) { info.style.display = 'none'; return; }
-    const sol = state.soldiers.find(s => s.id === id);
-    if (!sol) return;
-    info.style.display = '';
-    info.innerHTML = `<strong>${esc(sol.name)}</strong> | ${esc(sol.role)} | ${esc(sol.personalId)} | ${esc(sol.phone) || 'אין טלפון'}`;
-    // Auto-toggle commander set based on soldier role
-    onSignSoldierChange();
-}
+// Old onSignSoldierSelect removed - new version at line ~5082 with mode buttons
 
 function confirmSignEquipment() {
     if (!canSignEquipment()) { showToast('אין לך הרשאה להחתים ציוד', 'error'); return; }
@@ -5466,12 +5442,14 @@ function confirmSignEquipment() {
     // Clear edit context
     delete document.getElementById('signEquipmentModal').dataset.editLogId;
 
-    // No auto-download - user downloads from signature history
     closeModal('signEquipmentModal');
     renderEquipmentTab();
 
     const itemNames = allEquip.map(e => e.type).join(', ');
     showToast(`${sol.name} חתם על ${allEquip.length} פריטים: ${itemNames}`);
+
+    // Auto-download PDF
+    try { generateSignaturePDF(logEntry, null, sol); } catch(e) { console.warn('PDF auto-download failed:', e); }
 }
 
 // --- Return Equipment (soldier-first flow) ---
@@ -5894,17 +5872,13 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         </div>
         <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 20px;">
 
-        <!-- Soldier details - centered 2-column grid -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;margin-bottom:20px;">
-            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;border-bottom:1px solid #d0d7de;">שם מלא</div>
-            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${sol.name}</div>
-            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;border-bottom:1px solid #d0d7de;">מספר אישי</div>
-            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${sol.personalId || '-'}</div>
-            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;border-bottom:1px solid #d0d7de;">טלפון</div>
-            <div style="padding:9px 14px;direction:ltr;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${sol.phone || '-'}</div>
-            <div style="padding:9px 14px;background:#f6f8fa;font-weight:700;">תאריך ושעה</div>
-            <div style="padding:9px 14px;border-right:1px solid #d0d7de;">${dateStr} | ${timeStr}</div>
-        </div>
+        <!-- Soldier details -->
+        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:20px;font-size:0.93em;">
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:120px;">שם מלא</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.name}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">מספר אישי</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">תאריך ושעה</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr} | ${timeStr}</td></tr>
+        </table>
 
         <!-- Equipment items -->
         <div style="font-weight:700;margin-bottom:8px;font-size:1em;">פריטי ציוד (${items.length}):</div>
@@ -5922,14 +5896,11 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
         <!-- Issuer -->
         ${logEntry.issuedBy ? `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;margin-bottom:20px;">
-            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;border-bottom:1px solid #d0d7de;">מנפיק</div>
-            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${logEntry.issuedBy}</div>
-            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;border-bottom:1px solid #d0d7de;">תפקיד</div>
-            <div style="padding:9px 14px;border-bottom:1px solid #d0d7de;border-right:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</div>
-            <div style="padding:9px 14px;background:#E8EAF6;font-weight:700;">מ.א</div>
-            <div style="padding:9px 14px;border-right:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</div>
-        </div>` : ''}
+        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:20px;font-size:0.93em;">
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:120px;">מנפיק</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuedBy}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">תפקיד</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">מ.א</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
+        </table>` : ''}
 
         <!-- Declaration -->
         <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:12px 16px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:24px;line-height:1.6;">
@@ -6016,11 +5987,14 @@ function downloadPDF(htmlContent, filename) {
     });
 
     Promise.all(imagePromises).then(() => {
+        // Give browser a frame to paint before capture
+        return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }).then(() => {
         return html2pdf().set({
             margin: [10, 10, 10, 10],
             filename: (filename || 'document') + '.pdf',
             image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, width: wrapper.scrollWidth, height: wrapper.scrollHeight },
+            html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: wrapper.scrollWidth || 794 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['css', 'legacy'] }
         }).from(wrapper).save();
