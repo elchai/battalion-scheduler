@@ -6687,17 +6687,19 @@ function generatePakalPDF(soldierId) {
         ? new Date(pe.bulkSignature.signedDate).toLocaleDateString('he-IL')
         : new Date().toLocaleDateString('he-IL');
 
-    const thStyle = 'background:#1a3a5c;color:white;padding:8px;font-size:13px;border:1px solid #1a3a5c;';
-    const tdStyle = 'padding:6px 8px;border:1px solid #ddd;font-size:13px;text-align:center;';
+    const ws = 'word-spacing:0.15em;white-space:pre-wrap;';
+    const thStyle = `background:#1a3a5c;color:white;padding:8px;font-size:13px;border:1px solid #1a3a5c;${ws}`;
+    const tdStyle = `padding:6px 8px;border:1px solid #ddd;font-size:13px;text-align:center;${ws}`;
+    const infoTd = `padding:4px 10px;font-size:14px;${ws}`;
     const html = `
-    <div style="font-family:Arial,sans-serif;direction:rtl;padding:20px;">
-        <h1 style="text-align:center;color:#1a3a5c;border-bottom:3px solid #1a3a5c;padding-bottom:10px;margin:0 0 15px;">פק"ל אישי - טופס חתימה על ציוד</h1>
+    <div style="font-family:Arial,sans-serif;direction:rtl;padding:20px;max-width:700px;margin:0 auto;${ws}">
+        <h1 style="text-align:center;color:#1a3a5c;border-bottom:3px solid #1a3a5c;padding-bottom:10px;margin:0 0 15px;${ws}">פק"ל אישי - טופס חתימה על ציוד</h1>
         <table style="margin:15px 0;">
-            <tr><td style="padding:4px 10px;font-size:14px;"><strong>שם:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.name}</td><td style="padding:4px 10px;font-size:14px;"><strong>מ.א:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.personalId || '-'}</td></tr>
-            <tr><td style="padding:4px 10px;font-size:14px;"><strong>תפקיד:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.role || 'לוחם'}</td><td style="padding:4px 10px;font-size:14px;"><strong>פלוגה:</strong></td><td style="padding:4px 10px;font-size:14px;">${compName}</td></tr>
-            <tr><td style="padding:4px 10px;font-size:14px;"><strong>טלפון:</strong></td><td style="padding:4px 10px;font-size:14px;">${sol.phone || '-'}</td><td style="padding:4px 10px;font-size:14px;"><strong>תאריך:</strong></td><td style="padding:4px 10px;font-size:14px;">${dateStr}</td></tr>
+            <tr><td style="${infoTd}"><strong>שם:</strong></td><td style="${infoTd}">${sol.name}</td><td style="${infoTd}"><strong>מספר אישי:</strong></td><td style="${infoTd}">${sol.personalId || '-'}</td></tr>
+            <tr><td style="${infoTd}"><strong>תפקיד:</strong></td><td style="${infoTd}">${sol.role || 'לוחם'}</td><td style="${infoTd}"><strong>פלוגה:</strong></td><td style="${infoTd}">${compName}</td></tr>
+            <tr><td style="${infoTd}"><strong>טלפון:</strong></td><td style="${infoTd}">${sol.phone || '-'}</td><td style="${infoTd}"><strong>תאריך:</strong></td><td style="${infoTd}">${dateStr}</td></tr>
         </table>
-        <p style="font-size:13px;">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
+        <p style="font-size:13px;${ws}">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
         <table style="width:100%;border-collapse:collapse;margin:15px 0;">
             <thead><tr><th style="${thStyle}">#</th><th style="${thStyle}">פריט</th><th style="${thStyle}">מספר צ'</th><th style="${thStyle}">כמות</th><th style="${thStyle}">קטגוריה</th><th style="${thStyle}">מקור</th><th style="${thStyle}">סטטוס</th></tr></thead>
             <tbody>
@@ -6716,17 +6718,17 @@ function generatePakalPDF(soldierId) {
         <div style="margin-top:30px;display:flex;justify-content:space-between;">
             <div style="width:45%;text-align:center;">
                 ${pe.bulkSignature.signatureImg ? `<img src="${pe.bulkSignature.signatureImg}" style="max-width:200px;max-height:80px;border-bottom:1px solid #333;">` : ''}
-                <div style="font-size:12px;margin-top:4px;color:#666;">חתימת חייל מקבל</div>
-                <div style="font-size:12px;">${sol.name}</div>
+                <div style="font-size:12px;margin-top:4px;color:#666;${ws}">חתימת חייל מקבל</div>
+                <div style="font-size:12px;${ws}">${sol.name}</div>
             </div>
             <div style="width:45%;text-align:center;">
                 ${pe.bulkSignature.issuerSignatureImg ? `<img src="${pe.bulkSignature.issuerSignatureImg}" style="max-width:200px;max-height:80px;border-bottom:1px solid #333;">` : ''}
-                <div style="font-size:12px;margin-top:4px;color:#666;">חתימת מנפיק</div>
-                <div style="font-size:12px;">${pe.bulkSignature.issuedBy || ''}</div>
-                ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;">${pe.bulkSignature.signingUnit}</div>` : ''}
+                <div style="font-size:12px;margin-top:4px;color:#666;${ws}">חתימת מנפיק</div>
+                <div style="font-size:12px;${ws}">${pe.bulkSignature.issuedBy || ''}</div>
+                ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;${ws}">${pe.bulkSignature.signingUnit}</div>` : ''}
             </div>
         </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
-        <div style="text-align:center;font-size:11px;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
+        <div style="text-align:center;font-size:11px;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;${ws}">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
     </div>`;
 
     downloadPDF(html, `פקל_${sol.name}_${dateStr.replace(/\//g, '-')}`);
