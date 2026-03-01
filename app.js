@@ -5412,6 +5412,9 @@ function confirmSignEquipment() {
         eq.issuerName = currentUser.name || '';
     });
 
+    // Find issuer details from soldiers list
+    const issuerSoldier = state.soldiers.find(s => s.personalId === currentUser.personalId);
+
     // Create ONE batch log entry
     const logEntry = {
         id: 'sig_' + Date.now(),
@@ -5433,8 +5436,9 @@ function confirmSignEquipment() {
         signatureImg,
         issuedBy: currentUser.name || '',
         issuerUnit: currentUser.unit || '',
-        issuerRole: currentUser.role || '',
-        issuerPersonalId: currentUser.personalId || ''
+        issuerRole: issuerSoldier?.role || '',
+        issuerPersonalId: currentUser.personalId || '',
+        issuerPhone: issuerSoldier?.phone || ''
     };
     state.signatureLog.push(logEntry);
     saveState();
@@ -5548,16 +5552,21 @@ function confirmReturnEquipment() {
     const returnNotes = document.getElementById('returnNotes').value.trim();
     const now = new Date();
 
+    // Find issuer details from soldiers list
+    const issuerSoldier = state.soldiers.find(s => s.personalId === currentUser.personalId);
+
     const returnedItems = [];
     checkedIds.forEach(equipId => {
         const eq = state.equipment.find(e => e.id === equipId);
         if (!eq) return;
         returnedItems.push({ equipId: eq.id, equipType: eq.type, equipSerial: eq.serial, equipQty: eq.defaultQty || 1 });
+        // Return to warehouse inventory - clear holder AND company
         eq.holderId = null;
         eq.holderName = '';
         eq.holderPhone = '';
         eq.assignedDate = null;
         eq.signatureImg = null;
+        eq.company = '';
         if (returnNotes) eq.notes = returnNotes;
     });
 
@@ -5579,15 +5588,22 @@ function confirmReturnEquipment() {
         notes: returnNotes,
         issuedBy: currentUser.name || '',
         issuerUnit: currentUser.unit || '',
-        issuerRole: currentUser.role || '',
-        issuerPersonalId: currentUser.personalId || ''
+        issuerRole: issuerSoldier?.role || '',
+        issuerPersonalId: currentUser.personalId || '',
+        issuerPhone: issuerSoldier?.phone || ''
     };
     state.signatureLog.push(logEntry);
     saveState();
 
     closeModal('returnEquipmentModal');
     renderEquipmentTab();
-    showToast(`${returnedItems.length} פריטים זוכו בהצלחה מ-${sol?.name || ''}`);
+    showToast(`${returnedItems.length} פריטים זוכו והוחזרו למלאי מחסן`);
+
+    // Auto-download return PDF
+    if (returnedItems.length > 0) {
+        const firstEq = state.equipment.find(e => e.id === returnedItems[0].equipId) || { type: returnedItems[0].equipType, serial: returnedItems[0].equipSerial };
+        try { generateReturnPDF(logEntry, firstEq); } catch(e) { console.warn('Return PDF failed:', e); }
+    }
 }
 
 // --- Render Equipment Tab ---
@@ -5679,7 +5695,7 @@ function renderEquipmentTab() {
                                 <td style="direction:ltr;font-family:monospace;">${e.serial}</td>
                                 <td>${e.defaultQty || 1}</td>
                                 <td style="font-size:0.82em;">${e.warehouse || 'מחסן גדוד'}</td>
-                                <td>${companyNames[e.company] || e.company}</td>
+                                <td>${companyNames[e.company] || e.company || 'מלאי מחסן'}</td>
                                 <td>${e.condition}</td>
                                 <td><span class="equip-status ${statusClass}">${statusText}</span></td>
                                 <td class="equip-holder-name">${e.holderName || '-'}</td>
@@ -5767,7 +5783,7 @@ async function deleteSignatureLog(logId) {
     const log = state.signatureLog.find(l => l.id === logId);
     if (!log) return;
 
-    // Release equipment back if it was an assign
+    // Release equipment back to warehouse if it was an assign
     if (log.type === 'assign') {
         const items = log.equipItems || [{ equipId: log.equipId }];
         items.forEach(item => {
@@ -5778,6 +5794,7 @@ async function deleteSignatureLog(logId) {
                 eq.holderPhone = '';
                 eq.assignedDate = null;
                 eq.signatureImg = null;
+                eq.company = '';
             }
         });
     }
@@ -5900,6 +5917,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:120px;">מנפיק</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuedBy}</td></tr>
             <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">תפקיד</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">מ.א</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
         </table>` : ''}
 
         <!-- Declaration -->
@@ -5932,39 +5950,76 @@ function generateReturnPDF(logEntry, eq) {
         ? `<img src="${DOC_LOGO_BASE64}" style="max-height:80px;margin-bottom:8px;">`
         : '';
 
+    // Build items array: batch or single
+    const items = logEntry.equipItems
+        ? logEntry.equipItems
+        : [{ equipType: eq.type, equipSerial: eq.serial, equipQty: 1 }];
+
+    const itemRows = items.map((item, i) => `
+        <tr>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
+            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${item.equipType}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial || '-'}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
+        </tr>
+    `).join('');
+
     const html = `
-    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:auto;padding:30px;">
-        <div style="text-align:center;margin-bottom:20px;">
+    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;">
+        <div style="text-align:center;margin-bottom:22px;">
             ${logoHtml}
-            <h1 style="color:#E65100;margin:0;">טופס זיכוי / החזרת ציוד</h1>
-            <p style="color:#7f8c8d;margin:4px 0;">מערכת ניהול גדודי - צל"מ</p>
-            <hr style="border:1px solid #E65100;margin:12px 0;">
+            <h1 style="color:#E65100;margin:6px 0 2px;font-size:1.45em;">טופס זיכוי / החזרת ציוד</h1>
+            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">מערכת ניהול גדודי — צל"מ</p>
         </div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-            <tr><td style="padding:8px;font-weight:700;width:140px;background:#FFF3E0;">תאריך:</td><td style="padding:8px;">${dateStr}</td>
-                <td style="padding:8px;font-weight:700;width:140px;background:#FFF3E0;">שעה:</td><td style="padding:8px;">${timeStr}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">סוג ציוד:</td><td style="padding:8px;">${eq.type}</td>
-                <td style="padding:8px;font-weight:700;background:#FFF3E0;">מספר סידורי:</td><td style="padding:8px;direction:ltr;font-family:monospace;">${eq.serial}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">שם מחזיר:</td><td style="padding:8px;">${logEntry.soldierName}</td>
-                <td style="padding:8px;font-weight:700;background:#FFF3E0;">מספר אישי:</td><td style="padding:8px;">${logEntry.soldierPersonalId || '-'}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">טלפון:</td><td style="padding:8px;direction:ltr;">${logEntry.soldierPhone || '-'}</td>
-                <td style="padding:8px;font-weight:700;background:#FFF3E0;">סוג פעולה:</td><td style="padding:8px;color:#E65100;font-weight:700;">זיכוי / החזרת ציוד</td></tr>
-            ${logEntry.notes ? `<tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">הערות:</td><td colspan="3" style="padding:8px;">${logEntry.notes}</td></tr>` : ''}
-            ${logEntry.issuedBy ? `<tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">מזכה:</td><td style="padding:8px;">${logEntry.issuedBy}</td>
-                <td style="padding:8px;font-weight:700;background:#FFF3E0;">תפקיד:</td><td style="padding:8px;">${logEntry.issuerRole || ''} ${logEntry.issuerUnit ? '| ' + logEntry.issuerUnit : ''}</td></tr>
-            <tr><td style="padding:8px;font-weight:700;background:#FFF3E0;">מ.א מזכה:</td><td colspan="3" style="padding:8px;">${logEntry.issuerPersonalId || '-'}</td></tr>` : ''}
+        <hr style="border:none;border-top:2px solid #E65100;margin:0 0 20px;">
+
+        <!-- Soldier details -->
+        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;margin-bottom:20px;font-size:0.93em;">
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;width:120px;">שם מחזיר</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierName}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">מספר אישי</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierPersonalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.soldierPhone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">תאריך ושעה</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr} | ${timeStr}</td></tr>
         </table>
-        <div style="text-align:center;margin-bottom:10px;font-weight:700;">חתימת מחזיר:</div>
+
+        <!-- Equipment items -->
+        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">פריטים מוחזרים (${items.length}):</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.93em;">
+            <thead>
+                <tr style="background:#E65100;color:white;text-align:center;">
+                    <th style="padding:9px 6px;border:1px solid #E65100;width:36px;">#</th>
+                    <th style="padding:9px 12px;border:1px solid #E65100;text-align:right;">שם פריט</th>
+                    <th style="padding:9px 12px;border:1px solid #E65100;">מספר צ'</th>
+                    <th style="padding:9px 6px;border:1px solid #E65100;width:56px;">כמות</th>
+                </tr>
+            </thead>
+            <tbody>${itemRows}</tbody>
+        </table>
+
+        <!-- Issuer details -->
+        ${logEntry.issuedBy ? `
+        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;margin-bottom:20px;font-size:0.93em;">
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:120px;">מזכה</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuedBy}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">תפקיד</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">מ.א</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
+        </table>` : ''}
+
+        ${logEntry.notes ? `<div style="background:#FFF3E0;border-right:4px solid #E65100;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:20px;"><strong>הערות:</strong> ${logEntry.notes}</div>` : ''}
+
+        <!-- Signature -->
         <div style="text-align:center;">
-            <img src="${logEntry.signatureImg}" style="max-width:400px;height:120px;border:1px solid #dfe6e9;border-radius:8px;">
+            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">חתימת מחזיר:</div>
+            <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
+            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${logEntry.soldierName} | ${dateStr}</div>
         </div>
-        <hr style="border:1px solid #dfe6e9;margin:20px 0;">
-        <div style="text-align:center;font-size:0.75em;color:#7f8c8d;">
-            מסמך זה הופק אוטומטית ממערכת ניהול גדודי | ${dateStr} ${timeStr}
+
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
+        <div style="text-align:center;font-size:0.72em;color:#aaa;">
+            מסמך זה הופק אוטומטית ממערכת ניהול גדודי &nbsp;|&nbsp; ${dateStr} ${timeStr}
         </div>
     </div>`;
 
-    downloadPDF(html, `זיכוי_${eq.type}_${eq.serial}_${logEntry.soldierName}_${dateStr.replace(/\./g,'-')}`);
+    downloadPDF(html, `זיכוי_${logEntry.soldierName}_${items.length}פריטים_${dateStr.replace(/\./g,'-')}`);
 }
 
 function downloadPDF(htmlContent, filename) {
@@ -6028,7 +6083,7 @@ function exportEquipmentCSV() {
     const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
     state.equipment.forEach(e => {
         const status = e.condition === 'תקול' ? 'תקול' : e.holderId ? 'מוחזק' : 'פנוי';
-        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company},${e.condition},${status},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
+        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company || 'מלאי מחסן'},${e.condition},${status},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -6400,7 +6455,7 @@ function doFilteredExportCSV() {
     csv += 'סוג ציוד,מספר סידורי,קטגוריה,מחסן,מסגרת,מצב,סטטוס,מחזיק,טלפון,תאריך חתימה,הערות\n';
     items.forEach(e => {
         const st = ['תקול','אובדן','מת"ש'].includes(e.condition) ? e.condition : e.holderId ? 'מוחזק' : 'פנוי';
-        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company},${e.condition},${st},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
+        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company || 'מלאי מחסן'},${e.condition},${st},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -6434,7 +6489,7 @@ function doFilteredExportPDF() {
                 <td style="padding:4px 6px;border:1px solid #ddd;direction:ltr;font-family:monospace;">${e.serial}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.category || '-'}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.warehouse || 'מחסן גדוד'}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${companyNames[e.company] || e.company}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${companyNames[e.company] || e.company || 'מלאי מחסן'}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.condition}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.holderName || '-'}</td>
             </tr>`).join('')}</tbody>
