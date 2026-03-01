@@ -69,19 +69,18 @@ function loadSettings() {
             settings.equipmentSets = settings.equipmentSets || {};
             settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
             if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
-            // Migration v4: force-reset baseSet to full 22 items
-            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 4) {
+            // Migration v5: force-reset baseSet to full 22 items + clean roleSets
+            if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 5) {
                 settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
-                settings.equipmentSets._baseSetVer = 4;
-            }
-            // Migration: add commander roleSet if missing
-            if (!settings.equipmentSets._roleSetVer || settings.equipmentSets._roleSetVer < 1) {
                 settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-                settings.equipmentSets._roleSetVer = 1;
+                settings.equipmentSets._baseSetVer = 5;
+                settings.equipmentSets._roleSetVer = 2;
             }
             settings.equipmentSets.roleSets = settings.equipmentSets.roleSets || defaults.equipmentSets.roleSets;
             settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || defaults.equipmentSets.savedSignatures || {};
         }
+        // Persist migration changes
+        saveSettings();
     }
 }
 
