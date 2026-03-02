@@ -8991,10 +8991,7 @@ document.addEventListener('click', e => {
     if (wrap && !wrap.contains(e.target)) document.getElementById('globalSearchResults').classList.remove('open');
 });
 
-// Close modals
-document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) { o.classList.remove('active'); document.body.classList.remove('modal-open'); } });
-});
+// Close modals - only via X button or Cancel, not backdrop click
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); document.body.classList.remove('modal-open'); }
 });
