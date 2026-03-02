@@ -6240,7 +6240,7 @@ function editSignatureLog(logId) {
 
 // --- PDF Generation ---
 // Helper: replace spaces with non-breaking spaces for html2canvas RTL fix
-function pdfTxt(str) { return (str || '').replace(/ /g, '\u00A0'); }
+function pdfTxt(str) { return (str || '').replace(/ /g, '\u00A0').replace(/'/g, '\u05F3').replace(/\./g, '\u200F.'); }
 
 function generateSignaturePDF(logEntry, eqUnused, sol) {
     const now = new Date(logEntry.date);
