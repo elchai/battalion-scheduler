@@ -43,10 +43,11 @@
         document.getElementById('loginSubtitle').textContent = CONFIG.systemSubtitle;
         </script>
 
-        <div class="login-field">
+        <div class="login-field" id="loginPersonalIdField">
             <label>מספר אישי (מ.א)</label>
             <input type="text" id="loginPersonalId" placeholder="הזן מ.א לזיהוי מהיר" autocomplete="off" oninput="autoIdentifyByPersonalId()">
         </div>
+        <script>if (CONFIG.skipPassword) document.getElementById('loginPersonalIdField').style.display = 'none';</script>
         <div class="login-field">
             <label>שם מלא</label>
             <input type="text" id="loginName" placeholder="הכנס את שמך" autocomplete="off">
@@ -71,10 +72,25 @@
             })();
             </script>
         </div>
-        <div class="login-field">
+        <div class="login-field" id="loginEmailField" style="display:none;">
+            <label>אימייל</label>
+            <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email" dir="ltr">
+        </div>
+        <div class="login-field" id="loginPhoneField" style="display:none;">
+            <label>טלפון נייד</label>
+            <input type="tel" id="loginPhone" placeholder="050-1234567" autocomplete="tel" dir="ltr">
+        </div>
+        <div class="login-field" id="loginPasswordField">
             <label>סיסמה</label>
             <input type="password" id="loginPassword" placeholder="הכנס סיסמה" autocomplete="new-password">
         </div>
+        <script>
+        if (CONFIG.skipPassword) {
+            document.getElementById('loginPasswordField').style.display = 'none';
+            document.getElementById('loginEmailField').style.display = '';
+            document.getElementById('loginPhoneField').style.display = '';
+        }
+        </script>
         <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
         <div class="login-error" id="loginError">סיסמה שגויה, נסה שוב</div>
     </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'battalion-v72';
+const CACHE_NAME = 'battalion-v73';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
@@ -12,6 +12,11 @@ const ASSETS = [
     '/battalion-scheduler/stamp.png',
     '/battalion-scheduler/manifest.json',
     '/battalion-scheduler/weapons-form.pdf',
+    '/battalion-scheduler/demo/',
+    '/battalion-scheduler/demo/index.html',
+    '/battalion-scheduler/demo/logo.png',
+    '/battalion-scheduler/demo/doc-logo.png',
+    '/battalion-scheduler/demo/stamp.png',
     '/battalion-scheduler/docsmove/',
     '/battalion-scheduler/docsmove/index.html',
     '/battalion-scheduler/docsmove/style.css',

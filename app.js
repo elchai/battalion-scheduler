@@ -200,10 +200,27 @@ function doLogin() {
         document.getElementById('loginError').classList.add('show');
         return;
     }
-    if (password !== settings.password) {
-        document.getElementById('loginError').textContent = 'סיסמה שגויה, נסה שוב';
-        document.getElementById('loginError').classList.add('show');
-        return;
+    // Demo mode: skip password, collect visitor data
+    if (CONFIG.skipPassword) {
+        const email = (document.getElementById('loginEmail')?.value || '').trim();
+        const phone = (document.getElementById('loginPhone')?.value || '').trim();
+        if (!email && !phone) {
+            document.getElementById('loginError').textContent = 'יש להזין אימייל או טלפון';
+            document.getElementById('loginError').classList.add('show');
+            return;
+        }
+        // Save visitor data to Firestore
+        if (CONFIG.collectVisitorData && db) {
+            const visitorData = { name, email, phone, unit, timestamp: new Date().toISOString(), userAgent: navigator.userAgent };
+            db.collection(CONFIG.visitorCollection || 'demo-visitors').add(visitorData)
+                .catch(err => console.warn('Failed to save visitor:', err));
+        }
+    } else {
+        if (password !== settings.password) {
+            document.getElementById('loginError').textContent = 'סיסמה שגויה, נסה שוב';
+            document.getElementById('loginError').classList.add('show');
+            return;
+        }
     }
 
     // Admin + palsam get full (gdudi) access; everyone else sees their company

@@ -11,6 +11,9 @@ const CONFIG = {
     // --- כניסה ---
     password: 'demo',
     adminName: 'ישראל ישראלי',
+    skipPassword: true,
+    collectVisitorData: true,
+    visitorCollection: 'demo-visitors',
 
     // --- Firebase (same project, separate collection) ---
     firebase: {
