@@ -6256,25 +6256,25 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
     const itemRows = items.map((item, i) => `
         <tr>
-            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
-            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
-            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;">${item.equipSerial || ''}</td>
-            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
+            <td style="padding:6px 8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
+            <td style="padding:6px 8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
+            <td style="padding:6px 8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;">${item.equipSerial || ''}</td>
+            <td style="padding:6px 8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
         </tr>
     `).join('');
 
     const html = `
-    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;word-spacing:2px;">
+    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:24px 30px;color:#1a1a1a;word-spacing:2px;">
         <!-- Header -->
-        <div style="text-align:center;margin-bottom:22px;">
+        <div style="text-align:center;margin-bottom:16px;">
             ${logoHtml}
-            <h1 style="color:#1a3a5c;margin:6px 0 2px;font-size:1.45em;letter-spacing:0.3px;">${pdfTxt('טופס קבלת ציוד מבוקר')}</h1>
-            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
+            <h1 style="color:#1a3a5c;margin:4px 0 2px;font-size:1.35em;letter-spacing:0.3px;">${pdfTxt('טופס קבלת ציוד מבוקר')}</h1>
+            <p style="color:#7f8c8d;margin:0;font-size:0.82em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
         </div>
-        <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 20px;">
+        <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 14px;">
 
         <!-- Soldier details -->
-        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:20px;font-size:0.93em;">
+        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:14px;font-size:0.9em;">
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מלא')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(sol.name)}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
@@ -6282,14 +6282,14 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         </table>
 
         <!-- Equipment items -->
-        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">${pdfTxt('פריטי ציוד')} (${items.length}):</div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.93em;">
+        <div style="font-weight:700;margin-bottom:8px;font-size:1em;text-align:right;">${pdfTxt('פריטי ציוד')} (${items.length}):</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:0.9em;">
             <thead>
                 <tr style="background:#1a3a5c;color:white;text-align:center;">
-                    <th style="padding:9px 6px;border:1px solid #1a3a5c;width:36px;">#</th>
-                    <th style="padding:9px 12px;border:1px solid #1a3a5c;text-align:right;">${pdfTxt('שם פריט')}</th>
-                    <th style="padding:9px 12px;border:1px solid #1a3a5c;">${pdfTxt("מספר צ'")}</th>
-                    <th style="padding:9px 6px;border:1px solid #1a3a5c;width:56px;">${pdfTxt('כמות')}</th>
+                    <th style="padding:7px 6px;border:1px solid #1a3a5c;width:32px;">#</th>
+                    <th style="padding:7px 10px;border:1px solid #1a3a5c;text-align:right;">${pdfTxt('שם פריט')}</th>
+                    <th style="padding:7px 10px;border:1px solid #1a3a5c;">${pdfTxt("מספר צ'")}</th>
+                    <th style="padding:7px 6px;border:1px solid #1a3a5c;width:50px;">${pdfTxt('כמות')}</th>
                 </tr>
             </thead>
             <tbody>${itemRows}</tbody>
@@ -6297,30 +6297,30 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
         <!-- Issuer -->
         ${logEntry.issuedBy ? `
-        <div style="background:#E8EAF6;padding:10px 16px;border-radius:6px;margin-bottom:20px;font-size:0.88em;">
+        <div style="background:#E8EAF6;padding:8px 14px;border-radius:6px;margin-bottom:12px;font-size:0.84em;text-align:right;">
             <strong>${pdfTxt('מנפיק:')}</strong>\u00A0${pdfTxt(logEntry.issuedBy)}\u00A0\u00A0${pdfTxt(logEntry.issuerRole || '')}\u00A0\u00A0${pdfTxt('מ.א')}\u00A0${logEntry.issuerPersonalId || '-'}\u00A0\u00A0${logEntry.issuerPhone || ''}
         </div>` : ''}
 
         <!-- Declaration -->
-        <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:12px 16px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:24px;line-height:1.6;">
-            ${pdfTxt('אני הח"מ מאשר/ת שקיבלתי לידי את הציוד המפורט לעיל במצב תקין, ואני מתחייב/ת לשמור עליו ולהחזירו במצבו כפי שקיבלתי אותו.')}
+        <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.84em;margin-bottom:18px;line-height:1.5;text-align:right;">
+            ${pdfTxt('אני הח"מ מאשר/ת שקיבלתי את הציוד המפורט לעיל במצב תקין ומתחייב/ת לשמור עליו ולהחזירו כפי שקיבלתי.')}
         </div>
 
         <!-- Signature -->
         <div style="text-align:center;">
-            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">${pdfTxt('חתימת המקבל/ת:')}</div>
-            <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
-            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(sol.name)}\u00A0\u00A0${dateStr}</div>
+            <div style="font-weight:700;margin-bottom:8px;font-size:0.9em;">${pdfTxt('חתימת המקבל/ת:')}</div>
+            <img src="${logEntry.signatureImg}" style="max-width:340px;height:90px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
+            <div style="margin-top:4px;font-size:0.78em;color:#7f8c8d;">${pdfTxt(sol.name)}\u00A0\u00A0${dateStr}</div>
         </div>
 
         <!-- Stamp -->
         ${DOC_STAMP_BASE64 ? `
-        <div style="text-align:center;margin-top:20px;">
-            <img src="${DOC_STAMP_BASE64}" style="max-height:100px;opacity:0.85;">
+        <div style="text-align:center;margin-top:14px;">
+            <img src="${DOC_STAMP_BASE64}" style="max-height:80px;opacity:0.85;">
         </div>` : ''}
 
-        <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
-        <div style="text-align:center;font-size:0.72em;color:#aaa;">
+        <hr style="border:none;border-top:1px solid #e0e0e0;margin:14px 0 6px;">
+        <div style="text-align:center;font-size:0.68em;color:#aaa;">
             ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}
             <br>${dateStr}\u00A0${timeStr}\u00A0\u00A0www.daghazahav.com
         </div>
