@@ -2467,7 +2467,8 @@ function openAddSoldier(company) {
     document.getElementById('soldierRank').value = 'טוראי';
     document.getElementById('soldierRole').value = 'לוחם';
     document.getElementById('soldierShoeSize').value = '';
-    document.getElementById('soldierUniformSize').value = '';
+    document.getElementById('soldierShirtSize').value = '';
+    document.getElementById('soldierPantsSize').value = '';
     document.getElementById('soldierNotes').value = '';
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
@@ -2527,7 +2528,8 @@ function openSoldierProfile(id) {
             <div class="sp-info-item"><span class="sp-label">מ.א.</span><span class="sp-value">${esc(sol.personalId) || '-'}</span></div>
             <div class="sp-info-item"><span class="sp-label">טלפון</span><span class="sp-value">${sol.phone ? `<a href="tel:${sol.phone}">${esc(sol.phone)}</a>` : '-'}</span></div>
             ${sol.shoeSize ? `<div class="sp-info-item"><span class="sp-label">מידת נעליים</span><span class="sp-value">${esc(sol.shoeSize)}</span></div>` : ''}
-            ${sol.uniformSize ? `<div class="sp-info-item"><span class="sp-label">מידת מדים</span><span class="sp-value">${esc(sol.uniformSize)}</span></div>` : ''}
+            ${sol.shirtSize ? `<div class="sp-info-item"><span class="sp-label">מידת חולצה</span><span class="sp-value">${esc(sol.shirtSize)}</span></div>` : ''}
+            ${sol.pantsSize ? `<div class="sp-info-item"><span class="sp-label">מידת מכנס</span><span class="sp-value">${esc(sol.pantsSize)}</span></div>` : ''}
             ${sol.notes ? `<div class="sp-info-item" style="grid-column:1/-1;"><span class="sp-label">הערות</span><span class="sp-value">${esc(sol.notes)}</span></div>` : ''}
         </div>
     </div>`;
@@ -2612,7 +2614,8 @@ function openEditSoldier(id) {
     document.getElementById('soldierRole').value = sol.role || 'לוחם';
     document.getElementById('soldierPhone').value = sol.phone || '';
     document.getElementById('soldierShoeSize').value = sol.shoeSize || '';
-    document.getElementById('soldierUniformSize').value = sol.uniformSize || '';
+    document.getElementById('soldierShirtSize').value = sol.shirtSize || (sol.uniformSize || '');
+    document.getElementById('soldierPantsSize').value = sol.pantsSize || (sol.uniformSize || '');
     document.getElementById('soldierNotes').value = sol.notes || '';
     openModal('addSoldierModal');
 }
@@ -2641,7 +2644,8 @@ function saveSoldier() {
             sol.role = document.getElementById('soldierRole').value;
             sol.phone = document.getElementById('soldierPhone').value.trim();
             sol.shoeSize = document.getElementById('soldierShoeSize').value;
-            sol.uniformSize = document.getElementById('soldierUniformSize').value;
+            sol.shirtSize = document.getElementById('soldierShirtSize').value;
+            sol.pantsSize = document.getElementById('soldierPantsSize').value;
             sol.notes = document.getElementById('soldierNotes').value.trim();
             saveState();
             closeModal('addSoldierModal');
@@ -2662,7 +2666,8 @@ function saveSoldier() {
             role: document.getElementById('soldierRole').value,
             phone: document.getElementById('soldierPhone').value.trim(),
             shoeSize: document.getElementById('soldierShoeSize').value,
-            uniformSize: document.getElementById('soldierUniformSize').value,
+            shirtSize: document.getElementById('soldierShirtSize').value,
+            pantsSize: document.getElementById('soldierPantsSize').value,
             notes: document.getElementById('soldierNotes').value.trim()
         };
         state.soldiers.push(soldier);
@@ -5411,14 +5416,17 @@ function onSignSoldierSelect() {
     const info = document.getElementById('signSoldierInfo');
     info.style.display = '';
     const shoeOpts = ['','36','37','38','39','40','41','42','43','44','45','46','47','48','49'].map(v => `<option value="${v}"${v === (sol.shoeSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
-    const uniformOpts = ['','קק','ק','ב1','ב2','ב3','ג1','ג2','ג3','מ','ממ','מממ','ממממ'].map(v => `<option value="${v}"${v === (sol.uniformSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
+    const sizeList = ['','קק','ק','ב1','ב2','ב3','ג1','ג2','ג3','מ','ממ','מממ','ממממ'];
+    const shirtOpts = sizeList.map(v => `<option value="${v}"${v === (sol.shirtSize||sol.uniformSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
+    const pantsOpts = sizeList.map(v => `<option value="${v}"${v === (sol.pantsSize||sol.uniformSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
     info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:1.2em;">&#9745;</span>
         <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}</span>
     </div>
-    <div style="display:flex;gap:10px;margin-top:6px;align-items:center;font-size:0.85em;">
+    <div style="display:flex;gap:10px;margin-top:6px;align-items:center;font-size:0.85em;flex-wrap:wrap;">
         <label style="display:flex;align-items:center;gap:4px;">נעליים: <select id="signShoeSize" onchange="updateSoldierSizeFromSign()" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.95em;">${shoeOpts}</select></label>
-        <label style="display:flex;align-items:center;gap:4px;">מדים: <select id="signUniformSize" onchange="updateSoldierSizeFromSign()" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.95em;">${uniformOpts}</select></label>
+        <label style="display:flex;align-items:center;gap:4px;">חולצה: <select id="signShirtSize" onchange="updateSoldierSizeFromSign()" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.95em;">${shirtOpts}</select></label>
+        <label style="display:flex;align-items:center;gap:4px;">מכנס: <select id="signPantsSize" onchange="updateSoldierSizeFromSign()" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.95em;">${pantsOpts}</select></label>
     </div>`;
 
     // Show equipment mode selection
@@ -5459,9 +5467,11 @@ function updateSoldierSizeFromSign() {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!sol) return;
     const shoe = document.getElementById('signShoeSize')?.value || '';
-    const uniform = document.getElementById('signUniformSize')?.value || '';
+    const shirt = document.getElementById('signShirtSize')?.value || '';
+    const pants = document.getElementById('signPantsSize')?.value || '';
     if (shoe !== (sol.shoeSize || '')) { sol.shoeSize = shoe; }
-    if (uniform !== (sol.uniformSize || '')) { sol.uniformSize = uniform; }
+    if (shirt !== (sol.shirtSize || '')) { sol.shirtSize = shirt; }
+    if (pants !== (sol.pantsSize || '')) { sol.pantsSize = pants; }
     saveState();
 }
 
@@ -5670,6 +5680,23 @@ function confirmSignEquipment() {
     if (missingSerials.length > 0) {
         const names = missingSerials.map(i => i.name).join(', ');
         showToast(`חסר מספר צ\' עבור: ${names}`, 'error');
+        return;
+    }
+
+    // Validate sizes for clothing items
+    const itemNames = selectedItems.map(i => (i.name || '').toLowerCase());
+    const hasShirt = itemNames.some(n => n.includes('חולצ'));
+    const hasPants = itemNames.some(n => n.includes('מכנס'));
+    const hasShoes = itemNames.some(n => n.includes('נעל') || n.includes('נעליים'));
+    const shirtSize = document.getElementById('signShirtSize')?.value || '';
+    const pantsSize = document.getElementById('signPantsSize')?.value || '';
+    const shoeSize = document.getElementById('signShoeSize')?.value || '';
+    const missingSizes = [];
+    if (hasShirt && !shirtSize) missingSizes.push('חולצה');
+    if (hasPants && !pantsSize) missingSizes.push('מכנס');
+    if (hasShoes && !shoeSize) missingSizes.push('נעליים');
+    if (missingSizes.length > 0) {
+        showToast(`חסרה מידה עבור: ${missingSizes.join(', ')}`, 'error');
         return;
     }
 
@@ -6308,7 +6335,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מלא')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(sol.name)}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;text-align:right;">${sol.phone || '-'}</td></tr>
-            ${sol.uniformSize || sol.shoeSize ? `<tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מידות')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${[sol.uniformSize ? pdfTxt('מדים:') + '\u00A0' + sol.uniformSize : '', sol.shoeSize ? pdfTxt('נעליים:') + '\u00A0' + sol.shoeSize : ''].filter(Boolean).join('\u00A0\u00A0\u00A0')}</td></tr>` : ''}
+            ${sol.shirtSize || sol.pantsSize || sol.shoeSize ? `<tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מידות')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${[sol.shirtSize ? pdfTxt('חולצה:') + '\u00A0' + sol.shirtSize : '', sol.pantsSize ? pdfTxt('מכנס:') + '\u00A0' + sol.pantsSize : '', sol.shoeSize ? pdfTxt('נעליים:') + '\u00A0' + sol.shoeSize : ''].filter(Boolean).join('\u00A0\u00A0\u00A0')}</td></tr>` : ''}
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0\u00A0${timeStr}</td></tr>
         </table>
 
