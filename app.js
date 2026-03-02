@@ -2459,6 +2459,8 @@ function openAddSoldier(company) {
     document.getElementById('soldierPhone').value = '';
     document.getElementById('soldierRank').value = 'טוראי';
     document.getElementById('soldierRole').value = 'לוחם';
+    document.getElementById('soldierShoeSize').value = '';
+    document.getElementById('soldierUniformSize').value = '';
     document.getElementById('soldierNotes').value = '';
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
@@ -2517,6 +2519,8 @@ function openSoldierProfile(id) {
             <div class="sp-info-item"><span class="sp-label">מסגרת</span><span class="sp-value">${compNames[sol.company] || '-'}</span></div>
             <div class="sp-info-item"><span class="sp-label">מ.א.</span><span class="sp-value">${esc(sol.personalId) || '-'}</span></div>
             <div class="sp-info-item"><span class="sp-label">טלפון</span><span class="sp-value">${sol.phone ? `<a href="tel:${sol.phone}">${esc(sol.phone)}</a>` : '-'}</span></div>
+            ${sol.shoeSize ? `<div class="sp-info-item"><span class="sp-label">מידת נעליים</span><span class="sp-value">${esc(sol.shoeSize)}</span></div>` : ''}
+            ${sol.uniformSize ? `<div class="sp-info-item"><span class="sp-label">מידת מדים</span><span class="sp-value">${esc(sol.uniformSize)}</span></div>` : ''}
             ${sol.notes ? `<div class="sp-info-item" style="grid-column:1/-1;"><span class="sp-label">הערות</span><span class="sp-value">${esc(sol.notes)}</span></div>` : ''}
         </div>
     </div>`;
@@ -2600,6 +2604,8 @@ function openEditSoldier(id) {
     document.getElementById('soldierUnit').value = sol.unit || '';
     document.getElementById('soldierRole').value = sol.role || 'לוחם';
     document.getElementById('soldierPhone').value = sol.phone || '';
+    document.getElementById('soldierShoeSize').value = sol.shoeSize || '';
+    document.getElementById('soldierUniformSize').value = sol.uniformSize || '';
     document.getElementById('soldierNotes').value = sol.notes || '';
     openModal('addSoldierModal');
 }
@@ -2627,6 +2633,8 @@ function saveSoldier() {
             sol.unit = unit;
             sol.role = document.getElementById('soldierRole').value;
             sol.phone = document.getElementById('soldierPhone').value.trim();
+            sol.shoeSize = document.getElementById('soldierShoeSize').value;
+            sol.uniformSize = document.getElementById('soldierUniformSize').value;
             sol.notes = document.getElementById('soldierNotes').value.trim();
             saveState();
             closeModal('addSoldierModal');
@@ -2646,6 +2654,8 @@ function saveSoldier() {
             unit,
             role: document.getElementById('soldierRole').value,
             phone: document.getElementById('soldierPhone').value.trim(),
+            shoeSize: document.getElementById('soldierShoeSize').value,
+            uniformSize: document.getElementById('soldierUniformSize').value,
             notes: document.getElementById('soldierNotes').value.trim()
         };
         state.soldiers.push(soldier);
@@ -5393,9 +5403,10 @@ function onSignSoldierSelect() {
     // Show soldier info with clear highlight
     const info = document.getElementById('signSoldierInfo');
     info.style.display = '';
+    const sizeInfo = [sol.uniformSize ? `מדים: ${sol.uniformSize}` : '', sol.shoeSize ? `נעליים: ${sol.shoeSize}` : ''].filter(Boolean).join(' | ');
     info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:1.2em;">&#9745;</span>
-        <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}</span>
+        <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}${sizeInfo ? ' | ' + esc(sizeInfo) : ''}</span>
     </div>`;
 
     // Show equipment mode selection
@@ -6279,6 +6290,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מלא')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(sol.name)}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
+            ${sol.uniformSize || sol.shoeSize ? `<tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מידות')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${[sol.uniformSize ? pdfTxt('מדים:') + '\u00A0' + sol.uniformSize : '', sol.shoeSize ? pdfTxt('נעליים:') + '\u00A0' + sol.shoeSize : ''].filter(Boolean).join('\u00A0\u00A0\u00A0')}</td></tr>` : ''}
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0\u00A0${timeStr}</td></tr>
         </table>
 
