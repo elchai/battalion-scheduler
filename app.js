@@ -2614,8 +2614,8 @@ function openEditSoldier(id) {
     document.getElementById('soldierRole').value = sol.role || 'לוחם';
     document.getElementById('soldierPhone').value = sol.phone || '';
     document.getElementById('soldierShoeSize').value = sol.shoeSize || '';
-    document.getElementById('soldierShirtSize').value = sol.shirtSize || (sol.uniformSize || '');
-    document.getElementById('soldierPantsSize').value = sol.pantsSize || (sol.uniformSize || '');
+    document.getElementById('soldierShirtSize').value = sol.shirtSize || '';
+    document.getElementById('soldierPantsSize').value = sol.pantsSize || '';
     document.getElementById('soldierNotes').value = sol.notes || '';
     openModal('addSoldierModal');
 }
@@ -5417,8 +5417,8 @@ function onSignSoldierSelect() {
     info.style.display = '';
     const shoeOpts = ['','36','37','38','39','40','41','42','43','44','45','46','47','48','49'].map(v => `<option value="${v}"${v === (sol.shoeSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
     const sizeList = ['','קק','ק','ב1','ב2','ב3','ג1','ג2','ג3','מ','ממ','מממ','ממממ'];
-    const shirtOpts = sizeList.map(v => `<option value="${v}"${v === (sol.shirtSize||sol.uniformSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
-    const pantsOpts = sizeList.map(v => `<option value="${v}"${v === (sol.pantsSize||sol.uniformSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
+    const shirtOpts = sizeList.map(v => `<option value="${v}"${v === (sol.shirtSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
+    const pantsOpts = sizeList.map(v => `<option value="${v}"${v === (sol.pantsSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
     info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:1.2em;">&#9745;</span>
         <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}</span>
