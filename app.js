@@ -1,7 +1,7 @@
 // ==================== SETTINGS ====================
 const DEFAULT_SETTINGS = {
-    adminName: 'אלחי פיין',
-    password: '1875',
+    adminName: CONFIG.adminName,
+    password: CONFIG.password,
     shiftPresets: {
         morning:   { name: 'בוקר',    start: '06:00', end: '14:00' },
         afternoon: { name: 'צהריים',  start: '14:00', end: '22:00' },
@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS = {
     operationEndDate: '',
     operationEndTime: '14:00',
     closedDays: [],
-    sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
+    sheetId: CONFIG.sheetId,
     equipmentSets: {
         baseSet: {
             name: 'סט ציוד ללוחם',
@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS = {
                 { name: 'סוללה לעכבר', quantity: 1, category: 'קשר', requiresSerial: false }
             ]
         }],
-        defaultSigningUnit: 'פלוגת פלס"ם',
+        defaultSigningUnit: CONFIG.defaultSigningUnit,
         savedSignatures: {} // לחתימות קבועות של מחתימים
     }
 };
@@ -65,7 +65,7 @@ const DEFAULT_SETTINGS = {
 let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 
 function loadSettings() {
-    const saved = localStorage.getItem('battalionSettings');
+    const saved = localStorage.getItem(CONFIG.storagePrefix + 'Settings');
     if (saved) {
         const parsed = JSON.parse(saved);
         const defaults = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -108,15 +108,15 @@ function migrateEquipmentSets() {
     }
 
     // Save locally + FORCE push to Firestore (bypass debounce)
-    localStorage.setItem('battalionSettings', JSON.stringify(settings));
+    localStorage.setItem(CONFIG.storagePrefix + 'Settings', JSON.stringify(settings));
     if (typeof db !== 'undefined' && db && firestoreReady) {
-        db.collection('battalion').doc('settings').set(JSON.parse(JSON.stringify(settings)))
+        db.collection(DB_COLLECTION).doc('settings').set(JSON.parse(JSON.stringify(settings)))
             .catch(err => console.warn('Migration Firestore save error:', err));
     }
 }
 
 function saveSettings() {
-    localStorage.setItem('battalionSettings', JSON.stringify(settings));
+    localStorage.setItem(CONFIG.storagePrefix + 'Settings', JSON.stringify(settings));
     if (typeof firebaseSaveSettings === 'function') firebaseSaveSettings();
 }
 
@@ -138,8 +138,8 @@ function canView(compKey) {
 }
 
 // --- Role detection & equipment signing permissions ---
-const SIGNING_ROLES = ['רס"פ', 'סרס"פ', 'סמ"ח', 'מ"כ', 'מ"פ', 'סמ"פ'];
-const WAREHOUSES = ['מחסן גדוד', 'מחסן אוגדה', 'ימ"ח רנטיס', 'אחר'];
+const SIGNING_ROLES = CONFIG.signingRoles;
+const WAREHOUSES = CONFIG.warehouses;
 const EQUIPMENT_CATEGORIES = ['נשק', 'אופטיקה', 'קשר', 'לוגיסטיקה', 'אחר'];
 const CATEGORY_GROUPS = {
     'נשק': ['נשק'],
@@ -211,7 +211,7 @@ function doLogin() {
     if (name === settings.adminName || unit === 'palsam') effectiveUnit = 'gdudi';
 
     currentUser = { name, unit: effectiveUnit, personalId, company: unit };
-    sessionStorage.setItem('battalionUser', JSON.stringify(currentUser));
+    sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
     document.getElementById('loginError').classList.remove('show');
     document.getElementById('loginPassword').value = '';
     activateApp();
@@ -253,7 +253,7 @@ function autoIdentifyByPersonalId() {
 }
 
 function doLogout() {
-    sessionStorage.removeItem('battalionUser');
+    sessionStorage.removeItem(CONFIG.storagePrefix + 'User');
     currentUser = null;
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('mainApp').style.display = 'none';
@@ -270,7 +270,7 @@ function activateApp() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').style.display = '';
 
-    const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם', gdudi:'גדודי'};
+    const unitMap = getCompNames();
     document.getElementById('userBadge').textContent = currentUser.name + ' | ' + unitMap[currentUser.unit];
     const sidebarUser = document.getElementById('sidebarUser');
     if (sidebarUser) sidebarUser.textContent = currentUser.name;
@@ -321,7 +321,7 @@ function activateSoldierView() {
     const soldierTab = document.getElementById('tab-myequipment');
     if (soldierTab) {
         soldierTab.style.display = '';
-        const unitMap = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי'};
+        const unitMap = getCompNames();
         const nameEl = document.getElementById('soldierViewName');
         const unitEl = document.getElementById('soldierViewUnit');
         if (nameEl) nameEl.textContent = currentUser.name;
@@ -399,7 +399,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
-    const isCompanyCommander = ['a','b','c','d'].includes(unit);
+    const isCompanyCommander = CONFIG.combatCompanies.includes(unit);
     document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = (isGdudi || isCompanyCommander) ? '' : 'none');
     const addRotBtn = document.getElementById('addRotGroupBtn');
     if (addRotBtn) addRotBtn.style.display = (isGdudi || isAdmin()) ? '' : 'none';
@@ -478,14 +478,14 @@ function closeSidebarMobile() {
 
 // Check for existing session
 function checkSession() {
-    const saved = sessionStorage.getItem('battalionUser');
+    const saved = sessionStorage.getItem(CONFIG.storagePrefix + 'User');
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
             activateApp();
             return true;
         } catch {
-            sessionStorage.removeItem('battalionUser');
+            sessionStorage.removeItem(CONFIG.storagePrefix + 'User');
         }
     }
     return false;
@@ -499,92 +499,19 @@ document.getElementById('loginName').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') document.getElementById('loginUnit').focus();
 });
 
-// ==================== DATA ====================
-const companyData = {
-    a: {
-        name: 'פלוגה א', location: 'עתודה', color: 'var(--pluga-a)', colorClass: 'company-a',
-        forecast: 51,
-        tasks: [
-            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
-            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
-            { name: 'צוותי יזומות', soldiers: 22, commanders: 2, officers: 0, shifts: 1, perShift: { soldiers: 22, commanders: 2, officers: 0 } },
-            { name: 'של"ז', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
-            { name: 'תגבור', soldiers: 12, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 12, commanders: 0, officers: 0 } },
-            { name: 'ליווי גשש', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } }
-        ],
-        totals: { soldiers: 41, commanders: 2, officers: 2 }
-    },
-    b: {
-        name: 'פלוגה ב', location: 'מבוא חורון', color: 'var(--pluga-b)', colorClass: 'company-b',
-        forecast: 66,
-        tasks: [
-            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
-            { name: 'סיור קל', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'בונקר', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
-            { name: 'ש.ג', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'פטרול לילה', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
-            { name: 'חמל', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 4, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 11, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 1, officers: 0 } }
-        ],
-        totals: { soldiers: 36, commanders: 5, officers: 2 }
-    },
-    c: {
-        name: 'פלוגה ג', location: 'חשמונאים', color: 'var(--pluga-c)', colorClass: 'company-c',
-        forecast: 65,
-        tasks: [
-            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
-            { name: 'סיור קל דרום', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'סיור קל צפון', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'חמל פלוגתי', soldiers: 3, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'הגנת מחנה', soldiers: 6, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'כ"כ', soldiers: 5, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 0 } },
-            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
-            { name: 'צוות יזומות', soldiers: 11, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 1, officers: 0 } }
-        ],
-        totals: { soldiers: 41, commanders: 8, officers: 2 }
-    },
-    d: {
-        name: 'פלוגה ד', location: '443', color: 'var(--pluga-d)', colorClass: 'company-d',
-        forecast: 71,
-        tasks: [
-            { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
-            { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
-            { name: 'מחסום בל', soldiers: 12, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 4, commanders: 1, officers: 0 } },
-            { name: 'חמל פלוגתי', soldiers: 3, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 0 } },
-            { name: 'קצין מוצב', soldiers: 0, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 0, commanders: 0, officers: 1 } },
-            { name: 'מעבר מכבים (בוקר 06-09)', soldiers: 11, commanders: 3, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 3, officers: 0 } },
-            { name: 'מעבר מכבים (יום 09-15)', soldiers: 9, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 9, commanders: 0, officers: 0 } },
-            { name: 'תורן מטבח', soldiers: 1, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 1, commanders: 0, officers: 0 } },
-            { name: 'צוות יזומות', soldiers: 11, commanders: 1, officers: 0, shifts: 1, perShift: { soldiers: 11, commanders: 1, officers: 0 } }
-        ],
-        totals: { soldiers: 56, commanders: 10, officers: 2 }
-    },
-    hq: {
-        name: 'חפ"ק מג"ד/סמג"ד', location: 'מפקדה', color: 'var(--pluga-hq)', colorClass: 'company-hq',
-        tasks: [],
-        totals: { soldiers: 0, commanders: 0, officers: 0 }
-    },
-    palsam: {
-        name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', color: 'var(--pluga-palsam)', colorClass: 'company-palsam',
-        tasks: [
-            { name: 'מטבח', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'שמירה', soldiers: 5, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'ארמו"ן', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'נהיגה', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'חפ"ק רפואי', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'תורנות', soldiers: 5, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'ניידת טנ"א', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'ניידת לוגיסטית', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
-            { name: 'משימת ת"ש', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } }
-        ],
-        totals: { soldiers: 45, commanders: 0, officers: 0 }
-    }
-};
+// ==================== DATA (built from CONFIG) ====================
+const companyData = {};
+Object.entries(CONFIG.companies).forEach(([key, cfg]) => {
+    companyData[key] = {
+        name: cfg.name,
+        location: cfg.location,
+        color: 'var(--pluga-' + key + ')',
+        colorClass: 'company-' + key,
+        forecast: cfg.forecast || 0,
+        tasks: JSON.parse(JSON.stringify(cfg.tasks || [])),
+        totals: cfg.totals || { soldiers: 0, commanders: 0, officers: 0 }
+    };
+});
 
 // State
 let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [] };
@@ -605,9 +532,9 @@ function getSearchState(compKey) {
 }
 
 function loadState() {
-    const saved = localStorage.getItem('battalionState_v2');
+    const saved = localStorage.getItem(CONFIG.storagePrefix + 'State_v2');
     if (saved) {
-        try { state = JSON.parse(saved); } catch { localStorage.removeItem('battalionState_v2'); }
+        try { state = JSON.parse(saved); } catch { localStorage.removeItem(CONFIG.storagePrefix + 'State_v2'); }
     }
     if (!state.rotationGroups) state.rotationGroups = [];
     if (!state.equipment) state.equipment = [];
@@ -618,17 +545,17 @@ function loadState() {
     if (!state.announcements) state.announcements = [];
 
     // Migration v1 already completed — just ensure flag is set for new devices
-    if (!localStorage.getItem('migration_clear_v1')) {
-        localStorage.setItem('migration_clear_v1', '1');
+    if (!localStorage.getItem(CONFIG.storagePrefix + '_migration_clear_v1')) {
+        localStorage.setItem(CONFIG.storagePrefix + '_migration_clear_v1', '1');
     }
 
     // Migration: add warehouse + category to existing equipment
-    if (!localStorage.getItem('migration_warehouse_v1')) {
+    if (!localStorage.getItem(CONFIG.storagePrefix + '_migration_warehouse_v1')) {
         state.equipment.forEach(e => {
-            if (!e.warehouse) e.warehouse = 'מחסן גדוד';
+            if (!e.warehouse) e.warehouse = CONFIG.defaultWarehouse;
             if (!e.category) e.category = detectCategoryFromType(e.type);
         });
-        localStorage.setItem('migration_warehouse_v1', '1');
+        localStorage.setItem(CONFIG.storagePrefix + '_migration_warehouse_v1', '1');
         saveState();
     }
 
@@ -637,6 +564,15 @@ function loadState() {
     state.equipment.forEach(e => { if (CAT_MIGRATION[e.category]) e.category = CAT_MIGRATION[e.category]; });
 
     seedTestSoldier();
+
+    // Load demo seed data if available and state is empty
+    if (CONFIG.demoSeedData && state.soldiers.length <= 1) {
+        const seed = CONFIG.demoSeedData;
+        if (seed.soldiers) seed.soldiers.forEach(s => {
+            if (!state.soldiers.find(x => x.id === s.id)) state.soldiers.push(s);
+        });
+        saveState();
+    }
 }
 
 function detectCategoryFromType(type) {
@@ -690,7 +626,7 @@ function seedTestSoldier() {
         cmdRank: '',
         cmdId: '',
         cmdRole: '',
-        weaponType: 'M-16',
+        weaponType: CONFIG.defaultWeaponType,
         weaponSerial: '',
         idPhoto: null,
         date: new Date().toISOString().split('T')[0]
@@ -700,7 +636,7 @@ function seedTestSoldier() {
 
 function saveState() {
     try {
-        localStorage.setItem('battalionState_v2', JSON.stringify(state));
+        localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
     } catch (e) {
         console.error('localStorage quota exceeded:', e);
         showToast('אזהרה: הזיכרון המקומי מלא - ייתכן אובדן נתונים', 'error');
@@ -728,35 +664,18 @@ function cleanupOldData() {
 // Google Sheets config
 function getSheetUrls() {
     const base = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:csv`;
-    return {
-        support: base,
-        a: base + '&sheet=' + encodeURIComponent('פלוגה א'),
-        b: base + '&sheet=' + encodeURIComponent('פלוגה ב'),
-        c: base + '&sheet=' + encodeURIComponent('פלוגה ג'),
-        d: base + '&sheet=' + encodeURIComponent('פלוגה ד')
-    };
+    const urls = { support: base };
+    Object.entries(CONFIG.companies).forEach(([k, v]) => {
+        if (v.sheetTab) urls[k] = base + '&sheet=' + encodeURIComponent(v.sheetTab);
+    });
+    return urls;
 }
-const ALL_COMPANIES = ['a','b','c','d','hq','palsam'];
+const ALL_COMPANIES = allCompanyKeys();
 
-const deptToCompany = {
-    'חפ"ק מג"ד': 'hq',
-    'לשכה': 'hq',
-    'מחלקת משא"ן': 'palsam',
-    'מפקדת הפלס"ם': 'palsam',
-    'פלגת הספקה': 'palsam',
-    'פלגת הפינוי': 'palsam',
-    'פלגת טנ"א': 'palsam',
-    'פלגת רפואה': 'palsam'
-};
+const deptToCompany = CONFIG.departmentToCompany;
 
-const UNITS_BY_COMPANY = {
-    a: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-    b: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-    c: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-    d: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-    hq: ['חפ"ק מג"ד', 'לשכה'],
-    palsam: ['אג"מ', 'לוגיסטיקה', 'קשר', 'טנ"א', 'רפואה', 'מטבח', 'רכב', 'דת וז"ח', 'מפל"ג', 'מודיעין']
-};
+const UNITS_BY_COMPANY = {};
+Object.entries(CONFIG.companies).forEach(([k, v]) => { UNITS_BY_COMPANY[k] = v.units || []; });
 
 function updateSoldierUnits() {
     const compKey = document.getElementById('soldierCompany').value;
@@ -791,9 +710,9 @@ async function init() {
 
     // Force re-sync if data version changed (multi-sheet support)
     const dataVersion = 'v4_allsheets_fix';
-    if (localStorage.getItem('battalionDataVersion') !== dataVersion) {
+    if (localStorage.getItem(CONFIG.storagePrefix + 'DataVersion') !== dataVersion) {
         state.soldiers = state.soldiers.filter(s => !s.fromSheets);
-        localStorage.setItem('battalionDataVersion', dataVersion);
+        localStorage.setItem(CONFIG.storagePrefix + 'DataVersion', dataVersion);
         syncFromGoogleSheets(true);
     } else if (state.soldiers.length === 0) {
         syncFromGoogleSheets(true);
@@ -828,7 +747,7 @@ function renderAll() {
     // Only render the active tab + overview/dashboard which are always needed
     renderOverview();
     renderDashboard();
-    if (['a','b','c','d','hq','palsam'].includes(activeTab)) {
+    if (allCompanyKeys().includes(activeTab)) {
         renderCompanyTab(activeTab);
     } else if (activeTab === 'rotation') {
         renderRotationTab();
@@ -930,7 +849,7 @@ function parseSupportSheet(csv) {
 function parseCombatSheet(csv, companyKey) {
     const lines = csv.split('\n');
     const soldiers = [];
-    const compNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד' };
+    const compNames = getCompNames();
     for (let i = 1; i < lines.length; i++) {
         const f = parseCSVLine(lines[i]);
         if (f.length < 8) continue;
@@ -1113,7 +1032,7 @@ function renderDashboard() {
     }).join(', ');
 
     // === BAR CHART - Company manning ===
-    const mainCompanies = ['a', 'b', 'c', 'd'];
+    const mainCompanies = CONFIG.combatCompanies;
     const maxVal = Math.max(...mainCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
     const barsHtml = mainCompanies.map(k => {
         const cs = compStats[k];
@@ -1329,7 +1248,7 @@ function updateNotifications() {
     }
 
     // 3. Understaffed tasks (shifts needed today with low coverage)
-    const mainCompanies = ['a', 'b', 'c', 'd'];
+    const mainCompanies = CONFIG.combatCompanies;
     mainCompanies.forEach(k => {
         const comp = companyData[k];
         comp.tasks.forEach(task => {
@@ -1873,7 +1792,7 @@ function renderCalendar() {
 
         // Get rotation groups that are out on this day
         let rotationEvents = [];
-        if (filterCompany === 'all' || ['a', 'b', 'c', 'd'].includes(filterCompany)) {
+        if (filterCompany === 'all' || CONFIG.combatCompanies.includes(filterCompany)) {
             state.rotationGroups.forEach(g => {
                 const status = getRotationStatus(g, day);
                 if (!status.inBase) {
@@ -1970,7 +1889,7 @@ function exportCalendarToPDF() {
     const htmlContent = `
     <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;background:#fff;padding:20px;width:100%;">
         <div style="text-align:center;margin-bottom:30px;border-bottom:2px solid #1a237e;padding-bottom:20px;">
-            <h1 style="color:#1a237e;margin:0;font-size:28px;font-weight:bold;">גדוד יהודה - לוח שיבוצים שבועי</h1>
+            <h1 style="color:#1a237e;margin:0;font-size:28px;font-weight:bold;">${CONFIG.battalionName} - לוח שיבוצים שבועי</h1>
             <h2 style="color:#555;margin:10px 0 0 0;font-size:20px;">${titleEl.textContent}</h2>
             <p style="color:#777;margin:5px 0;font-size:16px;">${companyName} | נוצר: ${dateStr}</p>
         </div>
@@ -2128,7 +2047,7 @@ function renderCommanderDashboard() {
     // Company selector for gdudi users
     const compSelector = (currentUser && currentUser.unit) === 'gdudi' ? `
         <select id="cmdCompanySelect" onchange="switchCommanderCompany(this.value)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
-            ${['a','b','c','d','hq','palsam'].map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
+            ${allCompanyKeys().map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
         </select>` : '';
 
     container.innerHTML = `
@@ -2462,7 +2381,7 @@ function switchTab(tab) {
     });
     const tabContent = document.getElementById(`tab-${tab}`);
     if (tabContent) tabContent.classList.add('active');
-    if (['a','b','c','d','hq','palsam'].includes(tab)) renderCompanyTab(tab);
+    if (allCompanyKeys().includes(tab)) renderCompanyTab(tab);
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'morningreport') generateMorningReport();
@@ -2522,7 +2441,7 @@ function openSoldierProfile(id) {
     if (!container) return;
     document.getElementById('profileTitle').textContent = `כרטיס חייל - ${sol.name}`;
 
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const compNames = getCompNames();
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Shifts (recent + upcoming)
@@ -2760,7 +2679,7 @@ function openTransferSoldier(soldierId) {
     }
 
     document.getElementById('transferSoldierId').value = soldierId;
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const compNames = getCompNames();
     document.getElementById('transferFromCompany').value = compNames[sol.company] || sol.company;
     document.getElementById('transferSoldierInfo').innerHTML = `
         <h4 style="margin:0 0 4px;">${esc(sol.name)}</h4>
@@ -2810,7 +2729,7 @@ async function confirmTransferSoldier() {
         return;
     }
 
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const compNames = getCompNames();
     if (!await customConfirm(`להעביר את ${sol.name} מ${compNames[fromCompany]} ל${compNames[toCompany]}?`)) return;
 
     // Cascade: remove from shifts in old company
@@ -3289,7 +3208,7 @@ function saveRotationGroup() {
     saveState();
     closeModal('addRotationGroupModal');
     renderRotationTab();
-    ['a','b','c','d'].forEach(renderCompanyTab);
+    CONFIG.combatCompanies.forEach(renderCompanyTab);
     updateGlobalStats();
     showToast(`קבוצת רוטציה "${name}" נוצרה`);
 }
@@ -3518,7 +3437,7 @@ function updateGlobalStats() {
     }
 
     // Update sidebar company counts
-    ['a','b','c','d'].forEach(k => {
+    CONFIG.combatCompanies.forEach(k => {
         const el = document.getElementById('sidebarCount-' + k);
         if (el) el.textContent = state.soldiers.filter(s => s.company === k).length;
     });
@@ -3531,7 +3450,7 @@ function updateGlobalStats() {
 function renderSettingsTab() {
     const container = document.getElementById('settingsContent');
     if (!container) return;
-    const companyNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד', hq: 'חפ"ק מג"ד', palsam: 'פלס"ם' };
+    const companyNames = getCompNames();
 
     container.innerHTML = `
     <!-- Shift Presets -->
@@ -3645,7 +3564,7 @@ function renderSettingsTab() {
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> ניהול משימות לפי פלוגה</h3>
         <div class="form-group" style="margin-bottom:14px;">
             <select id="settingsTaskCompany" onchange="renderTaskEditor()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
-                ${ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || ['a','b','c','d'].includes(k)).map(k =>
+                ${ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || CONFIG.combatCompanies.includes(k)).map(k =>
                     `<option value="${k}">${companyNames[k]}</option>`
                 ).join('')}
             </select>
@@ -3714,12 +3633,12 @@ async function deleteTask(compKey, index) {
 function saveTasksToStorage() {
     const tasksData = {};
     ALL_COMPANIES.forEach(k => { tasksData[k] = companyData[k].tasks; });
-    localStorage.setItem('battalionTasks', JSON.stringify(tasksData));
+    localStorage.setItem(CONFIG.storagePrefix + 'Tasks', JSON.stringify(tasksData));
     if (typeof firebaseSaveTasks === 'function') firebaseSaveTasks();
 }
 
 function loadTasksFromStorage() {
-    const saved = localStorage.getItem('battalionTasks');
+    const saved = localStorage.getItem(CONFIG.storagePrefix + 'Tasks');
     if (saved) {
         const tasksData = JSON.parse(saved);
         ALL_COMPANIES.forEach(k => {
@@ -3728,7 +3647,7 @@ function loadTasksFromStorage() {
     }
     // Add מפל"ג to combat companies only if no saved tasks exist yet
     if (!saved) {
-        ['a','b','c','d'].forEach(k => {
+        CONFIG.combatCompanies.forEach(k => {
             if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
                 companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } });
             }
@@ -3857,8 +3776,8 @@ async function resetAllData() {
     if (!await customDeleteConfirm()) return;
     state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [] };
     saveState();
-    localStorage.removeItem('battalionTasks');
-    localStorage.removeItem('battalionDataVersion');
+    localStorage.removeItem(CONFIG.storagePrefix + 'Tasks');
+    localStorage.removeItem(CONFIG.storagePrefix + 'DataVersion');
     syncFromGoogleSheets(false);
     renderAll();
     renderSettingsTab();
@@ -4162,7 +4081,7 @@ function renderRollCallHistory(compKey) {
 
 function copyRollCallText() {
     const compKey = document.getElementById('rollcallCompany').value;
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const compNames = getCompNames();
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const now = new Date();
 
@@ -4266,7 +4185,7 @@ function renderReport1() {
 
     const compSelect = document.getElementById('report1Company');
     const compKey = compSelect ? compSelect.value : 'a';
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const compNames = getCompNames();
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const days = getReport1WeekDays();
     const todayStr = new Date().toISOString().split('T')[0];
@@ -4390,7 +4309,7 @@ function renderReport1() {
 function copyReport1Text() {
     const compSelect = document.getElementById('report1Company');
     const compKey = compSelect ? compSelect.value : 'a';
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const compNames = getCompNames();
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const days = getReport1WeekDays();
     const hebDays = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
@@ -4441,15 +4360,15 @@ function exportShavtzak() {
     const wb = XLSX.utils.book_new();
     const todayStr = new Date().toISOString().split('T')[0];
     const dateFormatted = new Date().toLocaleDateString('he-IL');
-    const compNames = {a:'פלוגה א\'', b:'פלוגה ב\'', c:'פלוגה ג\'', d:'פלוגה ד\'', hq:'חפ"ק', palsam:'פלס"ם'};
-    const baseNames = {a:'מכבים', b:'מכבים', c:'חשמונאים', d:'מכבים', hq:'מכבים', palsam:'מכבים'};
+    const compNames = getCompNames();
+    const baseNames = {}; allCompanyKeys().forEach(k => { baseNames[k] = CONFIG.companies[k]?.baseName || ''; });
 
     // --- Sheet 1: Personnel list (שבצ"ק) ---
     const header = ['מספר אישי', 'דרגה', 'מחושבת', 'שם משפחה', 'שם פרטי', 'סוג שירות', 'פלוגה', 'עיסוק מיועד', 'שם הבסיס נמצא'];
     const rows = [['שבצ"ק ודמ"ח', '', '', '', '', '', '', '', dateFormatted], [], header];
 
     // Sort: combat companies first, then hq, palsam
-    const compOrder = ['a', 'b', 'c', 'd', 'hq', 'palsam'];
+    const compOrder = allCompanyKeys();
     compOrder.forEach(compKey => {
         const soldiers = state.soldiers.filter(s => s.company === compKey);
         soldiers.forEach(s => {
@@ -4459,13 +4378,13 @@ function exportShavtzak() {
             rows.push([
                 s.personalId || '',
                 s.rank || '',
-                'מילואים',
+                CONFIG.serviceType,
                 lastName,
                 firstName,
-                'מילואים',
+                CONFIG.serviceType,
                 compNames[compKey] || '',
                 s.role || 'לוחם חי"ר',
-                baseNames[compKey] || 'מכבים'
+                baseNames[compKey] || ''
             ]);
         });
     });
@@ -4502,8 +4421,8 @@ function exportShavtzak() {
 
         summaryRows.push([
             compNames[compKey] || '',
-            baseNames[compKey] || 'מכבים',
-            baseNames[compKey] || 'מכבים',
+            baseNames[compKey] || '',
+            baseNames[compKey] || '',
             'תע"מ',
             total, // סד"כ פעיל
             0, // חמרה
@@ -4543,8 +4462,8 @@ function generateMorningReport() {
     const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeDisplay = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-    const companies = ['a','b','c','d','hq','palsam'];
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const companies = allCompanyKeys();
+    const compNames = getCompNames();
     let rows = '';
     let totalAll = 0, totalPresent = 0, totalLeave = 0, totalShift = 0;
 
@@ -4615,7 +4534,7 @@ function generateMorningReport() {
     container.innerHTML = `
         <div class="mr-report" id="morningReportPrint">
             <div class="mr-header">
-                <h3>דוח גדודי - גדוד יהודה</h3>
+                <h3>דוח גדודי - ${CONFIG.battalionName}</h3>
                 <div class="mr-date">${dateDisplay} | שעה ${timeDisplay}</div>
                 <div class="mr-author">הופק ע"י: ${esc(currentUser ? currentUser.name : 'מערכת')}</div>
             </div>
@@ -4643,10 +4562,10 @@ function getMorningReportText() {
     const todayStr = now.toISOString().split('T')[0];
     const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeDisplay = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-    const companies = ['a','b','c','d','hq','palsam'];
-    const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
+    const companies = allCompanyKeys();
+    const compNames = getCompNames();
 
-    let text = `*דוח גדודי - גדוד יהודה*\n${dateDisplay} | ${timeDisplay}\n\n`;
+    let text = `*דוח גדודי - ${CONFIG.battalionName}*\n${dateDisplay} | ${timeDisplay}\n\n`;
     let totalAll = 0, totalPresent = 0;
 
     companies.forEach(k => {
@@ -5080,7 +4999,7 @@ let DOC_LOGO_BASE64 = '';
         c.getContext('2d').drawImage(img, 0, 0);
         DOC_LOGO_BASE64 = c.toDataURL('image/png');
     };
-    img.src = 'doc-logo.png';
+    img.src = CONFIG.docLogoPath;
     img.onerror = function() {
         const fallback = new Image();
         fallback.onload = function() {
@@ -5089,7 +5008,7 @@ let DOC_LOGO_BASE64 = '';
             c.getContext('2d').drawImage(fallback, 0, 0);
             DOC_LOGO_BASE64 = c.toDataURL('image/png');
         };
-        fallback.src = 'logo.png';
+        fallback.src = CONFIG.logoPath;
     };
 })();
 
@@ -5103,7 +5022,7 @@ let DOC_STAMP_BASE64 = '';
         c.getContext('2d').drawImage(img, 0, 0);
         DOC_STAMP_BASE64 = c.toDataURL('image/png');
     };
-    img.src = 'stamp.png';
+    img.src = CONFIG.stampPath;
 })();
 
 // --- Signature Canvas Setup ---
@@ -5247,7 +5166,7 @@ function openAddEquipment() {
     document.getElementById('equipSerial').value = '';
     document.getElementById('equipCompany').value = 'gdudi';
     document.getElementById('equipCondition').value = 'תקין';
-    document.getElementById('equipWarehouse').value = 'מחסן גדוד';
+    document.getElementById('equipWarehouse').value = CONFIG.defaultWarehouse;
     toggleCustomWarehouse();
     document.getElementById('equipDefaultQty').value = '1';
     document.getElementById('equipNotes').value = '';
@@ -5273,9 +5192,9 @@ function openEditEquipment(id) {
     document.getElementById('equipCompany').value = eq.company;
     document.getElementById('equipCondition').value = eq.condition;
     // Warehouse
-    const wh = eq.warehouse || 'מחסן גדוד';
+    const wh = eq.warehouse || CONFIG.defaultWarehouse;
     const whSel = document.getElementById('equipWarehouse');
-    if (['מחסן גדוד','מחסן אוגדה','ימ"ח רנטיס'].includes(wh)) {
+    if (WAREHOUSES.slice(0, -1).includes(wh)) {
         whSel.value = wh;
     } else {
         whSel.value = 'אחר';
@@ -6082,7 +6001,7 @@ function renderEquipmentTab() {
     // Filter by warehouse
     const whFilter = document.getElementById('equipWarehouseFilter');
     if (whFilter && whFilter.value !== 'all') {
-        items = items.filter(e => (e.warehouse || 'מחסן גדוד') === whFilter.value);
+        items = items.filter(e => (e.warehouse || CONFIG.defaultWarehouse) === whFilter.value);
     }
 
     // Stats
@@ -6110,7 +6029,7 @@ function renderEquipmentTab() {
     const tableContainer = document.getElementById('equipmentTableContainer');
     if (!tableContainer) return;
 
-    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
+    const companyNames = getCompNames();
 
     if (items.length === 0) {
         tableContainer.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><p>אין פריטי ציוד</p></div>';
@@ -6137,7 +6056,7 @@ function renderEquipmentTab() {
                                 <td style="font-weight:600;">${e.type}</td>
                                 <td style="direction:ltr;font-family:monospace;">${e.serial}</td>
                                 <td>${e.defaultQty || 1}</td>
-                                <td style="font-size:0.82em;">${e.warehouse || 'מחסן גדוד'}</td>
+                                <td style="font-size:0.82em;">${e.warehouse || CONFIG.defaultWarehouse}</td>
                                 <td>${companyNames[e.company] || e.company || 'מלאי מחסן'}</td>
                                 <td>${e.condition}</td>
                                 <td><span class="equip-status ${statusClass}">${statusText}</span></td>
@@ -6545,10 +6464,10 @@ function downloadPDF(htmlContent, filename) {
 function exportEquipmentCSV() {
     let csv = '\uFEFF' + 'ציוד לחימה מבוקר - צל"מ\n\n';
     csv += 'סוג ציוד,מספר סידורי,קטגוריה,מחסן,מסגרת,מצב,סטטוס,מחזיק,טלפון,תאריך חתימה,הערות\n';
-    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
+    const companyNames = getCompNames();
     state.equipment.forEach(e => {
         const status = e.condition === 'תקול' ? 'תקול' : e.holderId ? 'מוחזק' : 'פנוי';
-        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company || 'מלאי מחסן'},${e.condition},${status},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
+        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || CONFIG.defaultWarehouse},${companyNames[e.company] || e.company || 'מלאי מחסן'},${e.condition},${status},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -6896,7 +6815,7 @@ function getFilteredEquipment() {
 
     return state.equipment.filter(e => {
         if (!checkedCats.includes(e.category || 'אחר')) return false;
-        if (wh !== 'all' && (e.warehouse || 'מחסן גדוד') !== wh) return false;
+        if (wh !== 'all' && (e.warehouse || CONFIG.defaultWarehouse) !== wh) return false;
         if (comp !== 'all' && e.company !== comp) return false;
         if (status === 'assigned' && !e.holderId) return false;
         if (status === 'available' && (e.holderId || ['תקול','אובדן','מת"ש'].includes(e.condition))) return false;
@@ -6915,12 +6834,12 @@ function updateExportPreviewCount() {
 function doFilteredExportCSV() {
     const items = getFilteredEquipment();
     if (!items.length) { showToast('אין פריטים לייצוא', 'error'); return; }
-    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
+    const companyNames = getCompNames();
     let csv = '\uFEFF' + 'ציוד לחימה מבוקר - צל"מ (מסונן)\n\n';
     csv += 'סוג ציוד,מספר סידורי,קטגוריה,מחסן,מסגרת,מצב,סטטוס,מחזיק,טלפון,תאריך חתימה,הערות\n';
     items.forEach(e => {
         const st = ['תקול','אובדן','מת"ש'].includes(e.condition) ? e.condition : e.holderId ? 'מוחזק' : 'פנוי';
-        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || 'מחסן גדוד'},${companyNames[e.company] || e.company || 'מלאי מחסן'},${e.condition},${st},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
+        csv += `${e.type},${e.serial},${e.category || 'אחר'},${e.warehouse || CONFIG.defaultWarehouse},${companyNames[e.company] || e.company || 'מלאי מחסן'},${e.condition},${st},${e.holderName || '-'},${e.holderPhone || '-'},${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'},${e.notes || ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -6935,7 +6854,7 @@ function doFilteredExportCSV() {
 function doFilteredExportPDF() {
     const items = getFilteredEquipment();
     if (!items.length) { showToast('אין פריטים לייצוא', 'error'); return; }
-    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם', gdudi:'גדודי' };
+    const companyNames = getCompNames();
     const htmlContent = `<div dir="rtl" style="font-family:Arial,sans-serif;padding:20px;">
         <h2 style="text-align:center;margin-bottom:4px;">דוח ציוד מסונן</h2>
         <p style="text-align:center;font-size:12px;color:#666;margin-bottom:16px;">${new Date().toLocaleDateString('he-IL')} | ${items.length} פריטים</p>
@@ -6953,7 +6872,7 @@ function doFilteredExportPDF() {
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.type}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;direction:ltr;font-family:monospace;">${e.serial}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.category || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${e.warehouse || 'מחסן גדוד'}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${e.warehouse || CONFIG.defaultWarehouse}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${companyNames[e.company] || e.company || 'מלאי מחסן'}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.condition}</td>
                 <td style="padding:4px 6px;border:1px solid #ddd;">${e.holderName || '-'}</td>
@@ -6974,7 +6893,7 @@ function openImportEquipment() {
     document.getElementById('importPreviewContainer').innerHTML = '';
     document.getElementById('importSummary').style.display = 'none';
     document.getElementById('importConfirmBtn').style.display = 'none';
-    document.getElementById('importWarehouse').value = 'מחסן גדוד';
+    document.getElementById('importWarehouse').value = CONFIG.defaultWarehouse;
     document.getElementById('importCompany').value = 'gdudi';
     importPreviewData = [];
     openModal('importEquipmentModal');
@@ -7204,7 +7123,7 @@ function renderWeaponsTab() {
 
     document.getElementById('weaponsSoldiersCount').textContent = soldiers.length;
 
-    const companyNames = { a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק', palsam:'פלס"ם' };
+    const companyNames = getCompNames();
     const container = document.getElementById('weaponsTableContainer');
 
     if (!soldiers.length) {
@@ -7268,7 +7187,7 @@ function openWeaponsForm(soldierId) {
             cmdRank: '',
             cmdId: '',
             cmdRole: '',
-            weaponType: 'M-16',
+            weaponType: CONFIG.defaultWeaponType,
             weaponSerial: '',
             idPhoto: null,
             date: new Date().toISOString().split('T')[0]
@@ -7288,7 +7207,7 @@ function openWeaponsForm(soldierId) {
     document.getElementById('wpCity').value = rec.city;
     document.getElementById('wpRank').value = rec.rank;
     document.getElementById('wpRole').value = rec.role;
-    document.getElementById('wpWeaponType').value = rec.weaponType || 'M-16';
+    document.getElementById('wpWeaponType').value = rec.weaponType || CONFIG.defaultWeaponType;
     document.getElementById('wpWeaponSerial').value = rec.weaponSerial;
     document.getElementById('wpCmdName').value = rec.cmdName;
     document.getElementById('wpCmdRank').value = rec.cmdRank;
@@ -8103,7 +8022,7 @@ function _reportByFaulty(equip) {
                 <tbody>${items.map(i => `<tr>
                     <td>${i.type}</td>
                     <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                    <td>${i.warehouse || 'מחסן גדוד'}</td>
+                    <td>${i.warehouse || CONFIG.defaultWarehouse}</td>
                     <td>${i.company || '-'}</td>
                     <td style="font-size:0.85em;">${i.notes || '-'}</td>
                 </tr>`).join('')}</tbody>
@@ -8583,7 +8502,7 @@ function openBulkSignModal(soldierId) {
         <div style="font-size:0.85em;font-weight:700;margin-top:8px;">סה"כ: ${pe.items.length} פריטים</div>`;
 
     // Set default signing unit
-    document.getElementById('bulkSignUnit').value = settings.equipmentSets?.defaultSigningUnit || 'פלוגת פלס"ם';
+    document.getElementById('bulkSignUnit').value = settings.equipmentSets?.defaultSigningUnit || CONFIG.defaultSigningUnit;
 
     // Try to load saved signature info for current user
     const savedSigKey = currentUser ? currentUser.name : '';
@@ -8592,7 +8511,7 @@ function openBulkSignModal(soldierId) {
     if (savedSignature) {
         document.getElementById('bulkSignIssuerFirstName').value = savedSignature.firstName || '';
         document.getElementById('bulkSignIssuerLastName').value = savedSignature.lastName || '';
-        document.getElementById('bulkSignUnit').value = savedSignature.unit || 'פלוגת פלס"ם';
+        document.getElementById('bulkSignUnit').value = savedSignature.unit || CONFIG.defaultSigningUnit;
     } else {
         document.getElementById('bulkSignIssuerFirstName').value = '';
         document.getElementById('bulkSignIssuerLastName').value = '';
@@ -8836,7 +8755,7 @@ function renderPalsamDashboard() {
     const container = document.getElementById('palsamDashboardContent');
     if (!container) return;
 
-    const companyNames = { a: 'פלוגה א', b: 'פלוגה ב', c: 'פלוגה ג', d: 'פלוגה ד', hq: 'חפ"ק', palsam: 'פלס"ם' };
+    const companyNames = getCompNames();
     const allStats = getPakalStats();
 
     // Per-company stats
@@ -9003,7 +8922,7 @@ function generatePakalPDF(soldierId) {
                 ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;${ws}">${pe.bulkSignature.signingUnit}</div>` : ''}
             </div>
         </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
-        <div style="text-align:center;font-size:11px;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;${ws}">מערכת ניהול גדודי - גדוד יהודה 1875 | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
+        <div style="text-align:center;font-size:11px;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;${ws}">${CONFIG.systemTitle} - ${CONFIG.battalionName} ${CONFIG.battalionId} | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>
     </div>`;
 
     downloadPDF(html, `פקל_${sol.name}_${dateStr.replace(/\//g, '-')}`);

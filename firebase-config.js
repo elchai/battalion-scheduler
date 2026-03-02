@@ -7,17 +7,9 @@
 // 5. Copy the config values below
 // 6. Set FIREBASE_ENABLED = true
 
-const FIREBASE_ENABLED = true;
+const FIREBASE_ENABLED = CONFIG.firebaseEnabled;
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCFs1YrTTRU6TQlzkkqmUASh8y6zq5VNKM",
-    authDomain: "battalion-scheduler.firebaseapp.com",
-    projectId: "battalion-scheduler",
-    storageBucket: "battalion-scheduler.firebasestorage.app",
-    messagingSenderId: "782286427873",
-    appId: "1:782286427873:web:385fa860253eedd8d909a0",
-    measurementId: "G-WWXZCY49E1"
-};
+const firebaseConfig = CONFIG.firebase;
 
 // Initialize Firebase (only if enabled and SDK loaded)
 let db = null;
@@ -39,7 +31,7 @@ if (FIREBASE_ENABLED && typeof firebase !== 'undefined') {
     }
 }
 
-const DB_COLLECTION = 'battalion';
+const DB_COLLECTION = CONFIG.firestoreCollection;
 
 // ==================== FIREBASE DATA LAYER ====================
 
@@ -60,7 +52,7 @@ async function firebaseLoadState() {
             state.personalEquipment = remoteState.personalEquipment || state.personalEquipment;
             state.rollCalls = remoteState.rollCalls || state.rollCalls;
             state.announcements = remoteState.announcements || state.announcements;
-            localStorage.setItem('battalionState_v2', JSON.stringify(state));
+            localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
             firestoreReady = true;
             return true;
         } else {
@@ -93,7 +85,7 @@ async function firebaseLoadSettings() {
                     settings.equipmentSets = localES;
                 }
             }
-            localStorage.setItem('battalionSettings', JSON.stringify(settings));
+            localStorage.setItem(CONFIG.storagePrefix + 'Settings', JSON.stringify(settings));
             return true;
         } else {
             await db.collection(DB_COLLECTION).doc('settings').set(JSON.parse(JSON.stringify(settings)));
@@ -111,7 +103,7 @@ async function firebaseLoadTasks() {
         const doc = await db.collection(DB_COLLECTION).doc('tasks').get();
         if (doc.exists) {
             const tasksData = doc.data();
-            const ALL = ['a','b','c','d','hq','palsam'];
+            const ALL = allCompanyKeys();
             ALL.forEach(k => {
                 if (tasksData[k]) companyData[k].tasks = tasksData[k];
             });
@@ -147,7 +139,7 @@ function firebaseSaveTasks() {
     clearTimeout(tasksDebounceTimer);
     tasksDebounceTimer = setTimeout(() => {
         const tasksData = {};
-        const ALL = ['a','b','c','d','hq','palsam'];
+        const ALL = allCompanyKeys();
         ALL.forEach(k => { tasksData[k] = companyData[k].tasks; });
         db.collection(DB_COLLECTION).doc('tasks').set(tasksData)
             .catch(err => console.warn('Firestore tasks save error:', err));
@@ -177,7 +169,7 @@ function setupRealtimeListeners() {
                 state.personalEquipment = remoteState.personalEquipment || [];
                 state.rollCalls = remoteState.rollCalls || [];
                 state.announcements = remoteState.announcements || [];
-                localStorage.setItem('battalionState_v2', JSON.stringify(state));
+                localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');
             }
@@ -202,7 +194,7 @@ function setupRealtimeListeners() {
                         settings.equipmentSets = localES;
                     }
                 }
-                localStorage.setItem('battalionSettings', JSON.stringify(settings));
+                localStorage.setItem(CONFIG.storagePrefix + 'Settings', JSON.stringify(settings));
             }
         }, err => console.warn('Settings listener error:', err));
 
@@ -211,7 +203,7 @@ function setupRealtimeListeners() {
         .onSnapshot(doc => {
             if (!doc.exists) return;
             const tasksData = doc.data();
-            const ALL = ['a','b','c','d','hq','palsam'];
+            const ALL = allCompanyKeys();
             ALL.forEach(k => {
                 if (tasksData[k]) companyData[k].tasks = tasksData[k];
             });

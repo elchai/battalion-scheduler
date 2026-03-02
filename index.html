@@ -7,10 +7,25 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a237e">
     <title>מערכת ניהול גדודי | תעסוקה מבצעית</title>
-    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="icon" id="favicon" href="logo.png" type="image/png">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="apple-touch-icon" id="appleTouchIcon" href="logo.png">
     <link rel="stylesheet" href="style.css">
+    <script>
+    var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
+    </script>
+    <script>
+    if (_isDemo) {
+        document.write('<script src="config-demo.js"><\/script>');
+    } else {
+        document.write('<script src="config.js"><\/script>');
+    }
+    </script>
+    <script>
+    document.getElementById('favicon').href = CONFIG.logoPath;
+    document.getElementById('appleTouchIcon').href = CONFIG.logoPath;
+    document.title = CONFIG.systemTitle + ' | ' + CONFIG.systemSubtitle;
+    </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
@@ -18,9 +33,15 @@
 <!-- Login Screen -->
 <div class="login-screen" id="loginScreen">
     <div class="login-box">
-        <img src="logo.png" alt="גדוד יהודה" style="width:60px;height:60px;border-radius:50%;margin-bottom:6px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-        <h2>מערכת ניהול גדודי</h2>
-        <div class="subtitle">תעסוקה מבצעית</div>
+        <img id="loginLogo" src="logo.png" alt="" style="width:60px;height:60px;border-radius:50%;margin-bottom:6px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+        <h2 id="loginTitle">מערכת ניהול גדודי</h2>
+        <div class="subtitle" id="loginSubtitle">תעסוקה מבצעית</div>
+        <script>
+        document.getElementById('loginLogo').src = CONFIG.logoPath;
+        document.getElementById('loginLogo').alt = CONFIG.battalionName;
+        document.getElementById('loginTitle').textContent = CONFIG.systemTitle;
+        document.getElementById('loginSubtitle').textContent = CONFIG.systemSubtitle;
+        </script>
 
         <div class="login-field">
             <label>מספר אישי (מ.א)</label>
@@ -34,14 +55,21 @@
             <label>מסגרת</label>
             <select id="loginUnit">
                 <option value="">-- בחר מסגרת --</option>
-                <option value="a">פלוגה א (עתודה)</option>
-                <option value="b">פלוגה ב (מבוא חורון)</option>
-                <option value="c">פלוגה ג (חשמונאים)</option>
-                <option value="d">פלוגה ד (443)</option>
-                <option value="hq">חפ"ק מג"ד/סמג"ד</option>
-                <option value="palsam">פלס"ם</option>
-                <option value="gdudi">גדודי</option>
             </select>
+            <script>
+            (function(){
+                var sel = document.getElementById('loginUnit');
+                Object.entries(CONFIG.companies).forEach(function(e){
+                    var o = document.createElement('option');
+                    o.value = e[0];
+                    o.textContent = e[1].name + (e[1].location ? ' (' + e[1].location + ')' : '');
+                    sel.appendChild(o);
+                });
+                var gd = document.createElement('option');
+                gd.value = 'gdudi'; gd.textContent = 'גדודי';
+                sel.appendChild(gd);
+            })();
+            </script>
         </div>
         <div class="login-field">
             <label>סיסמה</label>
@@ -52,9 +80,12 @@
     </div>
     <div class="login-footer">
         מערכת מאובטחת - גישה מורשית בלבד<br>
-        <a href="https://wa.me/972542012000" target="_blank" style="color:rgba(255,255,255,0.7);text-decoration:none;margin-top:6px;display:inline-block;">
-            נבנה ע"י אלחי פיין | 054-2012000
-        </a>
+        <a id="loginDevCredit" href="" target="_blank" style="color:rgba(255,255,255,0.7);text-decoration:none;margin-top:6px;display:inline-block;"></a>
+        <script>
+        var _dc = document.getElementById('loginDevCredit');
+        _dc.href = 'https://wa.me/' + CONFIG.developerPhone;
+        _dc.textContent = 'נבנה ע"י ' + CONFIG.developerName + ' | ' + CONFIG.developerPhoneDisplay;
+        </script>
     </div>
 </div>
 
@@ -63,11 +94,16 @@
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <img src="logo.png" alt="גדוד יהודה" class="sidebar-logo">
+        <img class="sidebar-logo" id="sidebarLogo" src="logo.png" alt="">
         <div class="sidebar-brand">
-            <div class="sidebar-title">ניהול גדודי</div>
-            <div class="sidebar-subtitle">תעסוקה מבצעית</div>
+            <div class="sidebar-title" id="sidebarTitle">ניהול גדודי</div>
+            <div class="sidebar-subtitle" id="sidebarSubtitle">תעסוקה מבצעית</div>
         </div>
+        <script>
+        document.getElementById('sidebarLogo').src = CONFIG.logoPath;
+        document.getElementById('sidebarLogo').alt = CONFIG.battalionName;
+        document.getElementById('sidebarSubtitle').textContent = CONFIG.systemSubtitle;
+        </script>
         <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
@@ -75,9 +111,10 @@
     <nav class="sidebar-nav">
         <div class="sidebar-section-label">כלים</div>
         <button class="sidebar-item tab-morningreport" onclick="switchTab('morningreport')">
-            <img src="logo.png" width="18" height="18" style="border-radius:50%;object-fit:cover;">
+            <img id="sidebarReportLogo" width="18" height="18" style="border-radius:50%;object-fit:cover;">
             <span>דוח גדודי</span>
         </button>
+        <script>document.getElementById('sidebarReportLogo').src = CONFIG.logoPath;</script>
         <button class="sidebar-item tab-rollcall" onclick="switchTab('rollcall')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             <span>דו"ח 1</span>
@@ -115,34 +152,24 @@
         </button>
 
         <div class="sidebar-section-label">פלוגות</div>
-        <button class="sidebar-item tab-a" onclick="switchTab('a')">
-            <span class="sidebar-dot" style="background:var(--pluga-a);"></span>
-            <span>פלוגה א (עתודה)</span>
-            <span class="sidebar-count tab-count" id="sidebarCount-a">0</span>
-        </button>
-        <button class="sidebar-item tab-b" onclick="switchTab('b')">
-            <span class="sidebar-dot" style="background:var(--pluga-b);"></span>
-            <span>פלוגה ב (מבוא חורון)</span>
-            <span class="sidebar-count tab-count" id="sidebarCount-b">0</span>
-        </button>
-        <button class="sidebar-item tab-c" onclick="switchTab('c')">
-            <span class="sidebar-dot" style="background:var(--pluga-c);"></span>
-            <span>פלוגה ג (חשמונאים)</span>
-            <span class="sidebar-count tab-count" id="sidebarCount-c">0</span>
-        </button>
-        <button class="sidebar-item tab-d" onclick="switchTab('d')">
-            <span class="sidebar-dot" style="background:var(--pluga-d);"></span>
-            <span>פלוגה ד (443)</span>
-            <span class="sidebar-count tab-count" id="sidebarCount-d">0</span>
-        </button>
-        <button class="sidebar-item tab-hq" onclick="switchTab('hq')">
-            <span class="sidebar-dot" style="background:var(--pluga-hq);"></span>
-            <span>חפ"קים</span>
-        </button>
-        <button class="sidebar-item tab-palsam" onclick="switchTab('palsam')">
-            <span class="sidebar-dot" style="background:var(--pluga-palsam);"></span>
-            <span>פלס"ם</span>
-        </button>
+        <div id="sidebarCompanyButtons"></div>
+        <script>
+        (function(){
+            var container = document.getElementById('sidebarCompanyButtons');
+            var combat = CONFIG.combatCompanies || [];
+            Object.entries(CONFIG.companies).forEach(function(e){
+                var key = e[0], comp = e[1];
+                var btn = document.createElement('button');
+                btn.className = 'sidebar-item tab-' + key;
+                btn.onclick = function(){ switchTab(key); };
+                var dot = '<span class="sidebar-dot" style="background:var(--pluga-' + key + ');"></span>';
+                var label = comp.name + (combat.includes(key) && comp.location ? ' (' + comp.location + ')' : '');
+                var count = combat.includes(key) ? '<span class="sidebar-count tab-count" id="sidebarCount-' + key + '">0</span>' : '';
+                btn.innerHTML = dot + '<span>' + label + '</span>' + count;
+                container.appendChild(btn);
+            });
+        })();
+        </script>
 
         <button class="sidebar-item tab-commander" onclick="switchTab('commander')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
