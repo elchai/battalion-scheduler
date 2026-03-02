@@ -2408,11 +2408,8 @@ function switchTab(tab) {
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') {
-        if (CONFIG.skipPassword || !(currentUser.unit === 'gdudi' || isAdmin())) {
-            renderRestrictedTab('weapons', 'אין לך הרשאה לצפות במסך זה. יש לפנות למנהל המערכת');
-            return;
-        }
-        renderWeaponsTab();
+        renderRestrictedTab('weapons', 'אין לך הרשאה לצפות במסך זה. יש לפנות למנהל המערכת');
+        return;
     }
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'commander') renderCommanderDashboard();
