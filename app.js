@@ -2406,7 +2406,10 @@ function switchTab(tab) {
     if (tab === 'announcements') renderAnnouncements();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
-    if (tab === 'weapons') renderWeaponsTab();
+    if (tab === 'weapons') {
+        if (CONFIG.skipPassword) { renderRestrictedTab('weapons', 'פרוייקט הנשקים נגיש רק למורשים'); return; }
+        renderWeaponsTab();
+    }
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'commander') renderCommanderDashboard();
     if (tab === 'whatsapp') renderWhatsAppCenter();
@@ -7110,6 +7113,11 @@ function getWeaponsStatus(soldierId) {
     if (filled >= 5) return 'complete';
     if (filled > 0) return 'partial';
     return 'none';
+}
+
+function renderRestrictedTab(tabName, message) {
+    const el = document.getElementById('tab-' + tabName);
+    if (el) el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center;color:#666;"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:16px;opacity:0.4;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><div style="font-size:1.1em;font-weight:600;margin-bottom:8px;">${message}</div><div style="font-size:0.85em;opacity:0.7;">לקבלת גישה מלאה צור קשר</div></div>`;
 }
 
 function renderWeaponsTab() {
