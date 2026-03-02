@@ -6274,7 +6274,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מלא')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(sol.name)}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0|\u00A0${timeStr}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0\u00A0${timeStr}</td></tr>
         </table>
 
         <!-- Equipment items -->
@@ -6309,7 +6309,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <div style="text-align:center;">
             <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">${pdfTxt('חתימת המקבל/ת:')}</div>
             <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
-            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(sol.name)}\u00A0|\u00A0${dateStr}</div>
+            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(sol.name)}\u00A0\u00A0${dateStr}</div>
         </div>
 
         <!-- Stamp -->
@@ -6320,8 +6320,8 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
-            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}\u00A0|\u00A0${dateStr}\u00A0${timeStr}
-            <br>www.daghazahav.com
+            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}
+            <br>${dateStr}\u00A0${timeStr}\u00A0\u00A0www.daghazahav.com
         </div>
     </div>`;
 
@@ -6364,7 +6364,7 @@ function generateReturnPDF(logEntry, eq) {
             <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מחזיר')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.soldierName)}</td></tr>
             <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierPersonalId || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.soldierPhone || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0|\u00A0${timeStr}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0\u00A0${timeStr}</td></tr>
         </table>
 
         <!-- Equipment items -->
@@ -6394,9 +6394,9 @@ function generateReturnPDF(logEntry, eq) {
 
         <!-- Signature -->
         <div style="text-align:center;">
-            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">${pdfTxt('חתימת מחזיר:')}</div>
+            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">${pdfTxt('חתימת מקבל/ת הציוד:')}</div>
             <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
-            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(logEntry.soldierName)}\u00A0|\u00A0${dateStr}</div>
+            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(logEntry.soldierName)}\u00A0\u00A0${dateStr}</div>
         </div>
 
         <!-- Stamp -->
@@ -6407,8 +6407,8 @@ function generateReturnPDF(logEntry, eq) {
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
-            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}\u00A0|\u00A0${dateStr}\u00A0${timeStr}
-            <br>www.daghazahav.com
+            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}
+            <br>${dateStr}\u00A0${timeStr}\u00A0\u00A0www.daghazahav.com
         </div>
     </div>`;
 
