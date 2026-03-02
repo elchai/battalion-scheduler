@@ -2464,6 +2464,15 @@ function openAddSoldier(company) {
     setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
 }
 
+let _returnToSignAfterSave = false;
+
+function openAddSoldierFromSign() {
+    _returnToSignAfterSave = true;
+    const compSel = document.getElementById('signCompany');
+    const company = compSel && compSel.value !== 'all' ? compSel.value : 'a';
+    openAddSoldier(company);
+}
+
 function openSoldierProfile(id) {
     const sol = state.soldiers.find(s => s.id === id);
     if (!sol) return;
@@ -2649,6 +2658,22 @@ function saveSoldier() {
         renderOverview();
         updateGlobalStats();
         showToast(`${name} נוסף בהצלחה`);
+
+        // If came from sign equipment modal, return there with new soldier selected
+        if (_returnToSignAfterSave) {
+            _returnToSignAfterSave = false;
+            setTimeout(() => {
+                openSignEquipment();
+                setTimeout(() => {
+                    const compSel = document.getElementById('signCompany');
+                    if (compSel) { compSel.value = company; updateSignSoldiers(); }
+                    setTimeout(() => {
+                        const solSel = document.getElementById('signSoldier');
+                        if (solSel) { solSel.value = soldier.id; onSignSoldierSelect(); }
+                    }, 100);
+                }, 100);
+            }, 200);
+        }
     }
 }
 
