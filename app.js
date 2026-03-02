@@ -4351,6 +4351,104 @@ function copyReport1Text() {
     });
 }
 
+function exportShavtzak() {
+    if (typeof XLSX === 'undefined') { showToast('ספריית Excel לא נטענה', 'error'); return; }
+    const wb = XLSX.utils.book_new();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateFormatted = new Date().toLocaleDateString('he-IL');
+    const compNames = {a:'פלוגה א\'', b:'פלוגה ב\'', c:'פלוגה ג\'', d:'פלוגה ד\'', hq:'חפ"ק', palsam:'פלס"ם'};
+    const baseNames = {a:'מכבים', b:'מכבים', c:'חשמונאים', d:'מכבים', hq:'מכבים', palsam:'מכבים'};
+
+    // --- Sheet 1: Personnel list (שבצ"ק) ---
+    const header = ['מספר אישי', 'דרגה', 'מחושבת', 'שם משפחה', 'שם פרטי', 'סוג שירות', 'פלוגה', 'עיסוק מיועד', 'שם הבסיס נמצא'];
+    const rows = [['שבצ"ק ודמ"ח', '', '', '', '', '', '', '', dateFormatted], [], header];
+
+    // Sort: combat companies first, then hq, palsam
+    const compOrder = ['a', 'b', 'c', 'd', 'hq', 'palsam'];
+    compOrder.forEach(compKey => {
+        const soldiers = state.soldiers.filter(s => s.company === compKey);
+        soldiers.forEach(s => {
+            const nameParts = (s.name || '').split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            rows.push([
+                s.personalId || '',
+                s.rank || '',
+                'מילואים',
+                lastName,
+                firstName,
+                'מילואים',
+                compNames[compKey] || '',
+                s.role || 'לוחם חי"ר',
+                baseNames[compKey] || 'מכבים'
+            ]);
+        });
+    });
+
+    const ws1 = XLSX.utils.aoa_to_sheet(rows);
+    ws1['!cols'] = [{wch:12},{wch:8},{wch:10},{wch:14},{wch:14},{wch:10},{wch:14},{wch:16},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'שבצ"ק');
+
+    // --- Sheet 2: Summary table (דמ"ח) ---
+    const summaryHeader = [
+        'פלוגה', 'אורגני', 'מקום', 'תע"מ',
+        'סד"כ פעיל סדיר + מילואים', 'סד"כ חמרה גבל / מבצעים / אמהות מיידית',
+        'סה"כ מילואים', 'סה"כ נא"מ סדיר',
+        'נוכחים', 'חוגר', 'מגוייס', 'יושב',
+        'חופש', 'חונך'
+    ];
+    const summaryRows = [['דמ"ח - סיכום לפי פלוגה', '', '', '', '', '', '', '', '', '', '', '', '', dateFormatted], [], summaryHeader];
+
+    let totalAll = 0;
+    compOrder.forEach(compKey => {
+        const soldiers = state.soldiers.filter(s => s.company === compKey);
+        const total = soldiers.length;
+        totalAll += total;
+        // Count statuses
+        let active = 0, base = 0, home = 0;
+        soldiers.forEach(s => {
+            const st = getReport1SoldierStatus(s, todayStr);
+            if (st === 'active') active++;
+            else if (st === 'base') base++;
+            else if (st === 'home') home++;
+        });
+        const present = active + base;
+        const onLeave = state.leaves.filter(l => l.company === compKey && l.startDate <= todayStr && l.endDate >= todayStr).length;
+
+        summaryRows.push([
+            compNames[compKey] || '',
+            baseNames[compKey] || 'מכבים',
+            baseNames[compKey] || 'מכבים',
+            'תע"מ',
+            total, // סד"כ פעיל
+            0, // חמרה
+            total, // סה"כ מילואים
+            0, // סדיר
+            present, // נוכחים
+            active, // חוגר (בפעילות)
+            total, // מגוייס
+            base, // יושב (בבסיס)
+            onLeave, // חופש
+            0 // חונך
+        ]);
+    });
+
+    // Total row
+    const totals = summaryRows.slice(3).reduce((acc, r) => {
+        for (let i = 4; i < r.length; i++) acc[i] = (acc[i] || 0) + (r[i] || 0);
+        return acc;
+    }, ['סה"כ גדוד', '', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    totals[0] = 'סה"כ גדוד';
+    summaryRows.push(totals);
+
+    const ws2 = XLSX.utils.aoa_to_sheet(summaryRows);
+    ws2['!cols'] = [{wch:14},{wch:12},{wch:12},{wch:8},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'דמ"ח');
+
+    XLSX.writeFile(wb, `שבצק_ודמח_${todayStr}.xlsx`);
+    showToast('שבצ"ק ודמ"ח יוצא לאקסל');
+}
+
 // ==================== MORNING REPORT ====================
 function generateMorningReport() {
     const container = document.getElementById('morningReportContent');
