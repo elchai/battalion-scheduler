@@ -11,7 +11,9 @@ const DEFAULT_SETTINGS = {
     rotationDaysIn: 10,
     rotationDaysOut: 4,
     operationStartDate: '',
+    operationStartTime: '14:00',
     operationEndDate: '',
+    operationEndTime: '14:00',
     closedDays: [],
     sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
     equipmentSets: {
@@ -1288,7 +1290,19 @@ function updateNotifications() {
         }
     });
 
-    // 2. Leaves ending today/tomorrow
+    // 2. Leaves starting/ending today/tomorrow
+    const leavingTodayNotif = state.leaves.filter(l => l.startDate === todayStr);
+    if (leavingTodayNotif.length > 0) {
+        notifications.push({
+            type: 'warning',
+            title: `${leavingTodayNotif.length} חיילים יוצאים היום`,
+            desc: leavingTodayNotif.map(l => {
+                const sol = state.soldiers.find(s => s.id === l.soldierId);
+                return sol ? sol.name : '?';
+            }).slice(0, 5).join(', ') + (leavingTodayNotif.length > 5 ? '...' : ''),
+            icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
+        });
+    }
     const returningToday = state.leaves.filter(l => l.endDate === todayStr);
     const returningTomorrow = state.leaves.filter(l => l.endDate === tomorrowStr);
     if (returningToday.length > 0) {
@@ -2080,7 +2094,7 @@ function renderCommanderDashboard() {
     const leaves = state.leaves.filter(l => l.company === compKey);
 
     // Categorize soldiers
-    const inBase = [], atHome = [], returningToday = [], unassigned = [];
+    const inBase = [], atHome = [], returningToday = [], leavingToday = [], unassigned = [];
     const assignedIds = new Set();
     todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
@@ -2090,12 +2104,14 @@ function renderCommanderDashboard() {
         const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
         const isHome = onLeave || (rotStatus && !rotStatus.inBase);
         const returning = leaves.some(l => l.soldierId === s.id && l.endDate === todayStr);
+        const leaving = leaves.some(l => l.soldierId === s.id && l.startDate === todayStr);
 
         if (isHome) {
             atHome.push(s);
             if (returning) returningToday.push(s);
         } else {
             inBase.push(s);
+            if (leaving) leavingToday.push(s);
             if (!assignedIds.has(s.id)) unassigned.push(s);
         }
     });
@@ -2133,6 +2149,10 @@ function renderCommanderDashboard() {
                 <div style="font-size:1.6em;font-weight:700;color:var(--danger);">${atHome.length}</div>
                 <div style="font-size:0.82em;color:var(--text-light);">בבית</div>
             </div>
+            <div style="background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid #FF7043;">
+                <div style="font-size:1.6em;font-weight:700;color:#FF7043;">${leavingToday.length}</div>
+                <div style="font-size:0.82em;color:var(--text-light);">יוצאים היום</div>
+            </div>
             <div style="background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow);border-top:3px solid #2196F3;">
                 <div style="font-size:1.6em;font-weight:700;color:#2196F3;">${returningToday.length}</div>
                 <div style="font-size:0.82em;color:var(--text-light);">חוזרים היום</div>
@@ -2142,6 +2162,17 @@ function renderCommanderDashboard() {
                 <div style="font-size:0.82em;color:var(--text-light);">ללא שיבוץ</div>
             </div>
         </div>
+
+        ${leavingToday.length > 0 ? `
+        <div class="sub-section" style="margin-bottom:18px;">
+            <div class="section-title">
+                <div class="icon" style="background:#fbe9e7;color:#FF7043;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                יוצאים היום (${leavingToday.length})
+            </div>
+            <div class="personnel-grid">${leavingToday.map(s => cmdSoldierCard(s, 'leaving')).join('')}</div>
+        </div>` : ''}
 
         ${returningToday.length > 0 ? `
         <div class="sub-section" style="margin-bottom:18px;">
@@ -2210,9 +2241,9 @@ function renderCommanderDashboard() {
 }
 
 function cmdSoldierCard(s, status) {
-    const cls = status === 'home' ? 'on-leave' : status === 'returning' ? 'on-duty' : '';
-    const badge = status === 'home' ? 'status-on-leave' : status === 'returning' ? 'status-on-duty' : 'status-available';
-    const txt = status === 'home' ? 'בבית' : status === 'returning' ? 'חוזר היום' : 'ללא שיבוץ';
+    const cls = status === 'home' ? 'on-leave' : status === 'returning' ? 'on-duty' : status === 'leaving' ? 'on-leave' : '';
+    const badge = status === 'home' ? 'status-on-leave' : status === 'returning' ? 'status-on-duty' : status === 'leaving' ? 'status-on-leave' : 'status-available';
+    const txt = status === 'home' ? 'בבית' : status === 'returning' ? 'חוזר היום' : status === 'leaving' ? 'יוצא היום' : 'ללא שיבוץ';
     return `<div class="person-card ${cls}">
         <div class="person-info">
             <h4>${esc(s.name)}</h4>
@@ -3544,8 +3575,16 @@ function renderSettingsTab() {
                 <input type="date" value="${settings.operationStartDate || ''}" onchange="settings.operationStartDate=this.value;saveSettings();">
             </div>
             <div class="settings-field">
+                <label>שעת התחלה</label>
+                <input type="time" value="${settings.operationStartTime || '14:00'}" onchange="settings.operationStartTime=this.value;saveSettings();">
+            </div>
+            <div class="settings-field">
                 <label>סיום תעסוקה</label>
                 <input type="date" value="${settings.operationEndDate || ''}" onchange="settings.operationEndDate=this.value;saveSettings();">
+            </div>
+            <div class="settings-field">
+                <label>שעת סיום</label>
+                <input type="time" value="${settings.operationEndTime || '14:00'}" onchange="settings.operationEndTime=this.value;saveSettings();">
             </div>
         </div>
     </div>

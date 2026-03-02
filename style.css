@@ -15,12 +15,12 @@
     --border: #dfe6e9;
     --shadow: 0 2px 12px rgba(0,0,0,0.08);
     --radius: 12px;
-    --pluga-a: #2196F3;
-    --pluga-b: #4CAF50;
-    --pluga-c: #FF9800;
-    --pluga-d: #9C27B0;
-    --pluga-hq: #607D8B;
-    --pluga-palsam: #795548;
+    --pluga-a: #ef5350;
+    --pluga-b: #66bb6a;
+    --pluga-c: #42a5f5;
+    --pluga-d: #ffca28;
+    --pluga-hq: #90a4ae;
+    --pluga-palsam: #ab47bc;
 }
 
 /* Lucide icons */
@@ -50,8 +50,8 @@
     --primary: #4a7ab5;
     --primary-light: #5a8ac5;
     --primary-dark: #3a6aa5;
-    --pluga-hq: #78909C;
-    --pluga-palsam: #A1887F;
+    --pluga-hq: #b0bec5;
+    --pluga-palsam: #ce93d8;
 }
 [data-theme="dark"] body { background: var(--bg); color: var(--text); }
 [data-theme="dark"] .login-screen { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #0d2240 100%); }
@@ -180,7 +180,7 @@ textarea { font-family: inherit; }
     padding: 10px 12px;
     border: none;
     background: transparent;
-    color: rgba(255,255,255,0.65);
+    color: rgba(255,255,255,0.8);
     font-size: 0.88em;
     font-weight: 500;
     font-family: inherit;
