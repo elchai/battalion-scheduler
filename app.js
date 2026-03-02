@@ -2471,6 +2471,8 @@ function openAddSoldierFromSign() {
     const compSel = document.getElementById('signCompany');
     const company = compSel && compSel.value !== 'all' ? compSel.value : 'a';
     openAddSoldier(company);
+    // Raise z-index so it appears above sign equipment modal
+    document.getElementById('addSoldierModal').style.zIndex = '350';
 }
 
 function openSoldierProfile(id) {
@@ -3305,7 +3307,9 @@ function openModal(id) {
     document.body.classList.add('modal-open');
 }
 function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
+    const el = document.getElementById(id);
+    el.classList.remove('active');
+    el.style.zIndex = '';
     // Only remove if no other modals are open
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
