@@ -1732,6 +1732,7 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     margin-top: 20px;
     font-size: 0.78em;
     color: rgba(255,255,255,0.5);
+    text-align: center;
 }
 /* Legacy user-badge kept for compatibility */
 .user-badge {

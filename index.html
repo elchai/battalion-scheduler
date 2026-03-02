@@ -52,7 +52,7 @@
             <label>שם מלא</label>
             <input type="text" id="loginName" placeholder="הכנס את שמך" autocomplete="off">
         </div>
-        <div class="login-field">
+        <div class="login-field" id="loginUnitField">
             <label>מסגרת</label>
             <select id="loginUnit">
                 <option value="">-- בחר מסגרת --</option>
@@ -60,15 +60,21 @@
             <script>
             (function(){
                 var sel = document.getElementById('loginUnit');
-                Object.entries(CONFIG.companies).forEach(function(e){
-                    var o = document.createElement('option');
-                    o.value = e[0];
-                    o.textContent = e[1].name + (e[1].location ? ' (' + e[1].location + ')' : '');
-                    sel.appendChild(o);
-                });
-                var gd = document.createElement('option');
-                gd.value = 'gdudi'; gd.textContent = 'גדודי';
-                sel.appendChild(gd);
+                if (CONFIG.skipPassword) {
+                    // Demo: hide selector, auto-set gdudi
+                    document.getElementById('loginUnitField').style.display = 'none';
+                    sel.innerHTML = '<option value="gdudi" selected>גדודי</option>';
+                } else {
+                    Object.entries(CONFIG.companies).forEach(function(e){
+                        var o = document.createElement('option');
+                        o.value = e[0];
+                        o.textContent = e[1].name + (e[1].location ? ' (' + e[1].location + ')' : '');
+                        sel.appendChild(o);
+                    });
+                    var gd = document.createElement('option');
+                    gd.value = 'gdudi'; gd.textContent = 'גדודי';
+                    sel.appendChild(gd);
+                }
             })();
             </script>
         </div>

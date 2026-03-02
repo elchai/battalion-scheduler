@@ -223,9 +223,9 @@ function doLogin() {
         }
     }
 
-    // Admin + palsam get full (gdudi) access; everyone else sees their company
+    // Admin + palsam get full (gdudi) access; demo always gdudi
     let effectiveUnit = unit;
-    if (name === settings.adminName || unit === 'palsam') effectiveUnit = 'gdudi';
+    if (CONFIG.skipPassword || name === settings.adminName || unit === 'palsam') effectiveUnit = 'gdudi';
 
     currentUser = { name, unit: effectiveUnit, personalId, company: unit };
     sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
@@ -1422,7 +1422,7 @@ function renderSoldiersGrid(compKey) {
                 <span class="person-status ${badge}">${txt}</span>
                 ${canEdit(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
                 <button class="btn btn-icon btn-sm" style="background:#9C27B0;color:white;" onclick="openTransferSoldier('${s.id}')" title="העבר פלוגה">&#8644;</button>
-                <button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}
+                ${!(CONFIG.skipPassword && s.id.startsWith('demo_')) ? `<button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}` : ''}
             </div>
         </div>`;
     }).join('') + '</div>';
@@ -2666,6 +2666,7 @@ function saveSoldier() {
 async function deleteSoldier(id) {
     const sol = state.soldiers.find(s => s.id === id);
     if (sol && !canEdit(sol.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (CONFIG.skipPassword && id.startsWith('demo_')) { showToast('לא ניתן למחוק נתוני דמו', 'error'); return; }
     if (!await customConfirm('למחוק חייל זה?')) return;
     state.soldiers = state.soldiers.filter(s => s.id !== id);
     state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
