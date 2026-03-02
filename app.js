@@ -98,6 +98,13 @@ function migrateEquipmentSets() {
     }
     settings.equipmentSets.savedSignatures = settings.equipmentSets.savedSignatures || {};
 
+    // Fix item names truncated by unescaped quotes (אול → אול"ר)
+    if (settings.equipmentSets.baseSet && settings.equipmentSets.baseSet.items) {
+        settings.equipmentSets.baseSet.items.forEach(item => {
+            if (item.name === 'אול') item.name = 'אול"ר';
+        });
+    }
+
     // Save locally + FORCE push to Firestore (bypass debounce)
     localStorage.setItem('battalionSettings', JSON.stringify(settings));
     if (typeof db !== 'undefined' && db && firestoreReady) {
@@ -7676,13 +7683,13 @@ function renderEquipmentSetsSettings() {
             </tr></thead>
             <tbody>
                 ${es.baseSet.items.map((item, i) => `<tr draggable="true" data-idx="${i}" ondragstart="onEquipDragStart(event)" ondragover="onEquipDragOver(event)" ondrop="onEquipDrop(event)" style="border-bottom:1px solid var(--border);cursor:grab;">
-                    <td style="padding:5px 8px;"><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;border:1px solid var(--border);padding:3px 6px;border-radius:4px;"></td>
+                    <td style="padding:5px 8px;"><input type="text" value="${esc(item.name)}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;border:1px solid var(--border);padding:3px 6px;border-radius:4px;"></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:48px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;"></td>
                     <td style="padding:5px 4px;"><select onchange="updateBaseSetItem(${i},'category',this.value)" style="width:100%;border:1px solid var(--border);padding:3px;border-radius:4px;">
                         ${EQUIPMENT_CATEGORIES.map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                     </select></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)" title="דורש מספר צ'"></td>
-                    <td style="padding:5px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" value="${item.serialNumber||''}" onchange="updateBaseSetItem(${i},'serialNumber',this.value)" style="width:80px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;font-size:0.85em;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
+                    <td style="padding:5px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" value="${esc(item.serialNumber||'')}" onchange="updateBaseSetItem(${i},'serialNumber',this.value)" style="width:80px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;font-size:0.85em;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
                     <td style="padding:5px 4px;text-align:center;"><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})" style="padding:2px 6px;font-size:0.8em;">X</button></td>
                 </tr>`).join('')}
             </tbody>
