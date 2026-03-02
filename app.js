@@ -5424,7 +5424,7 @@ function onSignSoldierSelect() {
     container.innerHTML = `
         <div style="display:flex;gap:8px;margin-bottom:10px;">
             <button class="btn btn-primary" onclick="loadSignSetMode(${isCommander})" style="flex:1;padding:10px;">סט ציוד ללוחם</button>
-            <button class="btn" onclick="loadSignManualMode()" style="flex:1;padding:10px;background:var(--bg);">בחירת פריטים ידנית</button>
+            <button class="btn" onclick="loadSignManualMode()" style="flex:1;padding:10px;background:#4CAF50;color:white;">בחירת פריטים ידנית</button>
         </div>`;
     document.getElementById('signEquipSection').style.display = '';
     document.getElementById('signSignatureSection').style.display = '';
