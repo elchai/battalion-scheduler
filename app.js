@@ -6210,46 +6210,16 @@ function editSignatureLog(logId) {
     const log = state.signatureLog.find(l => l.id === logId);
     if (!log || log.type === 'return') return;
 
-    // Open sign modal pre-populated with the soldier and existing items
-    const container = document.getElementById('signEquipCheckboxList');
-    const availableEquip = state.equipment.filter(e => !e.holderId && e.condition !== 'תקול');
-
-    // Include items already in this signature (they are currently held by the soldier)
-    const existingItems = log.equipItems || [{ equipId: log.equipId }];
-    const existingIds = existingItems.map(i => i.equipId);
-    const heldEquip = existingIds.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
-    const allEquip = [...heldEquip, ...availableEquip];
-
-    container.innerHTML = allEquip.length === 0
-        ? '<div style="padding:8px;color:var(--text-light);">אין פריטי ציוד</div>'
-        : allEquip.map(e => {
-            const isExisting = existingIds.includes(e.id);
-            return `
-            <label class="sign-equip-checkbox-item" data-search="${e.type} ${e.serial} ${e.notes || ''}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;${isExisting ? 'background:rgba(76,175,80,0.1);' : ''}">
-                <input type="checkbox" value="${e.id}" ${isExisting ? 'checked' : ''} onchange="updateSignEquipSelection()">
-                <span style="font-weight:600;flex:1;">${e.type}</span>
-                <span style="color:var(--text-light);font-size:0.85em;direction:ltr;font-family:monospace;">צ' ${e.serial}</span>
-                <span style="color:var(--text-light);font-size:0.8em;">x${e.defaultQty || 1}</span>
-            </label>`;
-        }).join('');
-
-    document.getElementById('signEquipSelectedCount').textContent = `(${existingIds.length} נבחרו)`;
-    updateSignEquipSelection();
-    document.getElementById('signEquipSearch').value = '';
-    document.getElementById('signSoldierInfo').style.display = 'none';
-
-    // Pre-select the soldier
+    // Open sign modal and pre-select the soldier
+    openModal('signEquipmentModal');
     document.getElementById('signCompany').value = 'all';
     updateSignSoldiers();
     setTimeout(() => {
-        document.getElementById('signSoldier').value = log.soldierId;
-        onSignSoldierSelect();
-    }, 50);
-
-    // Store edit context
-    document.getElementById('signEquipmentModal').dataset.editLogId = logId;
-
-    openModal('signEquipmentModal');
+        const solSel = document.getElementById('signSoldier');
+        if (solSel) { solSel.value = log.soldierId; onSignSoldierSelect(); }
+        // Store edit context
+        document.getElementById('signEquipmentModal').dataset.editLogId = logId;
+    }, 100);
     setTimeout(() => {
         setupSignatureCanvas('signatureCanvas');
         clearSignatureCanvas();
@@ -6257,9 +6227,9 @@ function editSignatureLog(logId) {
 }
 
 // --- PDF Generation ---
-// Helper: fix RTL text rendering in html2canvas PDFs
+// Helper: Hebrew punctuation fix for PDFs
 function pdfTxt(str) {
-    return '<bdo dir="rtl">' + (str || '').replace(/ /g, '\u00A0').replace(/'/g, '\u05F3').replace(/"/g, '\u05F4') + '</bdo>';
+    return (str || '').replace(/'/g, '\u05F3').replace(/"/g, '\u05F4');
 }
 
 function generateSignaturePDF(logEntry, eqUnused, sol) {
@@ -6436,58 +6406,34 @@ function generateReturnPDF(logEntry, eq) {
 }
 
 function downloadPDF(htmlContent, filename) {
-    if (typeof html2pdf === 'undefined') {
-        _downloadPdfPrintFallback(htmlContent, filename);
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+        showToast('חלון ההדפסה נחסם - אפשר חלונות קופצים', 'error');
         return;
     }
-
-    // Create off-screen but RENDERED wrapper (must have real dimensions for html2canvas)
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:absolute;top:0;left:0;width:794px;z-index:99999;background:#fff;direction:rtl;font-family:Segoe UI,Arial,sans-serif;overflow:hidden;';
-    wrapper.innerHTML = htmlContent;
-    document.body.appendChild(wrapper);
-
-    // Wait for images to load
-    const images = wrapper.querySelectorAll('img');
-    const imagePromises = Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-    });
-
-    Promise.all(imagePromises).then(() => {
-        // Give browser frames to paint
-        return new Promise(r => setTimeout(r, 200));
-    }).then(() => {
-        const wrapperHeight = wrapper.scrollHeight;
-        return html2pdf().set({
-            margin: [10, 10, 10, 10],
-            filename: (filename || 'document') + '.pdf',
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, width: 794, height: wrapperHeight, scrollY: 0, scrollX: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'] }
-        }).from(wrapper).save();
-    }).then(() => {
-        wrapper.remove();
-        showToast('PDF הורד בהצלחה');
-    }).catch(err => {
-        console.error('PDF error:', err);
-        wrapper.remove();
-        _downloadPdfPrintFallback(htmlContent, filename);
-    });
-}
-
-function _downloadPdfPrintFallback(htmlContent, filename) {
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:800px;height:600px;';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${filename}</title>
-        <style>@page{size:A4;margin:15mm;}body{margin:0;}table{border-collapse:collapse;}td{border:1px solid #dfe6e9;}</style>
+    printWin.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+        <title>${filename || 'document'}</title>
+        <style>
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; direction: rtl; }
+            table { border-collapse: collapse; }
+            img { max-width: 100%; }
+        </style>
     </head><body>${htmlContent}</body></html>`);
-    doc.close();
-    setTimeout(() => { iframe.contentWindow.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 300);
+    printWin.document.close();
+
+    // Wait for images to load, then trigger print
+    const images = printWin.document.querySelectorAll('img');
+    const imgPromises = Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(r => { img.onload = r; img.onerror = r; });
+    });
+    Promise.all(imgPromises).then(() => {
+        setTimeout(() => {
+            printWin.print();
+            showToast('בחר "שמור כ-PDF" או הדפס');
+        }, 300);
+    });
 }
 
 // --- Equipment CSV Export ---
