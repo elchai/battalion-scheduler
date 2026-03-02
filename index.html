@@ -116,8 +116,8 @@
 
         <div class="sidebar-section-label">כלים</div>
         <button class="sidebar-item tab-morningreport" onclick="switchTab('morningreport')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>דו"ח בוקר</span>
+            <img src="logo.png" width="18" height="18" style="border-radius:50%;object-fit:cover;">
+            <span>דוח גדודי</span>
         </button>
         <button class="sidebar-item tab-rollcall" onclick="switchTab('rollcall')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -386,7 +386,7 @@
     <div class="main-content">
         <div class="section-title">
             <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><i data-lucide="check-square"></i></div>
-            <h2>דו"ח 1 - נוכחות פלוגתי</h2>
+            <h2>דו"ח 1 - נוכחות יומי</h2>
         </div>
         <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <select id="report1Company" onchange="renderReport1()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
@@ -413,11 +413,11 @@
 <div class="tab-content" id="tab-morningreport">
     <div class="main-content">
         <div class="section-title">
-            <div class="icon" style="background:#fff3e0;color:#e65100;"><i data-lucide="clock"></i></div>
-            <h2>דו"ח בוקר</h2>
+            <div class="icon" style="background:#fff3e0;color:#e65100;"><i data-lucide="shield"></i></div>
+            <h2>דוח גדודי</h2>
         </div>
         <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="generateMorningReport()">הפק דו"ח בוקר</button>
+            <button class="btn btn-primary" onclick="generateMorningReport()">הפק דוח גדודי</button>
             <button class="btn btn-secondary" onclick="copyMorningReportText()">העתק לוואטסאפ</button>
             <button class="btn btn-secondary" onclick="exportMorningReportPDF()">ייצא PDF</button>
         </div>

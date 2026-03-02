@@ -4555,7 +4555,7 @@ function generateMorningReport() {
     container.innerHTML = `
         <div class="mr-report" id="morningReportPrint">
             <div class="mr-header">
-                <h3>דו"ח בוקר - גדוד יהודה</h3>
+                <h3>דוח גדודי - גדוד יהודה</h3>
                 <div class="mr-date">${dateDisplay} | שעה ${timeDisplay}</div>
                 <div class="mr-author">הופק ע"י: ${esc(currentUser ? currentUser.name : 'מערכת')}</div>
             </div>
@@ -4586,7 +4586,7 @@ function getMorningReportText() {
     const companies = ['a','b','c','d','hq','palsam'];
     const compNames = {a:'פלוגה א', b:'פלוגה ב', c:'פלוגה ג', d:'פלוגה ד', hq:'חפ"ק מג"ד', palsam:'פלס"ם'};
 
-    let text = `*דו"ח בוקר - גדוד יהודה*\n${dateDisplay} | ${timeDisplay}\n\n`;
+    let text = `*דוח גדודי - גדוד יהודה*\n${dateDisplay} | ${timeDisplay}\n\n`;
     let totalAll = 0, totalPresent = 0;
 
     companies.forEach(k => {
@@ -5031,6 +5031,19 @@ let DOC_LOGO_BASE64 = '';
         };
         fallback.src = 'logo.png';
     };
+})();
+
+// --- Battalion Stamp Loader ---
+let DOC_STAMP_BASE64 = '';
+(function loadDocStamp() {
+    const img = new Image();
+    img.onload = function() {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        DOC_STAMP_BASE64 = c.toDataURL('image/png');
+    };
+    img.src = 'stamp.png';
 })();
 
 // --- Signature Canvas Setup ---
@@ -6301,6 +6314,12 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(sol.name)}\u00A0|\u00A0${dateStr}</div>
         </div>
 
+        <!-- Stamp -->
+        ${DOC_STAMP_BASE64 ? `
+        <div style="text-align:center;margin-top:20px;">
+            <img src="${DOC_STAMP_BASE64}" style="max-height:100px;opacity:0.85;">
+        </div>` : ''}
+
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
             ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}\u00A0|\u00A0${dateStr}\u00A0${timeStr}
@@ -6381,6 +6400,12 @@ function generateReturnPDF(logEntry, eq) {
             <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
             <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(logEntry.soldierName)}\u00A0|\u00A0${dateStr}</div>
         </div>
+
+        <!-- Stamp -->
+        ${DOC_STAMP_BASE64 ? `
+        <div style="text-align:center;margin-top:20px;">
+            <img src="${DOC_STAMP_BASE64}" style="max-height:100px;opacity:0.85;">
+        </div>` : ''}
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
