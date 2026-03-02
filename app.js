@@ -5684,10 +5684,10 @@ function confirmSignEquipment() {
     }
 
     // Validate sizes for clothing items
-    const itemNames = selectedItems.map(i => (i.name || '').toLowerCase());
-    const hasShirt = itemNames.some(n => n.includes('חולצ'));
-    const hasPants = itemNames.some(n => n.includes('מכנס'));
-    const hasShoes = itemNames.some(n => n.includes('נעל') || n.includes('נעליים'));
+    const selectedNames = selectedItems.map(i => (i.name || '').toLowerCase());
+    const hasShirt = selectedNames.some(n => n.includes('חולצ'));
+    const hasPants = selectedNames.some(n => n.includes('מכנס'));
+    const hasShoes = selectedNames.some(n => n.includes('נעל') || n.includes('נעליים'));
     const shirtSize = document.getElementById('signShirtSize')?.value || '';
     const pantsSize = document.getElementById('signPantsSize')?.value || '';
     const shoeSize = document.getElementById('signShoeSize')?.value || '';
