@@ -2458,7 +2458,6 @@ function openAddSoldier(company) {
     document.getElementById('soldierPhone').value = '';
     document.getElementById('soldierRank').value = 'טוראי';
     document.getElementById('soldierRole').value = 'לוחם';
-    document.getElementById('soldierPakal').value = '';
     document.getElementById('soldierNotes').value = '';
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
@@ -2518,7 +2517,6 @@ function openSoldierProfile(id) {
             <div class="sp-info-item"><span class="sp-label">מסגרת</span><span class="sp-value">${compNames[sol.company] || '-'}</span></div>
             <div class="sp-info-item"><span class="sp-label">מ.א.</span><span class="sp-value">${esc(sol.personalId) || '-'}</span></div>
             <div class="sp-info-item"><span class="sp-label">טלפון</span><span class="sp-value">${sol.phone ? `<a href="tel:${sol.phone}">${esc(sol.phone)}</a>` : '-'}</span></div>
-            ${sol.pakal ? `<div class="sp-info-item"><span class="sp-label">פק"ל</span><span class="sp-value">${esc(sol.pakal)}</span></div>` : ''}
             ${sol.notes ? `<div class="sp-info-item" style="grid-column:1/-1;"><span class="sp-label">הערות</span><span class="sp-value">${esc(sol.notes)}</span></div>` : ''}
         </div>
     </div>`;
@@ -2602,7 +2600,6 @@ function openEditSoldier(id) {
     document.getElementById('soldierUnit').value = sol.unit || '';
     document.getElementById('soldierRole').value = sol.role || 'לוחם';
     document.getElementById('soldierPhone').value = sol.phone || '';
-    document.getElementById('soldierPakal').value = sol.pakal || '';
     document.getElementById('soldierNotes').value = sol.notes || '';
     openModal('addSoldierModal');
 }
@@ -2630,7 +2627,6 @@ function saveSoldier() {
             sol.unit = unit;
             sol.role = document.getElementById('soldierRole').value;
             sol.phone = document.getElementById('soldierPhone').value.trim();
-            sol.pakal = document.getElementById('soldierPakal').value;
             sol.notes = document.getElementById('soldierNotes').value.trim();
             saveState();
             closeModal('addSoldierModal');
@@ -2650,7 +2646,6 @@ function saveSoldier() {
             unit,
             role: document.getElementById('soldierRole').value,
             phone: document.getElementById('soldierPhone').value.trim(),
-            pakal: document.getElementById('soldierPakal').value,
             notes: document.getElementById('soldierNotes').value.trim()
         };
         state.soldiers.push(soldier);
