@@ -6254,7 +6254,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <tr>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
             <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
-            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial || ''}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;">${item.equipSerial || ''}</td>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
         </tr>
     `).join('');
@@ -6293,12 +6293,9 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
         <!-- Issuer -->
         ${logEntry.issuedBy ? `
-        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:20px;font-size:0.93em;">
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('מנפיק')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuedBy)}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תפקיד')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuerRole || '-')}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מ.א')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
-        </table>` : ''}
+        <div style="background:#E8EAF6;padding:10px 16px;border-radius:6px;margin-bottom:20px;font-size:0.88em;">
+            <strong>${pdfTxt('מנפיק:')}</strong>\u00A0${pdfTxt(logEntry.issuedBy)}\u00A0\u00A0${pdfTxt(logEntry.issuerRole || '')}\u00A0\u00A0${pdfTxt('מ.א')}\u00A0${logEntry.issuerPersonalId || '-'}\u00A0\u00A0${logEntry.issuerPhone || ''}
+        </div>` : ''}
 
         <!-- Declaration -->
         <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:12px 16px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:24px;line-height:1.6;">
@@ -6345,7 +6342,7 @@ function generateReturnPDF(logEntry, eq) {
         <tr>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
             <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
-            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial || '-'}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;">${item.equipSerial || '-'}</td>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
         </tr>
     `).join('');
@@ -6383,12 +6380,9 @@ function generateReturnPDF(logEntry, eq) {
 
         <!-- Issuer details -->
         ${logEntry.issuedBy ? `
-        <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;margin-bottom:20px;font-size:0.93em;">
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('מזכה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuedBy)}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תפקיד')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuerRole || '-')}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מ.א')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
-        </table>` : ''}
+        <div style="background:#E8EAF6;padding:10px 16px;border-radius:6px;margin-bottom:20px;font-size:0.88em;">
+            <strong>${pdfTxt('מזכה:')}</strong>\u00A0${pdfTxt(logEntry.issuedBy)}\u00A0\u00A0${pdfTxt(logEntry.issuerRole || '')}\u00A0\u00A0${pdfTxt('מ.א')}\u00A0${logEntry.issuerPersonalId || '-'}\u00A0\u00A0${logEntry.issuerPhone || ''}
+        </div>` : ''}
 
         ${logEntry.notes ? `<div style="background:#FFF3E0;border-right:4px solid #E65100;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:20px;"><strong>${pdfTxt('הערות:')}</strong> ${pdfTxt(logEntry.notes)}</div>` : ''}
 
