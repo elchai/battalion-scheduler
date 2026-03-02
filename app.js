@@ -2469,9 +2469,8 @@ function openAddSoldierFromSign() {
     _returnToSignAfterSave = true;
     const compSel = document.getElementById('signCompany');
     const company = compSel && compSel.value !== 'all' ? compSel.value : 'a';
-    openAddSoldier(company);
-    // Raise z-index so it appears above sign equipment modal
-    document.getElementById('addSoldierModal').style.zIndex = '350';
+    closeModal('signEquipmentModal');
+    setTimeout(() => openAddSoldier(company), 150);
 }
 
 function openSoldierProfile(id) {
