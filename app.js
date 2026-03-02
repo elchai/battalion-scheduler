@@ -7661,14 +7661,14 @@ function renderEquipmentSetsSettings() {
                 <th style="padding:6px 8px;width:36px;"></th>
             </tr></thead>
             <tbody>
-                ${es.baseSet.items.map((item, i) => `<tr style="border-bottom:1px solid var(--border);">
+                ${es.baseSet.items.map((item, i) => `<tr draggable="true" data-idx="${i}" ondragstart="onEquipDragStart(event)" ondragover="onEquipDragOver(event)" ondrop="onEquipDrop(event)" style="border-bottom:1px solid var(--border);cursor:grab;">
                     <td style="padding:5px 8px;"><input type="text" value="${item.name}" onchange="updateBaseSetItem(${i},'name',this.value)" style="width:100%;border:1px solid var(--border);padding:3px 6px;border-radius:4px;"></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="number" min="1" value="${item.quantity}" onchange="updateBaseSetItem(${i},'quantity',parseInt(this.value))" style="width:48px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;"></td>
                     <td style="padding:5px 4px;"><select onchange="updateBaseSetItem(${i},'category',this.value)" style="width:100%;border:1px solid var(--border);padding:3px;border-radius:4px;">
                         ${EQUIPMENT_CATEGORIES.map(c => `<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                     </select></td>
                     <td style="padding:5px 4px;text-align:center;"><input type="checkbox" ${item.requiresSerial?'checked':''} onchange="updateBaseSetItem(${i},'requiresSerial',this.checked)" title="דורש מספר צ'"></td>
-                    <td style="padding:5px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" value="${item.serialNumber||''}" onchange="updateBaseSetItem(${i},'serialNumber',this.value)" style="width:80px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;font-family:monospace;font-size:0.85em;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
+                    <td style="padding:5px 4px;text-align:center;">${item.requiresSerial ? `<input type="text" value="${item.serialNumber||''}" onchange="updateBaseSetItem(${i},'serialNumber',this.value)" style="width:80px;text-align:center;border:1px solid var(--border);padding:3px;border-radius:4px;font-size:0.85em;direction:ltr;">` : '<span style="color:var(--text-light);">—</span>'}</td>
                     <td style="padding:5px 4px;text-align:center;"><button class="btn btn-danger btn-sm" onclick="removeBaseSetItem(${i})" style="padding:2px 6px;font-size:0.8em;">X</button></td>
                 </tr>`).join('')}
             </tbody>
@@ -7701,6 +7701,32 @@ function renderEquipmentSetsSettings() {
     }
 
     container.innerHTML = html;
+}
+
+// Drag & drop reorder for equipment set items
+let _equipDragIdx = null;
+function onEquipDragStart(e) {
+    _equipDragIdx = parseInt(e.currentTarget.dataset.idx);
+    e.currentTarget.style.opacity = '0.4';
+    e.dataTransfer.effectAllowed = 'move';
+}
+function onEquipDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.currentTarget;
+    row.style.borderTop = '3px solid var(--primary)';
+}
+function onEquipDrop(e) {
+    e.preventDefault();
+    const toIdx = parseInt(e.currentTarget.dataset.idx);
+    e.currentTarget.style.borderTop = '';
+    if (_equipDragIdx === null || _equipDragIdx === toIdx) return;
+    const items = settings.equipmentSets.baseSet.items;
+    const [moved] = items.splice(_equipDragIdx, 1);
+    items.splice(toIdx, 0, moved);
+    _equipDragIdx = null;
+    saveSettings();
+    renderEquipmentSetsSettings();
 }
 
 function addBaseSetItem() {
