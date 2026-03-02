@@ -45,7 +45,7 @@
 
         <div class="login-field" id="loginPersonalIdField">
             <label>מספר אישי (מ.א)</label>
-            <input type="text" id="loginPersonalId" placeholder="הזן מ.א לזיהוי מהיר" autocomplete="off" oninput="autoIdentifyByPersonalId()">
+            <input type="text" id="loginPersonalId" placeholder="הזן מ.א לזיהוי מהיר" autocomplete="off" oninput="typeof autoIdentifyByPersonalId==='function'&&autoIdentifyByPersonalId()">
         </div>
         <script>if (CONFIG.skipPassword) document.getElementById('loginPersonalIdField').style.display = 'none';</script>
         <div class="login-field">
