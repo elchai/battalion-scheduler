@@ -738,11 +738,12 @@ async function init() {
     cleanupOldData();
     renderAll();
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('shiftDate').value = today;
-    document.getElementById('leaveStart').value = today;
-    document.getElementById('rotGroupStartDate').value = today;
+    const _el = id => document.getElementById(id);
+    if (_el('shiftDate')) _el('shiftDate').value = today;
+    if (_el('leaveStart')) _el('leaveStart').value = today;
+    if (_el('rotGroupStartDate')) _el('rotGroupStartDate').value = today;
     const d4 = new Date(); d4.setDate(d4.getDate() + 4);
-    document.getElementById('leaveEnd').value = d4.toISOString().split('T')[0];
+    if (_el('leaveEnd')) _el('leaveEnd').value = d4.toISOString().split('T')[0];
     updateShiftOptions();
     checkSession();
 
