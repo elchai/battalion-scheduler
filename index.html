@@ -136,10 +136,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>לוח שבועי</span>
         </button>
-        <button class="sidebar-item tab-rotation" onclick="switchTab('rotation')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
-            <span>רוטציה 10/4</span>
-        </button>
         <button class="sidebar-item tab-whatsapp" onclick="switchTab('whatsapp')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             <span>התראות WhatsApp</span>
@@ -175,7 +171,6 @@
         </button>
         <h1 class="topbar-title">מערכת ניהול גדודי</h1>
         <span class="topbar-badge">תעסוקה מבצעית</span>
-        <span class="topbar-badge topbar-badge-red">רוטציה 10/4</span>
     </div>
     <div class="topbar-stats">
         <div class="topbar-stat">
@@ -259,12 +254,6 @@
 <!-- ====== TAB: OVERVIEW ====== -->
 <div class="tab-content active" id="tab-all">
     <div class="main-content">
-        <div class="info-box">
-            <span class="info-icon"><i data-lucide="info"></i></span>
-            <div>
-                <strong>מודל רוטציה 10/4:</strong> כל חייל 10 ימים בבסיס, 4 ימים בבית.
-            </div>
-        </div>
         <div class="quick-stats">
             <div class="quick-stat"><div class="value" id="statTotalPersonnel">198</div><div class="label">סה"כ כוח אדם</div></div>
             <div class="quick-stat"><div class="value">4</div><div class="label">פלוגות</div></div>
@@ -438,7 +427,7 @@
                     <i data-lucide="calendar-check" style="width:24px;height:24px;"></i>
                 </div>
                 <h3>דו"ח יומי</h3>
-                <p>סיכום מצב יומי - כוח אדם, שיבוצים, יציאות ורוטציה</p>
+                <p>סיכום מצב יומי - כוח אדם, שיבוצים ויציאות</p>
                 <div class="report-export-btns" onclick="event.stopPropagation()">
                     <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('daily')">PDF</button>
                     <button class="btn btn-sm btn-excel" onclick="exportReportExcel('daily')">Excel</button>
@@ -482,45 +471,6 @@
     </div>
 </div>
 
-<!-- ====== TAB: ROTATION ====== -->
-<div class="tab-content" id="tab-rotation">
-    <div class="main-content">
-        <div class="info-box">
-            <span class="info-icon"><i data-lucide="repeat"></i></span>
-            <div>
-                <strong>ניהול רוטציה 10/4</strong> — חלק חיילים לקבוצות שמתחלפות בין בסיס לבית:
-                <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;">
-                    <span style="background:var(--bg);border-radius:6px;padding:4px 10px;font-size:0.83em;">① צור קבוצת רוטציה ושם לה שם</span>
-                    <span style="background:var(--bg);border-radius:6px;padding:4px 10px;font-size:0.83em;">② הוסף חיילים + בחר תאריך התחלה</span>
-                    <span style="background:var(--bg);border-radius:6px;padding:4px 10px;font-size:0.83em;">③ המערכת מחשבת אוטומטית מי בבסיס ומי בבית</span>
-                </div>
-            </div>
-        </div>
-        <div class="action-bar">
-            <button class="btn btn-primary" id="addRotGroupBtn" onclick="openModal('addRotationGroupModal')">+ קבוצת רוטציה חדשה</button>
-        </div>
-
-        <!-- Rotation Visual Calendar -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#EDE7F6;color:#5C6BC0;"><i data-lucide="calendar"></i></div>
-                לוח רוטציה - 14 ימים קדימה
-            </div>
-            <div class="rotation-calendar">
-                <div class="rotation-body" id="rotationCalendar"></div>
-            </div>
-        </div>
-
-        <!-- Rotation Groups -->
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#E8F5E9;color:var(--success);"><i data-lucide="users"></i></div>
-                קבוצות רוטציה
-            </div>
-            <div class="rotation-groups" id="rotationGroupsContainer"></div>
-        </div>
-    </div>
-</div>
 
 <!-- ====== TAB: EQUIPMENT (צל"מ) ====== -->
 <div class="tab-content" id="tab-equipment">
@@ -991,58 +941,6 @@
     </div>
 </div>
 
-<!-- Add Rotation Group Modal -->
-<div class="modal-overlay" id="addRotationGroupModal">
-    <div class="modal">
-        <div class="modal-header" style="background:#5C6BC0;">
-            <h3>קבוצת רוטציה חדשה</h3>
-            <button class="modal-close" onclick="closeModal('addRotationGroupModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>שם הקבוצה</label>
-                <input type="text" id="rotGroupName" placeholder='לדוגמה: קבוצה א, מחזור 1'>
-            </div>
-            <div class="form-group">
-                <label>פלוגה</label>
-                <select id="rotGroupCompany" onchange="updateRotGroupSoldiers()">
-                    <option value="a">פלוגה א</option>
-                    <option value="b">פלוגה ב</option>
-                    <option value="c">פלוגה ג</option>
-                    <option value="d">פלוגה ד</option>
-                    <option value="hq">חפ"ק מג"ד</option>
-                    <option value="palsam">פלס"ם</option>
-                    <option value="all">כל הפלוגות</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>תאריך תחילת מחזור (יום הגעה לבסיס)</label>
-                <input type="date" id="rotGroupStartDate">
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>ימים בבסיס</label>
-                    <input type="number" id="rotGroupDaysIn" value="10" min="1">
-                </div>
-                <div class="form-group">
-                    <label>ימים בבית</label>
-                    <input type="number" id="rotGroupDaysOut" value="4" min="1">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>חיילים בקבוצה</label>
-                <div class="checkbox-list-wrap">
-                    <input type="text" class="checkbox-list-search" placeholder="חיפוש חייל..." oninput="filterCheckboxList('rotGroupSoldiers', this.value)">
-                    <div class="checkbox-list" id="rotGroupSoldiers"></div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" onclick="saveRotationGroup()">שמור קבוצה</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('addRotationGroupModal')">ביטול</button>
-        </div>
-    </div>
-</div>
 
 <!-- ====== TAB: SETTINGS ====== -->
 <div class="tab-content" id="tab-settings">
