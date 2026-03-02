@@ -3515,10 +3515,10 @@ function renderSettingsTab() {
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ניהול נתונים</h3>
         <div class="settings-actions">
-            <button class="btn btn-primary" onclick="exportAllData()">ייצוא נתונים (JSON)</button>
-            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">ייבוא נתונים (JSON)</button>
-            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAllData(this)">
-            <button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>
+            <button class="btn btn-primary" onclick="exportAllData()">ייצוא נתונים (Excel)</button>
+            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">ייבוא נתונים (Excel)</button>
+            <input type="file" id="importFile" accept=".xlsx,.xls,.json" style="display:none" onchange="importAllData(this)">
+            ${isAdmin() ? '<button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>' : ''}
         </div>
         <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
             סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
@@ -3628,15 +3628,62 @@ function updatePreset(key, field, value) {
 }
 
 function exportAllData() {
-    const data = { state, settings, tasks: {} };
-    ALL_COMPANIES.forEach(k => { data.tasks[k] = companyData[k].tasks; });
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `battalion_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    showToast('נתונים יוצאו בהצלחה');
+    const wb = XLSX.utils.book_new();
+    // Sheet 1: Soldiers
+    if (state.soldiers.length) {
+        const solRows = state.soldiers.map(s => ({
+            'שם': s.name || '', 'מ.א': s.personalId || '', 'טלפון': s.phone || '',
+            'פלוגה': s.company || '', 'תפקיד': s.role || '', 'צוות': s.team || '',
+            'קבוצת רוטציה': s.rotationGroup || ''
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(solRows), 'חיילים');
+    }
+    // Sheet 2: Equipment
+    if (state.equipment.length) {
+        const eqRows = state.equipment.map(e => ({
+            'סוג': e.type || '', 'מק"ט / סידורי': e.serial || '', 'פלוגה': e.company || '',
+            'מוחזק ע"י': e.holderName || '', 'מ.א מחזיק': e.holderId || '',
+            'תאריך הקצאה': e.assignedDate || '', 'קטגוריה': e.category || ''
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(eqRows), 'ציוד');
+    }
+    // Sheet 3: Signature Log
+    if (state.signatureLog.length) {
+        const logRows = state.signatureLog.map(l => ({
+            'סוג': l.type === 'assign' ? 'הקצאה' : l.type === 'return' ? 'זיכוי' : l.type === 'delete' ? 'מחיקה' : l.type,
+            'חייל': l.soldierName || '', 'מ.א חייל': l.soldierPersonalId || '',
+            'ציוד': (l.equipItems || []).map(i => `${i.equipType}${i.equipSerial ? ' (' + i.equipSerial + ')' : ''} x${i.equipQty}`).join(', '),
+            'תאריך': l.date ? new Date(l.date).toLocaleString('he-IL') : '',
+            'מחתים': l.issuedBy || '', 'מ.א מחתים': l.issuerPersonalId || '',
+            'הערות': l.notes || ''
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(logRows), 'היסטוריית חתימות');
+    }
+    // Sheet 4: Shifts
+    if (state.shifts.length) {
+        const shRows = state.shifts.map(s => ({
+            'פלוגה': s.company || '', 'חייל': s.soldierName || '', 'משמרת': s.shiftName || '',
+            'תאריך': s.date || '', 'שעת התחלה': s.startTime || '', 'שעת סיום': s.endTime || ''
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(shRows), 'משמרות');
+    }
+    // Sheet 5: Leaves
+    if (state.leaves.length) {
+        const lvRows = state.leaves.map(l => ({
+            'חייל': l.soldierName || '', 'פלוגה': l.company || '',
+            'תאריך יציאה': l.startDate || '', 'תאריך חזרה': l.endDate || '',
+            'סוג': l.type || '', 'הערות': l.notes || ''
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lvRows), 'יציאות');
+    }
+    // Sheet 6: Full JSON backup (for import)
+    const fullData = { state, settings, tasks: {} };
+    ALL_COMPANIES.forEach(k => { fullData.tasks[k] = companyData[k].tasks; });
+    const jsonSheet = XLSX.utils.aoa_to_sheet([['_BACKUP_JSON_'], [JSON.stringify(fullData)]]);
+    XLSX.utils.book_append_sheet(wb, jsonSheet, '_גיבוי_מלא_');
+
+    XLSX.writeFile(wb, `battalion_backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('נתונים יוצאו לאקסל בהצלחה');
 }
 
 function importAllData(input) {
@@ -3645,10 +3692,21 @@ function importAllData(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const data = JSON.parse(e.target.result);
+            let data;
+            if (file.name.endsWith('.json')) {
+                // Legacy JSON support
+                data = JSON.parse(e.target.result);
+            } else {
+                // Excel import - read _גיבוי_מלא_ sheet
+                const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const backupSheet = wb.Sheets['_גיבוי_מלא_'];
+                if (!backupSheet) { showToast('קובץ לא תקין - חסר גיליון גיבוי', 'error'); return; }
+                const rows = XLSX.utils.sheet_to_json(backupSheet, { header: 1 });
+                if (!rows[1] || !rows[1][0]) { showToast('קובץ גיבוי ריק', 'error'); return; }
+                data = JSON.parse(rows[1][0]);
+            }
             if (data.state) {
                 state = data.state;
-                // Apply field guards (same as loadState) for older backups
                 if (!state.soldiers) state.soldiers = [];
                 if (!state.shifts) state.shifts = [];
                 if (!state.leaves) state.leaves = [];
@@ -3674,13 +3732,14 @@ function importAllData(input) {
             showToast('שגיאה בקריאת הקובץ', 'error');
         }
     };
-    reader.readAsText(file);
+    if (file.name.endsWith('.json')) reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
     input.value = '';
 }
 
 async function resetAllData() {
-    if (!await customConfirm('האם אתה בטוח? כל הנתונים יימחקו!')) return;
-    if (!await customConfirm('אישור סופי - למחוק הכל?')) return;
+    if (!isAdmin()) { showToast('פעולה זו מותרת למנהל מערכת בלבד', 'error'); return; }
+    if (!await customDeleteConfirm()) return;
     state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [] };
     saveState();
     localStorage.removeItem('battalionTasks');

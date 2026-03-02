@@ -867,6 +867,8 @@ tbody tr:hover { background: #f8f9ff; }
     transition: all 0.3s;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     gap: 6px;
 }
 .btn-primary { background: var(--primary); color: white; }
