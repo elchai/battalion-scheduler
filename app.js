@@ -5469,24 +5469,28 @@ function loadSignSetMode(includeCmd) {
 }
 
 function loadSignManualMode() {
-    const allTypes = new Set();
+    const allItems = new Map();
     const es = settings.equipmentSets || {};
-    (es.baseSet?.items || []).forEach(item => allTypes.add(item.name));
-    (es.roleSets || []).forEach(rs => (rs.items || []).forEach(item => allTypes.add(item.name)));
-    state.equipment.forEach(e => allTypes.add(e.type));
-    const types = [...allTypes].sort();
+    (es.baseSet?.items || []).forEach(item => allItems.set(item.name, item));
+    (es.roleSets || []).forEach(rs => (rs.items || []).forEach(item => allItems.set(item.name, item)));
+    state.equipment.forEach(e => { if (!allItems.has(e.type)) allItems.set(e.type, { name: e.type, requiresSerial: false }); });
+    const types = [...allItems.keys()].sort();
 
     let html = `<input type="text" id="signManualSearch" placeholder="חפש ציוד..." oninput="filterManualEquip()" style="padding:6px 10px;font-size:0.88em;margin-bottom:6px;width:100%;">`;
     html += `<div id="signManualList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;">
         <table style="width:100%;border-collapse:collapse;font-size:0.84em;">
-        <tbody>${types.map((t, i) => `<tr class="sign-manual-row" data-name="${esc(t)}" style="border-bottom:1px solid var(--border);">
+        <tbody>${types.map((t, i) => {
+            const item = allItems.get(t);
+            const needsSerial = item && item.requiresSerial === true;
+            return `<tr class="sign-manual-row" data-name="${esc(t)}" style="border-bottom:1px solid var(--border);">
             <td style="padding:5px 8px;text-align:right;">
-                <input type="checkbox" value="manual_${i}" data-src="baseset" data-name="${esc(t)}" data-qty="1" data-category="${esc(detectCategoryFromType(t))}" data-serial-req="true" style="margin-left:6px;">
+                <input type="checkbox" value="manual_${i}" data-src="baseset" data-name="${esc(t)}" data-qty="1" data-category="${esc(item?.category || detectCategoryFromType(t))}" data-serial-req="${needsSerial}" style="margin-left:6px;">
                 ${esc(t)}
             </td>
-            <td style="padding:2px 4px;text-align:center;width:95px;"><input type="text" class="sign-bs-serial" data-bs-idx="m${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;"></td>
+            <td style="padding:2px 4px;text-align:center;width:95px;">${needsSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="m${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;">` : '<span style="color:#bbb;">—</span>'}</td>
             <td style="padding:2px 4px;text-align:center;width:50px;"><input type="number" min="1" value="1" data-bs-qty="m${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
-        </tr>`).join('')}</tbody>
+        </tr>`;
+        }).join('')}</tbody>
         </table>
     </div>`;
 
