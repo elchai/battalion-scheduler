@@ -25,7 +25,8 @@ const DEFAULT_SETTINGS = {
                 { name: 'ליונט', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '995831' },
                 { name: 'אול"ר', quantity: 1, category: 'אופטיקה', requiresSerial: true, serialNumber: '990456' },
                 // ציוד ללא מספר צ'
-                { name: 'מדים (2 חולצות + 2 מכנסיים)', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'חולצת ב\'', quantity: 2, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'מכנסי ב\'', quantity: 2, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'נעליים צבאיות', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'אפוד קרב', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'קסדה', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
@@ -6257,7 +6258,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
     const itemRows = items.map((item, i) => `
         <tr>
             <td style="padding:6px 8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
-            <td style="padding:6px 8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
+            <td style="padding:6px 8px;text-align:right;direction:rtl;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
             <td style="padding:6px 8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;">${item.equipSerial || ''}</td>
             <td style="padding:6px 8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
         </tr>
