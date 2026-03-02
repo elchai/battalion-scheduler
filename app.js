@@ -739,6 +739,23 @@ const deptToCompany = {
     'פלגת רפואה': 'palsam'
 };
 
+const UNITS_BY_COMPANY = {
+    a: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+    b: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+    c: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+    d: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+    hq: ['חפ"ק מג"ד', 'לשכה'],
+    palsam: ['אג"מ', 'לוגיסטיקה', 'קשר', 'טנ"א', 'רפואה', 'מטבח', 'רכב', 'דת וז"ח', 'מפל"ג']
+};
+
+function updateSoldierUnits() {
+    const compKey = document.getElementById('soldierCompany').value;
+    const unitSel = document.getElementById('soldierUnit');
+    if (!unitSel) return;
+    const units = UNITS_BY_COMPANY[compKey] || [];
+    unitSel.innerHTML = '<option value="">-- בחר --</option>' + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+}
+
 async function init() {
     loadSettings();
     loadState();
@@ -2434,7 +2451,9 @@ function openAddSoldier(company) {
     document.getElementById('soldierModalTitle').textContent = 'הוספת חייל';
     document.getElementById('soldierEditId').value = '';
     document.getElementById('soldierCompany').value = company || 'a';
-    document.getElementById('soldierName').value = '';
+    updateSoldierUnits();
+    document.getElementById('soldierFirstName').value = '';
+    document.getElementById('soldierLastName').value = '';
     document.getElementById('soldierId').value = '';
     document.getElementById('soldierPhone').value = '';
     document.getElementById('soldierRank').value = 'טוראי';
@@ -2442,7 +2461,7 @@ function openAddSoldier(company) {
     document.getElementById('soldierPakal').value = '';
     document.getElementById('soldierNotes').value = '';
     openModal('addSoldierModal');
-    setTimeout(() => document.getElementById('soldierName').focus(), 100);
+    setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
 }
 
 function openSoldierProfile(id) {
@@ -2561,10 +2580,15 @@ function openEditSoldier(id) {
     if (!sol) return;
     document.getElementById('soldierModalTitle').textContent = 'עריכת חייל';
     document.getElementById('soldierEditId').value = id;
-    document.getElementById('soldierName').value = sol.name;
+    // Split name into first/last
+    const nameParts = (sol.name || '').split(' ');
+    document.getElementById('soldierFirstName').value = nameParts[0] || '';
+    document.getElementById('soldierLastName').value = nameParts.slice(1).join(' ') || '';
     document.getElementById('soldierId').value = sol.personalId || '';
     document.getElementById('soldierRank').value = sol.rank || 'טוראי';
     document.getElementById('soldierCompany').value = sol.company;
+    updateSoldierUnits();
+    document.getElementById('soldierUnit').value = sol.unit || '';
     document.getElementById('soldierRole').value = sol.role || 'לוחם';
     document.getElementById('soldierPhone').value = sol.phone || '';
     document.getElementById('soldierPakal').value = sol.pakal || '';
@@ -2573,12 +2597,16 @@ function openEditSoldier(id) {
 }
 
 function saveSoldier() {
-    const name = document.getElementById('soldierName').value.trim();
-    if (!name) { showToast('יש להזין שם', 'error'); return; }
+    const firstName = document.getElementById('soldierFirstName').value.trim();
+    const lastName = document.getElementById('soldierLastName').value.trim();
+    if (!firstName || !lastName) { showToast('יש להזין שם פרטי ושם משפחה', 'error'); return; }
+    const name = firstName + ' ' + lastName;
 
     const editId = document.getElementById('soldierEditId').value;
     const company = document.getElementById('soldierCompany').value;
     if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
+
+    const unit = document.getElementById('soldierUnit').value;
 
     if (editId) {
         // Edit existing soldier
@@ -2588,6 +2616,7 @@ function saveSoldier() {
             sol.personalId = document.getElementById('soldierId').value.trim();
             sol.rank = document.getElementById('soldierRank').value;
             sol.company = company;
+            sol.unit = unit;
             sol.role = document.getElementById('soldierRole').value;
             sol.phone = document.getElementById('soldierPhone').value.trim();
             sol.pakal = document.getElementById('soldierPakal').value;
@@ -2607,6 +2636,7 @@ function saveSoldier() {
             personalId: document.getElementById('soldierId').value.trim(),
             rank: document.getElementById('soldierRank').value,
             company,
+            unit,
             role: document.getElementById('soldierRole').value,
             phone: document.getElementById('soldierPhone').value.trim(),
             pakal: document.getElementById('soldierPakal').value,

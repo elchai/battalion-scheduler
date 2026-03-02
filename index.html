@@ -724,15 +724,46 @@
         </div>
         <div class="modal-body">
             <input type="hidden" id="soldierEditId" value="">
-            <div class="form-group">
-                <label>שם מלא</label>
-                <input type="text" id="soldierName" placeholder="שם פרטי ושם משפחה">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>שם פרטי</label>
+                    <input type="text" id="soldierFirstName" placeholder="שם פרטי">
+                </div>
+                <div class="form-group">
+                    <label>שם משפחה</label>
+                    <input type="text" id="soldierLastName" placeholder="שם משפחה">
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>מספר אישי</label>
                     <input type="text" id="soldierId" placeholder="מספר אישי">
                 </div>
+                <div class="form-group">
+                    <label>טלפון</label>
+                    <input type="text" id="soldierPhone" placeholder="050-0000000">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="soldierCompany" onchange="updateSoldierUnits()">
+                        <option value="a">פלוגה א (עתודה)</option>
+                        <option value="b">פלוגה ב (מבוא חורון)</option>
+                        <option value="c">פלוגה ג (חשמונאים)</option>
+                        <option value="d">פלוגה ד (443)</option>
+                        <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                        <option value="palsam">פלס"ם</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מחלקה</label>
+                    <select id="soldierUnit">
+                        <option value="">-- בחר --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
                 <div class="form-group">
                     <label>דרגה</label>
                     <select id="soldierRank">
@@ -745,19 +776,6 @@
                         <option value="סגן">סגן</option>
                         <option value="סרן">סרן</option>
                         <option value="רס&quot;ן">רס"ן</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>פלוגה</label>
-                    <select id="soldierCompany">
-                        <option value="a">פלוגה א (עתודה)</option>
-                        <option value="b">פלוגה ב (מבוא חורון)</option>
-                        <option value="c">פלוגה ג (חשמונאים)</option>
-                        <option value="d">פלוגה ד (443)</option>
-                        <option value="hq">חפ"ק מג"ד/סמג"ד</option>
-                        <option value="palsam">פלס"ם</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -805,10 +823,6 @@
                         <option value="חובש">חובש</option>
                         <option value="לוגיסטיקה">לוגיסטיקה</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label>טלפון</label>
-                    <input type="text" id="soldierPhone" placeholder="050-0000000">
                 </div>
             </div>
             <div class="form-group">
