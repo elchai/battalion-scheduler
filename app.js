@@ -5061,7 +5061,7 @@ function setupSignatureCanvas(canvasId) {
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1a3a5c';
+    ctx.strokeStyle = '#2563eb';
 
     let drawing = false;
 
@@ -7337,7 +7337,7 @@ function initWpSignatureCanvas(canvasId) {
     };
 
     const start = (e) => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
-    const move = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000'; ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    const move = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#2563eb'; ctx.lineTo(p.x, p.y); ctx.stroke(); };
     const end = () => { drawing = false; };
 
     canvas.onmousedown = start;
