@@ -5407,13 +5407,18 @@ function onSignSoldierSelect() {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!sol) return;
 
-    // Show soldier info with clear highlight
+    // Show soldier info with clear highlight + editable sizes
     const info = document.getElementById('signSoldierInfo');
     info.style.display = '';
-    const sizeInfo = [sol.uniformSize ? `מדים: ${sol.uniformSize}` : '', sol.shoeSize ? `נעליים: ${sol.shoeSize}` : ''].filter(Boolean).join(' | ');
-    info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+    const shoeOpts = ['','36','37','38','39','40','41','42','43','44','45','46','47','48','49'].map(v => `<option value="${v}"${v === (sol.shoeSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
+    const uniformOpts = ['','קק','ק','ב1','ב2','ב3','ג1','ג2','ג3','מ','ממ','מממ','ממממ'].map(v => `<option value="${v}"${v === (sol.uniformSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
+    info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:1.2em;">&#9745;</span>
-        <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}${sizeInfo ? ' | ' + esc(sizeInfo) : ''}</span>
+        <span><strong>${esc(sol.name)}</strong> | ${esc(sol.role||'לוחם')} | מ.א: ${esc(sol.personalId||'-')}</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;align-items:center;font-size:0.85em;">
+        <label style="display:flex;align-items:center;gap:4px;">נעליים: <select id="signShoeSize" onchange="updateSoldierSizeFromSign()" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.95em;">${shoeOpts}</select></label>
+        <label style="display:flex;align-items:center;gap:4px;">מדים: <select id="signUniformSize" onchange="updateSoldierSizeFromSign()" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.95em;">${uniformOpts}</select></label>
     </div>`;
 
     // Show equipment mode selection
@@ -5446,6 +5451,18 @@ function onSignSoldierSelect() {
 
     // Setup canvas AFTER section is visible (getBoundingClientRect needs visible element)
     setTimeout(() => { setupSignatureCanvas('signatureCanvas'); clearCanvasById('signatureCanvas'); }, 50);
+}
+
+function updateSoldierSizeFromSign() {
+    const soldierId = document.getElementById('signSoldier')?.value;
+    if (!soldierId) return;
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+    const shoe = document.getElementById('signShoeSize')?.value || '';
+    const uniform = document.getElementById('signUniformSize')?.value || '';
+    if (shoe !== (sol.shoeSize || '')) { sol.shoeSize = shoe; }
+    if (uniform !== (sol.uniformSize || '')) { sol.uniformSize = uniform; }
+    saveState();
 }
 
 function loadSignSetMode(includeCmd) {
@@ -5501,13 +5518,14 @@ function loadSignManualMode() {
         <tbody>${types.map((t, i) => {
             const item = allItems.get(t);
             const needsSerial = item && item.requiresSerial === true;
+            const defQty = item?.quantity || 1;
             return `<tr class="sign-manual-row" data-name="${esc(t)}" style="border-bottom:1px solid var(--border);">
             <td style="padding:5px 8px;text-align:right;">
-                <input type="checkbox" value="manual_${i}" data-src="baseset" data-name="${esc(t)}" data-qty="1" data-category="${esc(item?.category || detectCategoryFromType(t))}" data-serial-req="${needsSerial}" style="margin-left:6px;">
+                <input type="checkbox" value="manual_${i}" data-src="baseset" data-name="${esc(t)}" data-qty="${defQty}" data-category="${esc(item?.category || detectCategoryFromType(t))}" data-serial-req="${needsSerial}" style="margin-left:6px;">
                 ${esc(t)}
             </td>
             <td style="padding:2px 4px;text-align:center;width:95px;">${needsSerial ? `<input type="text" class="sign-bs-serial" data-bs-idx="m${i}" placeholder="צ'" style="width:85px;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:0.88em;text-align:center;direction:ltr;">` : '<span style="color:#bbb;">—</span>'}</td>
-            <td style="padding:2px 4px;text-align:center;width:50px;"><input type="number" min="1" value="1" data-bs-qty="m${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
+            <td style="padding:2px 4px;text-align:center;width:50px;"><input type="number" min="1" value="${defQty}" data-bs-qty="m${i}" style="width:42px;padding:2px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.88em;"></td>
         </tr>`;
         }).join('')}</tbody>
         </table>
