@@ -5246,6 +5246,21 @@ function onSignSoldierSelect() {
     document.getElementById('signEquipSection').style.display = '';
     document.getElementById('signSignatureSection').style.display = '';
 
+    // Show issuer details before signature
+    const issuerSoldier = state.soldiers.find(s => s.personalId === currentUser.personalId);
+    const issuerInfoEl = document.getElementById('signIssuerInfo');
+    if (issuerInfoEl) {
+        issuerInfoEl.style.display = '';
+        issuerInfoEl.innerHTML = `
+            <div style="font-weight:600;font-size:0.85em;margin-bottom:6px;color:var(--primary);">פרטי מנפיק:</div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:0.83em;">
+                <span style="font-weight:600;">שם:</span><span>${esc(currentUser.name || '-')}</span>
+                <span style="font-weight:600;">מ.א:</span><span>${esc(currentUser.personalId || '-')}</span>
+                <span style="font-weight:600;">תפקיד:</span><span>${esc(issuerSoldier?.role || '-')}</span>
+                <span style="font-weight:600;">טלפון:</span><span>${esc(issuerSoldier?.phone || '-')}</span>
+            </div>`;
+    }
+
     // Setup canvas AFTER section is visible (getBoundingClientRect needs visible element)
     setTimeout(() => { setupSignatureCanvas('signatureCanvas'); clearCanvasById('signatureCanvas'); }, 50);
 }
@@ -6055,12 +6070,14 @@ function editSignatureLog(logId) {
 }
 
 // --- PDF Generation ---
+// Helper: replace spaces with non-breaking spaces for html2canvas RTL fix
+function pdfTxt(str) { return (str || '').replace(/ /g, '\u00A0'); }
+
 function generateSignaturePDF(logEntry, eqUnused, sol) {
     const now = new Date(logEntry.date);
     const dateStr = now.toLocaleDateString('he-IL');
     const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-    // Build items array: batch (equipItems) or legacy single item
     const items = logEntry.equipItems
         ? logEntry.equipItems
         : [{ equipType: logEntry.equipType, equipSerial: logEntry.equipSerial, equipQty: 1 }];
@@ -6072,39 +6089,39 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
     const itemRows = items.map((item, i) => `
         <tr>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
-            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${item.equipType}</td>
-            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial}</td>
+            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
+            <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial || ''}</td>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
         </tr>
     `).join('');
 
     const html = `
-    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;">
+    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;word-spacing:2px;">
         <!-- Header -->
         <div style="text-align:center;margin-bottom:22px;">
             ${logoHtml}
-            <h1 style="color:#1a3a5c;margin:6px 0 2px;font-size:1.45em;letter-spacing:0.3px;">טופס קבלת ציוד מבוקר</h1>
-            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">מערכת ניהול גדודי — צל"מ</p>
+            <h1 style="color:#1a3a5c;margin:6px 0 2px;font-size:1.45em;letter-spacing:0.3px;">${pdfTxt('טופס קבלת ציוד מבוקר')}</h1>
+            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
         </div>
         <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 20px;">
 
         <!-- Soldier details -->
         <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:20px;font-size:0.93em;">
-            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:120px;">שם מלא</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.name}</td></tr>
-            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">מספר אישי</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">תאריך ושעה</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr} | ${timeStr}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מלא')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(sol.name)}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0|\u00A0${timeStr}</td></tr>
         </table>
 
         <!-- Equipment items -->
-        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">פריטי ציוד (${items.length}):</div>
+        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">${pdfTxt('פריטי ציוד')} (${items.length}):</div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.93em;">
             <thead>
                 <tr style="background:#1a3a5c;color:white;text-align:center;">
                     <th style="padding:9px 6px;border:1px solid #1a3a5c;width:36px;">#</th>
-                    <th style="padding:9px 12px;border:1px solid #1a3a5c;text-align:right;">שם פריט</th>
-                    <th style="padding:9px 12px;border:1px solid #1a3a5c;">מספר צ'</th>
-                    <th style="padding:9px 6px;border:1px solid #1a3a5c;width:56px;">כמות</th>
+                    <th style="padding:9px 12px;border:1px solid #1a3a5c;text-align:right;">${pdfTxt('שם פריט')}</th>
+                    <th style="padding:9px 12px;border:1px solid #1a3a5c;">${pdfTxt("מספר צ'")}</th>
+                    <th style="padding:9px 6px;border:1px solid #1a3a5c;width:56px;">${pdfTxt('כמות')}</th>
                 </tr>
             </thead>
             <tbody>${itemRows}</tbody>
@@ -6113,27 +6130,28 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <!-- Issuer -->
         ${logEntry.issuedBy ? `
         <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:20px;font-size:0.93em;">
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:120px;">מנפיק</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuedBy}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">תפקיד</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">מ.א</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('מנפיק')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuedBy)}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תפקיד')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuerRole || '-')}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מ.א')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
         </table>` : ''}
 
         <!-- Declaration -->
         <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:12px 16px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:24px;line-height:1.6;">
-            אני הח"מ מאשר/ת שקיבלתי לידי את הציוד המפורט לעיל במצב תקין, ואני מתחייב/ת לשמור עליו ולהחזירו במצבו כפי שקיבלתי אותו.
+            ${pdfTxt('אני הח"מ מאשר/ת שקיבלתי לידי את הציוד המפורט לעיל במצב תקין, ואני מתחייב/ת לשמור עליו ולהחזירו במצבו כפי שקיבלתי אותו.')}
         </div>
 
         <!-- Signature -->
         <div style="text-align:center;">
-            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">חתימת המקבל/ת:</div>
+            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">${pdfTxt('חתימת המקבל/ת:')}</div>
             <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
-            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${sol.name} | ${dateStr}</div>
+            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(sol.name)}\u00A0|\u00A0${dateStr}</div>
         </div>
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
-            מסמך זה הופק אוטומטית ממערכת ניהול גדודי &nbsp;|&nbsp; ${dateStr} ${timeStr}
+            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}\u00A0|\u00A0${dateStr}\u00A0${timeStr}
+            <br>www.daghazahav.com
         </div>
     </div>`;
 
@@ -6149,7 +6167,6 @@ function generateReturnPDF(logEntry, eq) {
         ? `<img src="${DOC_LOGO_BASE64}" style="max-height:80px;margin-bottom:8px;">`
         : '';
 
-    // Build items array: batch or single
     const items = logEntry.equipItems
         ? logEntry.equipItems
         : [{ equipType: eq.type, equipSerial: eq.serial, equipQty: 1 }];
@@ -6157,38 +6174,38 @@ function generateReturnPDF(logEntry, eq) {
     const itemRows = items.map((item, i) => `
         <tr>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${i + 1}</td>
-            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${item.equipType}</td>
+            <td style="padding:8px;text-align:right;border:1px solid #dfe6e9;font-weight:600;">${pdfTxt(item.equipType)}</td>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;direction:ltr;font-family:monospace;">${item.equipSerial || '-'}</td>
             <td style="padding:8px;text-align:center;border:1px solid #dfe6e9;">${item.equipQty || 1}</td>
         </tr>
     `).join('');
 
     const html = `
-    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;">
+    <div style="direction:rtl;font-family:'Segoe UI',Arial,sans-serif;max-width:680px;margin:auto;padding:32px 36px;color:#1a1a1a;word-spacing:2px;">
         <div style="text-align:center;margin-bottom:22px;">
             ${logoHtml}
-            <h1 style="color:#E65100;margin:6px 0 2px;font-size:1.45em;">טופס זיכוי / החזרת ציוד</h1>
-            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">מערכת ניהול גדודי — צל"מ</p>
+            <h1 style="color:#E65100;margin:6px 0 2px;font-size:1.45em;">${pdfTxt('טופס זיכוי / החזרת ציוד')}</h1>
+            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
         </div>
         <hr style="border:none;border-top:2px solid #E65100;margin:0 0 20px;">
 
         <!-- Soldier details -->
         <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;margin-bottom:20px;font-size:0.93em;">
-            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;width:120px;">שם מחזיר</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierName}</td></tr>
-            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">מספר אישי</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierPersonalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.soldierPhone || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">תאריך ושעה</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr} | ${timeStr}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מחזיר')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.soldierName)}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierPersonalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.soldierPhone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0|\u00A0${timeStr}</td></tr>
         </table>
 
         <!-- Equipment items -->
-        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">פריטים מוחזרים (${items.length}):</div>
+        <div style="font-weight:700;margin-bottom:8px;font-size:1em;">${pdfTxt('פריטים מוחזרים')} (${items.length}):</div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:0.93em;">
             <thead>
                 <tr style="background:#E65100;color:white;text-align:center;">
                     <th style="padding:9px 6px;border:1px solid #E65100;width:36px;">#</th>
-                    <th style="padding:9px 12px;border:1px solid #E65100;text-align:right;">שם פריט</th>
-                    <th style="padding:9px 12px;border:1px solid #E65100;">מספר צ'</th>
-                    <th style="padding:9px 6px;border:1px solid #E65100;width:56px;">כמות</th>
+                    <th style="padding:9px 12px;border:1px solid #E65100;text-align:right;">${pdfTxt('שם פריט')}</th>
+                    <th style="padding:9px 12px;border:1px solid #E65100;">${pdfTxt("מספר צ'")}</th>
+                    <th style="padding:9px 6px;border:1px solid #E65100;width:56px;">${pdfTxt('כמות')}</th>
                 </tr>
             </thead>
             <tbody>${itemRows}</tbody>
@@ -6197,24 +6214,25 @@ function generateReturnPDF(logEntry, eq) {
         <!-- Issuer details -->
         ${logEntry.issuedBy ? `
         <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;margin-bottom:20px;font-size:0.93em;">
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:120px;">מזכה</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuedBy}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">תפקיד</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.issuerRole || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">מ.א</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">טלפון</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('מזכה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuedBy)}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תפקיד')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.issuerRole || '-')}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מ.א')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;font-family:monospace;">${logEntry.issuerPersonalId || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#E8EAF6;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.issuerPhone || '-'}</td></tr>
         </table>` : ''}
 
-        ${logEntry.notes ? `<div style="background:#FFF3E0;border-right:4px solid #E65100;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:20px;"><strong>הערות:</strong> ${logEntry.notes}</div>` : ''}
+        ${logEntry.notes ? `<div style="background:#FFF3E0;border-right:4px solid #E65100;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88em;margin-bottom:20px;"><strong>${pdfTxt('הערות:')}</strong> ${pdfTxt(logEntry.notes)}</div>` : ''}
 
         <!-- Signature -->
         <div style="text-align:center;">
-            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">חתימת מחזיר:</div>
+            <div style="font-weight:700;margin-bottom:10px;font-size:0.95em;">${pdfTxt('חתימת מחזיר:')}</div>
             <img src="${logEntry.signatureImg}" style="max-width:380px;height:110px;border:1px solid #d0d7de;border-radius:8px;background:#fff;">
-            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${logEntry.soldierName} | ${dateStr}</div>
+            <div style="margin-top:6px;font-size:0.8em;color:#7f8c8d;">${pdfTxt(logEntry.soldierName)}\u00A0|\u00A0${dateStr}</div>
         </div>
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
-            מסמך זה הופק אוטומטית ממערכת ניהול גדודי &nbsp;|&nbsp; ${dateStr} ${timeStr}
+            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}\u00A0|\u00A0${dateStr}\u00A0${timeStr}
+            <br>www.daghazahav.com
         </div>
     </div>`;
 
