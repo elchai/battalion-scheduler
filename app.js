@@ -6219,11 +6219,32 @@ function editSignatureLog(logId) {
         if (solSel) { solSel.value = log.soldierId; onSignSoldierSelect(); }
         // Store edit context
         document.getElementById('signEquipmentModal').dataset.editLogId = logId;
+
+        // Load manual mode and pre-populate with existing items
+        setTimeout(() => {
+            loadSignManualMode();
+            const items = log.equipItems || [];
+            if (items.length > 0) {
+                // Check matching checkboxes and fill serials/quantities
+                document.querySelectorAll('#signEquipCheckboxList .sign-manual-row').forEach(row => {
+                    const rowName = row.dataset.name;
+                    const match = items.find(it => it.equipType === rowName);
+                    if (match) {
+                        const cb = row.querySelector('input[type="checkbox"]');
+                        if (cb) cb.checked = true;
+                        const serialInput = row.querySelector('.sign-bs-serial');
+                        if (serialInput && match.equipSerial) serialInput.value = match.equipSerial;
+                        const qtyInput = row.querySelector('input[type="number"]');
+                        if (qtyInput && match.equipQty) qtyInput.value = match.equipQty;
+                    }
+                });
+            }
+        }, 50);
     }, 100);
     setTimeout(() => {
         setupSignatureCanvas('signatureCanvas');
         clearSignatureCanvas();
-    }, 100);
+    }, 200);
 }
 
 // --- PDF Generation ---
@@ -6268,7 +6289,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;border-radius:8px;margin-bottom:14px;font-size:0.9em;">
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מלא')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(sol.name)}</td></tr>
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${sol.personalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${sol.phone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;text-align:right;">${sol.phone || '-'}</td></tr>
             ${sol.uniformSize || sol.shoeSize ? `<tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מידות')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${[sol.uniformSize ? pdfTxt('מדים:') + '\u00A0' + sol.uniformSize : '', sol.shoeSize ? pdfTxt('נעליים:') + '\u00A0' + sol.shoeSize : ''].filter(Boolean).join('\u00A0\u00A0\u00A0')}</td></tr>` : ''}
             <tr><td style="padding:9px 14px;background:#f6f8fa;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0\u00A0${timeStr}</td></tr>
         </table>
@@ -6295,7 +6316,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
         <!-- Declaration -->
         <div style="background:#f6f8fa;border-right:4px solid #1a3a5c;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.84em;margin-bottom:18px;line-height:1.5;text-align:right;">
-            ${pdfTxt('אני הח"מ מאשר/ת שקיבלתי את הציוד המפורט לעיל במצב תקין ומתחייב/ת לשמור עליו ולהחזירו כפי שקיבלתי.')}
+            ${pdfTxt('אני הח"מ מאשר/ת קבלת הציוד המפורט לעיל תקין ומתחייב/ת לשמור עליו ולהחזירו.')}
         </div>
 
         <!-- Signature -->
@@ -6356,7 +6377,7 @@ function generateReturnPDF(logEntry, eq) {
         <table style="width:100%;border-collapse:collapse;border:1px solid #d0d7de;margin-bottom:20px;font-size:0.93em;">
             <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;width:130px;">${pdfTxt('שם מחזיר')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${pdfTxt(logEntry.soldierName)}</td></tr>
             <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('מספר אישי')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${logEntry.soldierPersonalId || '-'}</td></tr>
-            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;">${logEntry.soldierPhone || '-'}</td></tr>
+            <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('טלפון')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;direction:ltr;text-align:right;">${logEntry.soldierPhone || '-'}</td></tr>
             <tr><td style="padding:9px 14px;background:#FFF3E0;font-weight:700;border:1px solid #d0d7de;">${pdfTxt('תאריך ושעה')}</td><td style="padding:9px 14px;border:1px solid #d0d7de;">${dateStr}\u00A0\u00A0${timeStr}</td></tr>
         </table>
 
