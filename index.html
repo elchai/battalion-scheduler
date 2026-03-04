@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v92';
+    var _cb = 'v93';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -98,8 +98,9 @@
             document.getElementById('loginPhoneField').style.display = '';
         }
         </script>
-        <div id="loginWhatsAppNotice" style="display:none;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:10px 14px;border-radius:10px;font-size:0.85em;font-weight:600;text-align:center;margin:8px 0;line-height:1.5;box-shadow:0 2px 8px rgba(37,211,102,0.3);">
-            חשוב להיכנס עם הפרטים האמיתיים שלך<br>כדי שתקבל ממני הודעת וואצאפ מיידית! <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:4px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.106 1.519 5.834L.052 23.476a.5.5 0 00.607.607l5.642-1.467A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.38-1.572l-.386-.232-3.348.87.87-3.348-.232-.386A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+        <div id="loginWhatsAppNotice" style="display:none;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:10px 14px;border-radius:10px;font-size:0.85em;font-weight:600;text-align:right;margin:8px 0;line-height:1.5;box-shadow:0 2px 8px rgba(37,211,102,0.3);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-left:6px;float:left;margin-top:10px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.106 1.519 5.834L.052 23.476a.5.5 0 00.607.607l5.642-1.467A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.38-1.572l-.386-.232-3.348.87.87-3.348-.232-.386A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+            חשוב להיכנס עם הפרטים האמיתיים שלך<br>כדי שתקבל הודעת וואצאפ מיידית!
         </div>
         <script>if (CONFIG.greenApi) document.getElementById('loginWhatsAppNotice').style.display = '';</script>
         <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
@@ -1400,7 +1401,7 @@
 <div class="modal-overlay" id="weaponsFormModal">
     <div class="modal" style="max-width:800px;">
         <div class="modal-header" style="background:#5C6BC0;">
-            <h3 id="weaponsModalTitle">מילוי טפסי נשק</h3>
+            <h3 id="weaponsModalTitle">בקשה לקבלת נשק הביתה</h3>
             <button class="modal-close" onclick="closeModal('weaponsFormModal')">&times;</button>
         </div>
         <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
@@ -1408,143 +1409,157 @@
             <!-- Step Indicator -->
             <div class="wizard-steps" id="wizardSteps">
                 <div class="wizard-step active" data-step="1"><span class="step-num">1</span><span class="step-label">פרטים אישיים</span></div>
-                <div class="wizard-step" data-step="2"><span class="step-num">2</span><span class="step-label">הצהרת בריאות</span></div>
-                <div class="wizard-step" data-step="3"><span class="step-num">3</span><span class="step-label">ויתור סודיות</span></div>
-                <div class="wizard-step" data-step="4"><span class="step-num">4</span><span class="step-label">בקשת נשק</span></div>
-                <div class="wizard-step" data-step="5"><span class="step-num">5</span><span class="step-label">צילום ת.ז.</span></div>
+                <div class="wizard-step" data-step="2"><span class="step-num">2</span><span class="step-label">צבאי ויצירת קשר</span></div>
+                <div class="wizard-step" data-step="3"><span class="step-num">3</span><span class="step-label">מסמכים</span></div>
+                <div class="wizard-step" data-step="4"><span class="step-num">4</span><span class="step-label">חתימת מפקד</span></div>
             </div>
 
             <!-- Step 1: Personal Details -->
             <div class="wizard-page active" id="wizPage1">
                 <h4 style="margin-bottom:12px;color:var(--primary);">פרטים אישיים</h4>
                 <div class="form-row">
-                    <div class="form-group"><label>שם פרטי</label><input type="text" id="wpFirstName"></div>
-                    <div class="form-group"><label>שם משפחה</label><input type="text" id="wpLastName"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>תעודת זהות</label><input type="text" id="wpIdNumber" maxlength="9" placeholder="9 ספרות"></div>
-                    <div class="form-group"><label>מספר אישי</label><input type="text" id="wpPersonalNum"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>שנת לידה</label><input type="text" id="wpBirthYear" maxlength="4" placeholder="1990"></div>
-                    <div class="form-group"><label>שם האב</label><input type="text" id="wpFatherName"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>טלפון נייד</label><input type="text" id="wpPhone" placeholder="050-0000000"></div>
-                    <div class="form-group"><label>טלפון נוסף</label><input type="text" id="wpPhone2" placeholder="טלפון בית/עבודה"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>כתובת מגורים</label><input type="text" id="wpAddress" placeholder="רחוב, עיר"></div>
-                    <div class="form-group"><label>יישוב</label><input type="text" id="wpCity"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>דרגה</label><input type="text" id="wpRank"></div>
-                    <div class="form-group"><label>תפקיד ביחידה</label><input type="text" id="wpRole"></div>
-                </div>
-            </div>
-
-            <!-- Step 2: Health Declaration -->
-            <div class="wizard-page" id="wizPage2">
-                <h4 style="margin-bottom:12px;color:var(--primary);">הצהרת בריאות</h4>
-                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:14px;">יש לסמן כן או לא לכל שאלה. סימון "כן" לאחת מהשאלות עלול לדרוש בדיקה רפואית נוספת.</p>
-                <div class="health-questions" id="healthQuestions"></div>
-                <div class="form-group" style="margin-top:16px;">
-                    <label>חתימת מבקש על הצהרת בריאות</label>
-                    <div class="signature-container">
-                        <canvas id="healthSigCanvas" width="600" height="180"></canvas>
-                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('healthSigCanvas')">נקה חתימה</button>
+                    <div class="form-group">
+                        <label>פלוגה</label>
+                        <select id="wpCompany">
+                            <option value="">בחר פלוגה</option>
+                            <option value="א">א</option>
+                            <option value="ב">ב</option>
+                            <option value="ג">ג</option>
+                            <option value="ד">ד</option>
+                            <option value="פלס״ם">פלס״ם</option>
+                            <option value="מבצעים/חפ״ק">מבצעים/חפ״ק</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-
-            <!-- Step 3: Medical Confidentiality Waiver -->
-            <div class="wizard-page" id="wizPage3">
-                <h4 style="margin-bottom:12px;color:var(--primary);">כתב ויתור על סודיות רפואית</h4>
-                <div style="background:var(--bg);border-radius:10px;padding:14px;font-size:0.88em;line-height:1.8;margin-bottom:16px;">
-                    <p><strong>אני החתום מטה</strong> <span id="waiverNameDisplay" style="color:var(--primary);font-weight:700;"></span></p>
-                    <ol style="padding-right:20px;margin-top:8px;">
-                        <li>נותן בזה רשות לכל אדם, הועסד במוסד רפואי, פסיכולוגי, פסיכיאטרי, לרבות מרפאות, בית חולים, קופת חולים, סגרון, ביה"ס או כל גורם רפואי, הסתמכות על בעיות התלהטות, החתירה או השיקומי (להלן "המבקש").</li>
-                        <li>לעניין כתב ויתור על סודיות רפואית (בטפסי החובה) - "מידע על מצב הבריאות" כולל: מידע על מצב בריאותי הפיזית ו/או הנפשית, הנפשות וכושר, לרבות מידע על טיפולים שקיבלתי או סיוע פסיכולוגי.</li>
-                        <li>הנני מסכים כי הגורמים שצויינו לעיל, ומהדורות שנמנו לעיל, כל סנף נתעב 5 שנים, כל טעה או תסמונת המבקש שנפי התשובה מצד.</li>
-                        <li>הנני מוותר על סודיות זו לכפי המבקשים, ולא תהא לי אל נותני השירותים שנמנו בסעיף 5 לעיל, כל טענה או תביעה בסיפור כלשהו קשורה לאחר שנמסר.</li>
-                        <li>בבקשתי זו יפה גם לפי חוק הפרטיות, התשמ"א 5085 והיא חלה על כל מידע רפואי או אחר המצוי בנאגר.</li>
-                        <li>המידע על כל המוסדות והאנשים המצוינים לקבלת נשק צבאי.</li>
-                    </ol>
+                <div class="form-row">
+                    <div class="form-group"><label>שם פרטי</label><input type="text" id="wpFirstName" pattern="[א-ת\s]+" title="אותיות עבריות בלבד"></div>
+                    <div class="form-group"><label>שם משפחה</label><input type="text" id="wpLastName" pattern="[א-ת\s]+" title="אותיות עבריות בלבד"></div>
                 </div>
-                <div style="background:#fff3e0;border-radius:8px;padding:10px;margin-bottom:14px;font-size:0.85em;border:1px solid #ffe0b2;">
-                    <strong>ייפוי כוח:</strong> הריני מייפה את כוחו של: <strong>אוגדה 96</strong> לקבל את המידע הרפואי לעיל.
+                <div class="form-row">
+                    <div class="form-group"><label>תעודת זהות</label><input type="text" id="wpIdNumber" maxlength="9" pattern="\d{9}" placeholder="9 ספרות" title="9 ספרות בדיוק"></div>
+                    <div class="form-group"><label>מספר אישי</label><input type="text" id="wpPersonalNum" maxlength="7" pattern="\d{7}" placeholder="7 ספרות" title="7 ספרות בדיוק"></div>
                 </div>
-                <div class="form-group">
-                    <label>חתימה על ויתור סודיות רפואית</label>
-                    <div class="signature-container">
-                        <canvas id="waiverSigCanvas" width="600" height="180"></canvas>
-                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('waiverSigCanvas')">נקה חתימה</button>
-                    </div>
+                <div class="form-row">
+                    <div class="form-group"><label>שנת לידה</label><input type="text" id="wpBirthYear" maxlength="4" placeholder="1990" pattern="\d{4}" title="שנה בת 4 ספרות"></div>
+                    <div class="form-group"><label>שם האב</label><input type="text" id="wpFatherName" pattern="[א-ת\s]+" title="אותיות עבריות בלבד"></div>
                 </div>
-            </div>
-
-            <!-- Step 4: Weapon Request -->
-            <div class="wizard-page" id="wizPage4">
-                <h4 style="margin-bottom:12px;color:var(--primary);">בקשה לקבלת נשק צבאי</h4>
-                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:10px;">הנדון: בקשה לקבלת נשק צבאי להחזקה, לנשיאה ולהובלת נשק מסוג M-16</p>
-                <div style="background:var(--bg);border-radius:10px;padding:14px;font-size:0.88em;line-height:1.9;margin-bottom:16px;">
-                    <div class="wp-declaration-list" id="weaponDeclarations"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>רחוב</label><input type="text" id="wpStreet" placeholder="שם הרחוב"></div>
+                    <div class="form-group"><label>מס' הבית</label><input type="text" id="wpHouseNum" placeholder="מספר"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>סוג נשק</label>
-                        <select id="wpWeaponType">
-                            <option value="M-16">M-16</option>
-                            <option value="מיקרו תבור">מיקרו תבור</option>
-                            <option value="תבור">תבור</option>
-                            <option value="נגב">נגב</option>
-                            <option value="אחר">אחר</option>
+                        <label>יישוב</label>
+                        <input type="text" id="wpCity" list="israeliCitiesList" placeholder="הקלד שם יישוב">
+                        <datalist id="israeliCitiesList"></datalist>
+                    </div>
+                    <div class="form-group"><label>מיקוד</label><input type="text" id="wpPostalCode" maxlength="7" placeholder="מיקוד"></div>
+                </div>
+            </div>
+
+            <!-- Step 2: Military & Contact -->
+            <div class="wizard-page" id="wizPage2">
+                <h4 style="margin-bottom:12px;color:var(--primary);">פרטים צבאיים ויצירת קשר</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>טלפון נייד</label><input type="tel" id="wpPhone" placeholder="050-0000000"></div>
+                    <div class="form-group"><label>טלפון נייח</label><input type="tel" id="wpLandline" placeholder="02-0000000"></div>
+                </div>
+                <div class="form-group">
+                    <label>במידה ומחזיק/ה בנשק אישי — מהו מקור הנשק?</label>
+                    <input type="text" id="wpPersonalWeaponSource" placeholder="השאר ריק אם לא רלוונטי">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>מתי עברת מטווח בנק"ל?</label><input type="date" id="wpRangeDate"></div>
+                    <div class="form-group"><label>מועד אישור רפואי</label><input type="date" id="wpMedicalApprovalDate"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>תאריך גיוס לצה"ל</label><input type="date" id="wpEnlistmentDate"></div>
+                    <div class="form-group"><label>תאריך שחרור מצה"ל</label><input type="date" id="wpDischargeDate"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>דרגה נוכחית בצה"ל</label>
+                        <select id="wpRank">
+                            <option value="">בחר דרגה</option>
+                            <option value="טוראי">טוראי</option>
+                            <option value="רב טוראי">רב טוראי</option>
+                            <option value="סמל">סמל</option>
+                            <option value="סמל ראשון">סמל ראשון</option>
+                            <option value="רב סמל">רב סמל</option>
+                            <option value="רב סמל מתקדם">רב סמל מתקדם</option>
+                            <option value="רב סמל בכיר">רב סמל בכיר</option>
+                            <option value="סגן">סגן</option>
+                            <option value="סגן מישנה">סגן מישנה</option>
+                            <option value="סרן">סרן</option>
+                            <option value="רב סרן">רב סרן</option>
+                            <option value="סגן אלוף">סגן אלוף</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>מספר נשק (סידורי)</label>
-                        <input type="text" id="wpWeaponSerial" placeholder="מספר סידורי של הנשק">
+                        <label>האם הוסמכת כלוחם (רובאי3+)?</label>
+                        <div style="display:flex;gap:20px;margin-top:6px;">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="wpCombatCertified" value="yes"> כן</label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="wpCombatCertified" value="no"> לא</label>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>חתימת המבקש על בקשת נשק</label>
-                    <div class="signature-container">
-                        <canvas id="requestSigCanvas" width="600" height="180"></canvas>
-                        <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('requestSigCanvas')">נקה חתימה</button>
+            </div>
+
+            <!-- Step 3: Documents -->
+            <div class="wizard-page" id="wizPage3">
+                <h4 style="margin-bottom:12px;color:var(--primary);">מסמכים</h4>
+                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:14px;">יש לצרף צילום תעודת זהות ואישור רופא</p>
+
+                <div style="margin-bottom:20px;">
+                    <label style="font-weight:600;margin-bottom:8px;display:block;">צילום תעודת זהות</label>
+                    <div class="id-upload-area" id="idUploadArea" onclick="document.getElementById('idPhotoInput').click()">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        <div style="margin-top:6px;">לחץ להעלאת צילום ת.ז.</div>
+                        <div style="font-size:0.8em;color:var(--text-light);">JPG, PNG, PDF</div>
+                    </div>
+                    <input type="file" id="idPhotoInput" accept="image/*,.pdf" style="display:none" onchange="handleIdPhotoUpload(event)">
+                    <div id="idPhotoPreview" style="display:none;margin-top:10px;text-align:center;">
+                        <img id="idPhotoImg" style="max-width:100%;max-height:200px;border-radius:8px;border:2px solid var(--border);">
+                        <br><button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="removeIdPhoto()">הסר צילום</button>
                     </div>
                 </div>
-                <hr style="margin:18px 0;border-color:var(--border);">
-                <h4 style="margin-bottom:12px;color:#e65100;">המלצת מפקד</h4>
+
+                <div>
+                    <label style="font-weight:600;margin-bottom:8px;display:block;">אישור רופא</label>
+                    <div class="id-upload-area" id="doctorUploadArea" onclick="document.getElementById('doctorApprovalInput').click()">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
+                        <div style="margin-top:6px;">לחץ להעלאת אישור רופא</div>
+                        <div style="font-size:0.8em;color:var(--text-light);">JPG, PNG, PDF</div>
+                    </div>
+                    <input type="file" id="doctorApprovalInput" accept="image/*,.pdf" style="display:none" onchange="handleDoctorApprovalUpload(event)">
+                    <div id="doctorApprovalPreview" style="display:none;margin-top:10px;text-align:center;">
+                        <img id="doctorApprovalImg" style="max-width:100%;max-height:200px;border-radius:8px;border:2px solid var(--border);">
+                        <br><button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="removeDoctorApproval()">הסר אישור</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Commander Signature -->
+            <div class="wizard-page" id="wizPage4">
+                <h4 style="margin-bottom:12px;color:var(--primary);">חתימת מפקד פלוגה</h4>
+                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:14px;">המפקד מאשר את הבקשה וחותם</p>
                 <div class="form-row">
-                    <div class="form-group"><label>שם מפקד ממליץ</label><input type="text" id="wpCmdName"></div>
-                    <div class="form-group"><label>דרגת מפקד</label><input type="text" id="wpCmdRank"></div>
+                    <div class="form-group"><label>שם המפקד</label><input type="text" id="wpCmdName"></div>
+                    <div class="form-group"><label>דרגת המפקד</label><input type="text" id="wpCmdRank"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>מ.א. מפקד</label><input type="text" id="wpCmdId"></div>
-                    <div class="form-group"><label>תפקיד מפקד</label><input type="text" id="wpCmdRole"></div>
+                    <div class="form-group"><label>מ"א המפקד</label><input type="text" id="wpCmdId"></div>
+                    <div class="form-group"><label>תפקיד המפקד</label><input type="text" id="wpCmdRole"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>תאריך</label><input type="date" id="wpCmdDate"></div>
                 </div>
                 <div class="form-group">
-                    <label>חתימת מפקד ממליץ</label>
+                    <label>חתימת המפקד</label>
                     <div class="signature-container">
                         <canvas id="cmdSigCanvas" width="600" height="180"></canvas>
                         <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearWpCanvas('cmdSigCanvas')">נקה חתימה</button>
                     </div>
-                </div>
-            </div>
-
-            <!-- Step 5: ID Photo -->
-            <div class="wizard-page" id="wizPage5">
-                <h4 style="margin-bottom:12px;color:var(--primary);">צילום תעודת זהות</h4>
-                <p style="font-size:0.85em;color:var(--text-light);margin-bottom:14px;">חובה: לצרף צילום תעודת זהות (צד קדמי)</p>
-                <div class="id-upload-area" id="idUploadArea" onclick="document.getElementById('idPhotoInput').click()">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                    <div style="margin-top:8px;">לחץ להעלאת צילום ת.ז. או גרור לכאן</div>
-                    <div style="font-size:0.8em;color:var(--text-light);">תומך ב-JPG, PNG, PDF</div>
-                </div>
-                <input type="file" id="idPhotoInput" accept="image/*" style="display:none" onchange="handleIdPhotoUpload(event)">
-                <div id="idPhotoPreview" style="display:none;margin-top:14px;text-align:center;">
-                    <img id="idPhotoImg" style="max-width:100%;max-height:300px;border-radius:10px;border:2px solid var(--border);">
-                    <br><button class="btn btn-sm" style="background:var(--bg);margin-top:8px;" onclick="removeIdPhoto()">הסר צילום</button>
                 </div>
             </div>
         </div>
@@ -1554,8 +1569,7 @@
                 <button class="btn" style="background:var(--bg)" id="wpBtnPrev" onclick="weaponsWizardPrev()" disabled>הקודם &rarr;</button>
             </div>
             <div>
-                <button class="btn btn-success" id="wpBtnSave" onclick="saveWeaponsForm()">שמור טיוטה</button>
-                <button class="btn" style="background:#5C6BC0;color:white;" id="wpBtnPDF" onclick="generateWeaponsPDF()">הורד תמונות</button>
+                <button class="btn btn-success" id="wpBtnSave" onclick="saveWeaponsForm()">שמור</button>
             </div>
         </div>
     </div>
