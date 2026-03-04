@@ -715,8 +715,18 @@ function saveState() {
     try {
         localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
     } catch (e) {
-        console.error('localStorage quota exceeded:', e);
-        showToast('אזהרה: הזיכרון המקומי מלא - ייתכן אובדן נתונים', 'error');
+        // localStorage quota exceeded — trim large demo arrays and retry
+        console.warn('localStorage quota exceeded, trimming data...');
+        if (state.personalEquipment.length > 180) state.personalEquipment = state.personalEquipment.slice(0, 180);
+        if (state.weaponsData.length > 260) state.weaponsData = state.weaponsData.slice(0, 260);
+        if (state.training.length > 500) state.training = state.training.slice(0, 500);
+        if (state.shifts.length > 400) state.shifts = state.shifts.slice(-400);
+        try {
+            localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
+        } catch (e2) {
+            console.error('localStorage still full after trim:', e2);
+            showToast('אזהרה: הזיכרון המקומי מלא - ייתכן אובדן נתונים', 'error');
+        }
     }
     if (typeof firebaseSaveState === 'function') firebaseSaveState();
 }
