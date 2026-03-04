@@ -645,6 +645,8 @@ function loadState() {
             if (seed.signatureLog) seed.signatureLog.forEach(e => state.signatureLog.push(e));
             if (seed.weaponsData) state.weaponsData = seed.weaponsData;
             if (seed.equipment) state.equipment = seed.equipment;
+            if (seed.rotationGroups) state.rotationGroups = seed.rotationGroups;
+            if (seed.announcements) state.announcements = seed.announcements;
             localStorage.setItem(CONFIG.storagePrefix + 'SeedVer', String(CONFIG.demoSeedVersion || 0));
             // Save demo task definitions so dashboard alerts match demo shifts
             if (seed.tasks) {

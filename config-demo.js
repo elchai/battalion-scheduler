@@ -318,6 +318,87 @@ function _generateDemoTasks() {
     return tasks;
 }
 
+function _generateDemoRotationGroups(soldiers) {
+    const groups = [];
+    const compDefs = [
+        { key: 'a', name: 'קבוצה א\' — פלוגה א\'', startDate: '2026-02-19', count: 14 },
+        { key: 'b', name: 'קבוצה ב\' — פלוגה ב\'', startDate: '2026-02-23', count: 13 },
+        { key: 'c', name: 'קבוצה ג\' — פלוגה ג\'', startDate: '2026-02-16', count: 15 },
+        { key: 'd', name: 'קבוצה ד\' — פלוגה ד\'', startDate: '2026-02-25', count: 12 }
+    ];
+    compDefs.forEach((def, gi) => {
+        const pool = soldiers.filter(s => s.company === def.key && !s.notArrived
+            && ['לוחם','נהג','קשר','חובש'].some(r => (s.role || '').includes(r)));
+        const selected = pool.slice(0, Math.min(def.count, pool.length)).map(s => s.id);
+        if (selected.length > 0) {
+            groups.push({
+                id: 'rot_demo_' + gi,
+                name: def.name,
+                startDate: def.startDate,
+                daysIn: 10,
+                daysOut: 4,
+                soldiers: selected
+            });
+        }
+    });
+    return groups;
+}
+
+function _generateDemoAnnouncements() {
+    const now = Date.now();
+    const DAY = 86400000;
+    return [
+        {
+            id: 'ann_demo_1',
+            title: 'פקודת מבצע — תעסוקה מבצעית 2026',
+            body: 'הגדוד ממשיך בתעסוקה מבצעית במרחב יהודה ושומרון.\nמפקדי הפלוגות יוודאו עדכון סידור עבודה יומי עד 20:00.\nדגשים: הקפדה על נהלי פתיחת אש, דיווח אירועים מיידי לחמ"ל.',
+            priority: 'pinned',
+            author: 'מג"ד',
+            timestamp: now - 5 * DAY
+        },
+        {
+            id: 'ann_demo_2',
+            title: 'דיווח מצב כוח — עדכון יומי',
+            body: 'מצב כוח נכון לבוקר:\nפלוגה א\' — 3 חיילים בחופשה, קבוצה א\' בימי מנוחה\nפלוגה ב\' — כוח מלא\nפלוגה ג\' — 2 חיילים בחופשת מחלה\nפלוגה ד\' — כוח מלא\n\nנדרש: השלמת 2 חיילים ליזומות בפלוגה א\'.',
+            priority: 'urgent',
+            author: 'קמב"צ',
+            timestamp: now - 2 * 3600000
+        },
+        {
+            id: 'ann_demo_3',
+            title: 'שינוי סידור משמרות — פלוגה ב\'',
+            body: 'עקב מעבר חייל לחופשה, סיור קל של הצהריים עודכן.\nהחלפה: שגב כהן במקום עומר לוי.\nנא לעדכן את החיילים בהתאם.',
+            priority: 'normal',
+            author: 'מ"פ פלוגה ב\'',
+            timestamp: now - 1 * DAY
+        },
+        {
+            id: 'ann_demo_4',
+            title: 'תזכורת: מטווח איפוס ביום ראשון',
+            body: 'מטווח איפוס נשק יתקיים ביום ראשון 09.03 בין 07:00-14:00.\nכל חייל שלא ביצע מטווח ב-6 חודשים אחרונים חייב להשתתף.\nציוד נדרש: אפוד, קסדה, 3 מחסניות.\nרכזי אימונים — שלחו רשימות עד יום חמישי.',
+            priority: 'normal',
+            author: 'קצין אימונים',
+            timestamp: now - 3 * DAY
+        },
+        {
+            id: 'ann_demo_5',
+            title: 'עדכון ציוד — חלוקת אפודים חדשים',
+            body: 'הגיעה אספקה של 40 אפודי מגן חדשים.\nחלוקה תתבצע דרך פלס"ם לפי סדר עדיפות:\n1. פלוגות קרביות\n2. חפ"קים ואג"מ\n\nמ"פים — שלחו רשימות שמיות לרס"פ.',
+            priority: 'normal',
+            author: 'רס"פ',
+            timestamp: now - 4 * DAY
+        },
+        {
+            id: 'ann_demo_6',
+            title: 'נהלי חירום — מספרי טלפון חשובים',
+            body: 'חמ"ל גדודי: 02-5555001\nחמ"ל אוגדה: 02-5555100\nמוקד רפואי: 02-5555200\nקב"ט מרחב: 02-5555300\n\nבכל אירוע חריג — דיווח מיידי לחמ"ל!',
+            priority: 'pinned',
+            author: 'מג"ד',
+            timestamp: now - 6 * DAY
+        }
+    ];
+}
+
 function _generateDemoLeaves(soldiers) {
     const leaves = [];
     const companies = ['a','b','c','d','hq','agam','palsam'];
@@ -776,6 +857,8 @@ const _demoEquipment = _generateDemoEquipment(_demoSoldiers);
 const _demoSignatureLog = _generateDemoSignatureLog(_demoSoldiers);
 const _demoWeaponsData = _generateDemoWeaponsData(_demoSoldiers);
 const _demoInventory = _generateDemoInventory(_demoSoldiers);
+const _demoRotationGroups = _generateDemoRotationGroups(_demoSoldiers);
+const _demoAnnouncements = _generateDemoAnnouncements();
 
 const CONFIG = {
     // --- זהות ---
@@ -948,11 +1031,12 @@ const CONFIG = {
         operationEndDate: '2026-04-30',
         operationEndTime: '14:00',
         rotationDaysIn: 10,
-        rotationDaysOut: 4
+        rotationDaysOut: 4,
+        closedDays: ['שישי', 'שבת']
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 13,
+    demoSeedVersion: 14,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
@@ -963,7 +1047,9 @@ const CONFIG = {
         signatureLog: _demoSignatureLog,
         weaponsData: _demoWeaponsData,
         equipment: _demoInventory,
-        tasks: _demoTasks
+        tasks: _demoTasks,
+        rotationGroups: _demoRotationGroups,
+        announcements: _demoAnnouncements
     }
 };
 
