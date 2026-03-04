@@ -189,6 +189,25 @@ function isSoldierView() {
     return true;
 }
 
+// ==================== GREEN API WHATSAPP ====================
+function sendGreenApiWhatsApp(firstName, phone) {
+    if (!CONFIG.greenApi) return;
+    const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
+    if (!idInstance || !apiTokenInstance) return;
+    // Normalize phone: remove leading 0, add 972 prefix
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    if (cleanPhone.startsWith('0')) cleanPhone = '972' + cleanPhone.slice(1);
+    if (!cleanPhone.match(/^\d{10,15}$/)) return;
+    const chatId = cleanPhone + '@c.us';
+    const message = `שלום ${firstName} 😊\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן בוואצאפ\nבהצלחה!`;
+    const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, message })
+    }).catch(err => console.warn('Green API send failed:', err));
+}
+
 // ==================== LOGIN ====================
 let currentUser = null;
 
@@ -222,6 +241,10 @@ function doLogin() {
             const visitorData = { name, email, phone, unit, timestamp: new Date().toISOString(), userAgent: navigator.userAgent };
             db.collection(CONFIG.visitorCollection || 'demo-visitors').add(visitorData)
                 .catch(err => console.warn('Failed to save visitor:', err));
+        }
+        // Send WhatsApp via Green API
+        if (CONFIG.greenApi && phone) {
+            sendGreenApiWhatsApp(name, phone);
         }
     } else {
         if (password !== settings.password) {
@@ -1264,6 +1287,13 @@ function toggleNotifications() {
     panel.classList.toggle('active');
     if (panel.classList.contains('active')) {
         updateNotifications();
+        // Position fixed panel relative to bell button
+        const bell = panel.closest('.notif-wrapper')?.querySelector('.topbar-bell');
+        if (bell) {
+            const r = bell.getBoundingClientRect();
+            panel.style.top = (r.bottom + 8) + 'px';
+            panel.style.left = Math.max(8, r.left - 300 + r.width) + 'px';
+        }
     }
 }
 

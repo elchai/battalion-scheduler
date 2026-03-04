@@ -263,6 +263,7 @@ textarea { font-family: inherit; }
     transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     gap: 12px;
     min-height: 56px;
+    overflow: hidden;
 }
 .topbar.expanded { margin-right: 0; }
 .topbar-right {
@@ -298,6 +299,9 @@ textarea { font-family: inherit; }
 .topbar-stats {
     display: flex;
     gap: 10px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 .topbar-stat {
     text-align: center;
@@ -330,9 +334,9 @@ textarea { font-family: inherit; }
     width: 230px;
 }
 .topbar-search-results {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
+    position: fixed;
+    top: 64px;
+    right: auto;
     min-width: 260px;
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -363,6 +367,7 @@ textarea { font-family: inherit; }
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 }
 .topbar-user {
     background: rgba(255,255,255,0.12);
@@ -423,9 +428,10 @@ textarea { font-family: inherit; }
 }
 .notif-panel {
     display: none;
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
+    position: fixed;
+    top: 64px;
+    left: auto;
+    right: auto;
     width: 340px;
     max-height: 420px;
     background: var(--card);
@@ -1373,6 +1379,12 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .sidebar-close { display: none; }
     .sidebar-overlay { display: none !important; }
     .topbar-menu { display: none; }
+}
+
+/* Medium screens: hide stats to prevent topbar overflow */
+@media (max-width: 1100px) and (min-width: 769px) {
+    .topbar-stats { display: none; }
+    .topbar-search-wrap { flex-shrink: 1; min-width: 0; }
 }
 
 /* Mobile: sidebar collapsible */
