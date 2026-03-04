@@ -620,7 +620,7 @@ function loadState() {
     const CAT_MIGRATION = { 'תצפית':'אופטיקה', 'מגן':'לוגיסטיקה', 'רפואי':'לוגיסטיקה', 'שטח':'לוגיסטיקה', 'תחמושת':'לוגיסטיקה', 'טנ"א':'לוגיסטיקה' };
     state.equipment.forEach(e => { if (CAT_MIGRATION[e.category]) e.category = CAT_MIGRATION[e.category]; });
 
-    seedTestSoldier();
+    if (!CONFIG.isDemo) seedTestSoldier();
 
     // Load demo seed data if available and state is empty or outdated
     if (CONFIG.demoSeedData) {
