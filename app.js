@@ -199,7 +199,7 @@ function sendGreenApiWhatsApp(firstName, phone) {
     if (cleanPhone.startsWith('0')) cleanPhone = '972' + cleanPhone.slice(1);
     if (!cleanPhone.match(/^\d{10,15}$/)) return;
     const chatId = cleanPhone + '@c.us';
-    const message = `שלום ${firstName} 😊\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`;
+    const message = `שלום ${firstName} 😎\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`;
     const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
     fetch(url, {
         method: 'POST',
