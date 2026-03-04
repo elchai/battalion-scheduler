@@ -119,9 +119,9 @@ function _generateDemoShifts(soldiers) {
         b: ['חפק מפ','סיור','מחסום','חמל','בונקר','ש.ג','צוות יזומות','תורן מטבח'],
         c: ['חפק מפ','סיור צפון','סיור דרום','הגנת מחנה','צוות יזומות','תורן מטבח'],
         d: ['חפק מפ','סיור','מחסום','צוות יזומות','תורן מטבח'],
-        hq: ['תורנות חפ"ק','קישור'],
-        agam: ['משמרת א׳','משמרת ב׳','משמרת ג׳','כונן'],
-        palsam: ['מטבח','שמירה','נהיגה','תורנות']
+        hq: ['תורנות חפ"ק','קישור','תורנות רס"פ'],
+        agam: ['משמרת א׳','משמרת ב׳','משמרת ג׳','כונן','חמל גדודי','תקשוב','אבטחת מידע'],
+        palsam: ['מטבח','שמירה','נהיגה','תורנות','אחזקה','ניקיון מחנה','הובלות']
     };
     const shiftDefs = [
         { name: 'בוקר', start: '06:00', end: '14:00' },
@@ -136,8 +136,8 @@ function _generateDemoShifts(soldiers) {
         'כונן': { name: 'יום', start: '08:00', end: '20:00' }
     };
 
-    const baseDate = new Date('2026-02-19T00:00:00');
-    for (let day = 0; day < 10; day++) {
+    const baseDate = new Date('2026-02-25T00:00:00');
+    for (let day = 0; day < 14; day++) {
         const d = new Date(baseDate);
         d.setDate(d.getDate() + day);
         const dateStr = d.toISOString().slice(0, 10);
@@ -179,6 +179,18 @@ function _generateDemoShifts(soldiers) {
                     shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: sh.name, startTime: sh.start, endTime: sh.end, soldiers: assigned, taskCommander: assigned[0] || '' });
                     return;
                 }
+                // Single-shift day tasks (maintenance, logistics, HQ duties)
+                const dayTasks = ['אחזקה','ניקיון מחנה','הובלות','חמל גדודי','תקשוב','אבטחת מידע','תורנות רס"פ','תורנות'];
+                if (dayTasks.includes(task)) {
+                    const assigned = [];
+                    const num = (task === 'מטבח' || task === 'חמל גדודי') ? 3 : 2;
+                    for (let i = 0; i < num; i++) {
+                        if (soldiersPool.length > 0) { assigned.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
+                    }
+                    if (task === 'תורנות רס"פ' && officers.length > 0) { assigned.push(officers[offIdx % officers.length].id); offIdx++; }
+                    shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: 'יום', startTime: '07:00', endTime: '19:00', soldiers: assigned, taskCommander: assigned[0] || '' });
+                    return;
+                }
 
                 // Regular 3-shift tasks
                 shiftDefs.forEach(sh => {
@@ -203,30 +215,73 @@ function _generateDemoShifts(soldiers) {
 
 function _generateDemoLeaves(soldiers) {
     const leaves = [];
-    // ~12% of all soldiers on leave at some point
-    const allSoldiers = soldiers.slice();
-    const count = Math.floor(allSoldiers.length * 0.12);
-    const reasons = ['חופשה','סיבה רפואית','אירוע משפחתי','אישי','לימודים','סיום שירות'];
-    for (let i = 0; i < count; i++) {
-        const s = allSoldiers[i];
-        const startDay = 19 + (i % 8);
-        const duration = 1 + (i % 3);
-        const month = startDay > 28 ? '03' : '02';
-        const day = startDay > 28 ? String(startDay - 28).padStart(2,'0') : String(startDay).padStart(2,'0');
-        const endDay = startDay + duration;
-        const endMonth = endDay > 28 ? '03' : '02';
-        const endDayStr = endDay > 28 ? String(endDay - 28).padStart(2,'0') : String(endDay).padStart(2,'0');
+    const companies = ['a','b','c','d','hq','agam','palsam'];
+    const activeReasons = ['חופשה','סיבה רפואית','אירוע משפחתי','אישי'];
+    const approvers = ['מ"פ','סמ"פ','רס"פ'];
+    let lvId = 0;
+
+    // Group 1: ~8% currently on leave (covers today 2026-03-04)
+    // ~5-8 per combat company, 1-2 per hq/agam, 3-4 per palsam
+    const leavePerComp = { a: 7, b: 8, c: 6, d: 7, hq: 2, agam: 3, palsam: 4 };
+    companies.forEach(comp => {
+        const compSoldiers = soldiers.filter(s => s.company === comp);
+        const pool = compSoldiers.filter(s => !['מ"פ','סמ"פ','קצין'].some(r => (s.role||'').includes(r)));
+        const count = Math.min(leavePerComp[comp] || 4, pool.length);
+        for (let i = 0; i < count; i++) {
+            const startDay = 1 + (i % 4); // March 1-4
+            const endDay = 5 + (i % 4);   // March 5-8
+            leaves.push({
+                id: 'lv_demo_' + (lvId++),
+                soldierId: pool[i].id,
+                startDate: `2026-03-${String(startDay).padStart(2,'0')}`,
+                startTime: ['08:00','14:00','06:00'][i % 3],
+                endDate: `2026-03-${String(endDay).padStart(2,'0')}`,
+                endTime: '14:00',
+                reason: activeReasons[i % activeReasons.length],
+                approvedBy: approvers[i % 3]
+            });
+        }
+    });
+
+    // Group 2: ~3% did not arrive to מילואים (from start of operation, no real end)
+    const noShowPerComp = { a: 4, b: 5, c: 3, d: 4, hq: 0, agam: 1, palsam: 2 };
+    companies.forEach(comp => {
+        const compSoldiers = soldiers.filter(s => s.company === comp);
+        const pool = compSoldiers.filter(s =>
+            !['מ"פ','סמ"פ','קצין','מ"כ'].some(r => (s.role||'').includes(r)) &&
+            !leaves.some(l => l.soldierId === s.id)
+        );
+        const count = Math.min(noShowPerComp[comp] || 0, pool.length);
+        for (let i = 0; i < count; i++) {
+            leaves.push({
+                id: 'lv_demo_' + (lvId++),
+                soldierId: pool[pool.length - 1 - i].id, // take from end of pool
+                startDate: '2026-02-19',
+                startTime: '06:00',
+                endDate: '2026-04-30',
+                endTime: '23:59',
+                reason: 'לא הגיע',
+                approvedBy: 'מערכת'
+            });
+        }
+    });
+
+    // Group 3: ~15 past leaves (already returned) for history
+    const pastPool = soldiers.filter(s => !leaves.some(l => l.soldierId === s.id));
+    for (let i = 0; i < 15 && i < pastPool.length; i++) {
+        const startDay = 20 + (i % 7);
         leaves.push({
-            id: 'lv_demo_' + i,
-            soldierId: s.id,
-            startDate: `2026-${month}-${day}`,
-            startTime: ['08:00','14:00','18:00'][i % 3],
-            endDate: `2026-${endMonth}-${endDayStr}`,
+            id: 'lv_demo_' + (lvId++),
+            soldierId: pastPool[i * 3].id,
+            startDate: `2026-02-${String(startDay).padStart(2,'0')}`,
+            startTime: '08:00',
+            endDate: `2026-03-${String(1 + (i % 2)).padStart(2,'0')}`,
             endTime: '14:00',
-            reason: reasons[i % reasons.length],
-            approvedBy: ['מ"פ','סמ"פ','רס"פ'][i % 3]
+            reason: activeReasons[i % activeReasons.length],
+            approvedBy: approvers[i % 3]
         });
     }
+
     return leaves;
 }
 
@@ -332,8 +387,8 @@ function _generateDemoEquipment(soldiers) {
     ];
 
     soldiers.forEach((s, idx) => {
-        // Only ~35% get equipment (keeps localStorage under 5MB limit)
-        if (idx % 3 !== 0) return;
+        // ~50% get equipment (keeps localStorage under 5MB limit)
+        if (idx % 2 !== 0) return;
 
         const isPalsam = s.company === 'palsam';
         const isCombat = ['a','b','c','d'].includes(s.company);
@@ -345,27 +400,40 @@ function _generateDemoEquipment(soldiers) {
         } else if (isCombat) {
             itemTemplates = isCmd ? [...combatItems, ...cmdExtraItems] : combatItems;
         } else {
-            // HQ, AGM — same as combat
             itemTemplates = isCmd ? [...combatItems, ...cmdExtraItems] : combatItems;
         }
 
-        const items = itemTemplates.map(item => ({
-            itemId: 'pi_' + (piCounter++),
-            name: item.name,
-            quantity: item.quantity,
-            category: item.category,
-            requiresSerial: item.requiresSerial,
-            serialNumber: item.requiresSerial ? makeSerial() : '',
-            source: 'base',
-            status: 'issued',
-            issuedQuantity: item.quantity,
-            linkedEquipmentIds: [],
-            issuedDate: '2026-02-19T08:00:00.000Z',
-            returnedDate: null,
-            notes: ''
-        }));
+        const items = itemTemplates.map((item, ii) => {
+            // ~10% of items have been exchanged, ~5% missing
+            let status = 'issued';
+            const itemSeed = idx * 100 + ii;
+            if (itemSeed % 20 === 0) status = 'exchanged';
+            else if (itemSeed % 20 === 1) status = 'missing';
+
+            return {
+                itemId: 'pi_' + (piCounter++),
+                name: item.name,
+                quantity: item.quantity,
+                category: item.category,
+                requiresSerial: item.requiresSerial,
+                serialNumber: item.requiresSerial ? makeSerial() : '',
+                source: 'base',
+                status,
+                issuedQuantity: item.quantity,
+                linkedEquipmentIds: [],
+                issuedDate: '2026-02-19T08:00:00.000Z',
+                returnedDate: status === 'exchanged' ? '2026-02-28T12:00:00.000Z' : null,
+                notes: status === 'exchanged' ? 'הוחלף עקב תקלה' : status === 'missing' ? 'דווח חסר' : ''
+            };
+        });
 
         const issuer = sigIssuers[idx % sigIssuers.length];
+        // 80% signed, 20% unsigned
+        const isSigned = (idx % 5 !== 0);
+
+        const history = [{ date: '2026-02-19T08:00:00.000Z', action: 'created', details: 'ציוד הונפק' }];
+        if (isSigned) history.push({ date: '2026-02-19T10:00:00.000Z', action: 'signed', details: 'חתימה על ציוד' });
+        if (items.some(it => it.status === 'exchanged')) history.push({ date: '2026-02-28T12:00:00.000Z', action: 'exchange', details: 'החלפת פריט' });
 
         personalEquipment.push({
             id: 'pe_demo_' + idx,
@@ -373,7 +441,7 @@ function _generateDemoEquipment(soldiers) {
             generatedDate: '2026-02-19T08:00:00.000Z',
             roleSetId: isCmd ? 'rs_commander' : null,
             items,
-            bulkSignature: {
+            bulkSignature: isSigned ? {
                 signed: true,
                 signatureImg: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
                 signedDate: '2026-02-19T10:00:00.000Z',
@@ -382,11 +450,8 @@ function _generateDemoEquipment(soldiers) {
                 issuerLastName: issuer.last,
                 signingUnit: 'פלוגת פלס"ם',
                 issuerSignatureImg: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg'
-            },
-            history: [
-                { date: '2026-02-19T08:00:00.000Z', action: 'created', details: 'ציוד הונפק' },
-                { date: '2026-02-19T10:00:00.000Z', action: 'signed', details: 'חתימה על ציוד' }
-            ]
+            } : { signed: false },
+            history
         });
     });
 
@@ -779,7 +844,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 8,
+    demoSeedVersion: 9,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,

@@ -1095,11 +1095,16 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 .mr-stat.present .mr-stat-value { color: var(--success); }
 .mr-stat.leave .mr-stat-value { color: var(--danger); }
 .mr-stat.shift .mr-stat-value { color: var(--accent); }
-.mr-table { width: 100%; border-collapse: collapse; }
+.mr-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .mr-table th { background: var(--primary); color: white; padding: 10px 12px; font-size: 0.85em; }
-.mr-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.88em; }
+.mr-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.88em; overflow: hidden; text-overflow: ellipsis; }
+.mr-table th:nth-child(1), .mr-table td:nth-child(1) { width: 12%; }
+.mr-table th:nth-child(2), .mr-table td:nth-child(2) { width: 8%; }
+.mr-table th:nth-child(3), .mr-table td:nth-child(3) { width: 8%; }
+.mr-table th:nth-child(4), .mr-table td:nth-child(4) { width: 36%; }
+.mr-table th:nth-child(5), .mr-table td:nth-child(5) { width: 36%; }
 .mr-table tbody tr:hover { background: rgba(26,58,92,0.04); }
-.mr-names { font-size: 0.75em; color: var(--text-light); margin-top: 2px; }
+.mr-names { font-size: 0.75em; color: var(--text-light); margin-top: 2px; word-wrap: break-word; }
 .mr-upcoming { margin-top: 20px; padding: 16px; background: #fffde7; border-radius: 10px; border: 1px solid #fff9c4; }
 .mr-upcoming h4 { margin: 0 0 10px; font-size: 0.95em; color: #f57f17; }
 .mr-upcoming-day { padding: 6px 0; font-size: 0.85em; display: flex; flex-wrap: wrap; gap: 8px; }
