@@ -116,7 +116,7 @@ const CONFIG = {
         agam: {
             name: 'אג"מ', location: 'מפקדה', baseName: 'מכבים',
             sheetGid: '107677945',
-            units: ['קמב"צים', 'סמב"צים'],
+            units: ['מחלקת מבצעים', 'מחלקת הדרכה', 'מחלקת תקשוב', 'מחלקת מודיעין'],
             tasks: [
                 { name: 'משמרת א׳', soldiers: 2, commanders: 0, officers: 2, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 2 } },
                 { name: 'משמרת ב׳', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
@@ -149,6 +149,10 @@ const CONFIG = {
         'חפ"ק מג"ד': 'hq',
         'לשכה': 'hq',
         'אג"מ': 'agam',
+        'מחלקת מבצעים': 'agam',
+        'מחלקת הדרכה': 'agam',
+        'מחלקת תקשוב': 'agam',
+        'מחלקת מודיעין': 'agam',
         'מחלקת משא"ן': 'palsam',
         'מפקדת הפלס"ם': 'palsam',
         'פלגת הספקה': 'palsam',
