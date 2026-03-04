@@ -764,6 +764,16 @@ const CONFIG = {
     developerPhone: '972542012000',
     developerPhoneDisplay: '054-2012000',
 
+    // --- הגדרות דמו (override settings) ---
+    demoSettings: {
+        operationStartDate: '2026-02-19',
+        operationStartTime: '14:00',
+        operationEndDate: '2026-04-30',
+        operationEndTime: '14:00',
+        rotationDaysIn: 10,
+        rotationDaysOut: 4
+    },
+
     // --- נתוני דמו ---
     demoSeedVersion: 5,
     demoSeedData: {

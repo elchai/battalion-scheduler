@@ -1636,8 +1636,8 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     font-family: inherit; font-size: 0.9em;
 }
 .settings-field input:focus, .settings-field select:focus { border-color: var(--primary); outline: none; }
-.settings-row { display: flex; gap: 12px; }
-.settings-row .settings-field { flex: 1; }
+.settings-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.settings-row .settings-field { flex: 1; min-width: 120px; }
 .settings-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .task-edit-row {
     display: grid; grid-template-columns: 1fr 60px 60px 60px 60px auto; gap: 6px;

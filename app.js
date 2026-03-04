@@ -645,6 +645,11 @@ function loadState() {
             saveState();
         }
     }
+    // Apply demo settings overrides
+    if (CONFIG.demoSettings) {
+        Object.assign(settings, CONFIG.demoSettings);
+        saveSettings();
+    }
 }
 
 function detectCategoryFromType(type) {
@@ -4357,22 +4362,7 @@ function renderSettingsTab() {
         }).join('')}
     </div>
 
-    <!-- Rotation -->
-    <div class="settings-card">
-        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg> רוטציה</h3>
-        <div class="settings-row">
-            <div class="settings-field">
-                <label>ימים בבסיס</label>
-                <input type="number" min="1" max="30" value="${settings.rotationDaysIn}" onchange="settings.rotationDaysIn=parseInt(this.value);saveSettings();">
-            </div>
-            <div class="settings-field">
-                <label>ימים בבית</label>
-                <input type="number" min="1" max="14" value="${settings.rotationDaysOut}" onchange="settings.rotationDaysOut=parseInt(this.value);saveSettings();">
-            </div>
-        </div>
-    </div>
-
-    <!-- Operation Dates -->
+    <!-- Operation Dates + Rotation -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> תעסוקה נוכחית</h3>
         <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">הגדר תאריכי תחילה וסיום של התעסוקה לדיוק דו"ח 1</p>
@@ -4392,6 +4382,19 @@ function renderSettingsTab() {
             <div class="settings-field">
                 <label>שעת סיום</label>
                 <input type="time" value="${settings.operationEndTime || '14:00'}" onchange="settings.operationEndTime=this.value;saveSettings();">
+            </div>
+        </div>
+        <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px;">
+            <h4 style="font-size:0.95em;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg> רוטציה</h4>
+            <div class="settings-row">
+                <div class="settings-field">
+                    <label>ימים בבסיס</label>
+                    <input type="number" min="1" max="30" value="${settings.rotationDaysIn}" onchange="settings.rotationDaysIn=parseInt(this.value);saveSettings();">
+                </div>
+                <div class="settings-field">
+                    <label>ימים בבית</label>
+                    <input type="number" min="1" max="14" value="${settings.rotationDaysOut}" onchange="settings.rotationDaysOut=parseInt(this.value);saveSettings();">
+                </div>
             </div>
         </div>
     </div>
