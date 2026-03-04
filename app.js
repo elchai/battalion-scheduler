@@ -450,7 +450,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = '');
-    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
     const isCompanyCommander = CONFIG.combatCompanies.includes(unit);
     document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = (isGdudi || isCompanyCommander) ? '' : 'none');
@@ -2533,10 +2533,7 @@ function switchTab(tab) {
     if (tab === 'announcements') renderAnnouncements();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
-    if (tab === 'weapons') {
-        renderRestrictedTab('weapons', 'אין לך הרשאה לצפות במסך זה. יש לפנות למנהל המערכת');
-        return;
-    }
+    if (tab === 'weapons') renderWeaponsTab();
     if (tab === 'training') renderTrainingTab();
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'commander') renderCommanderDashboard();
