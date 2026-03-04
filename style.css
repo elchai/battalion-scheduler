@@ -822,12 +822,13 @@ textarea { font-family: inherit; }
     padding: 3px 10px;
     border-radius: 12px;
 }
-.company-a .company-card-header { background: linear-gradient(135deg, #1565C0, #42A5F5); }
+.company-a .company-card-header { background: linear-gradient(135deg, #C62828, #ef5350); }
 .company-b .company-card-header { background: linear-gradient(135deg, #2E7D32, #66BB6A); }
-.company-c .company-card-header { background: linear-gradient(135deg, #E65100, #FFA726); }
-.company-d .company-card-header { background: linear-gradient(135deg, #6A1B9A, #AB47BC); }
-.company-hq .company-card-header { background: linear-gradient(135deg, #37474F, #78909C); }
-.company-palsam .company-card-header { background: linear-gradient(135deg, #4E342E, #8D6E63); }
+.company-c .company-card-header { background: linear-gradient(135deg, #1565C0, #42A5F5); }
+.company-d .company-card-header { background: linear-gradient(135deg, #F9A825, #ffca28); }
+.company-hq .company-card-header { background: linear-gradient(135deg, #546E7A, #90a4ae); }
+.company-agam .company-card-header { background: linear-gradient(135deg, #00796B, #26a69a); }
+.company-palsam .company-card-header { background: linear-gradient(135deg, #6A1B9A, #ab47bc); }
 .company-card-body { padding: 14px 18px; }
 .force-summary {
     display: grid;
