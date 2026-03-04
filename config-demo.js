@@ -270,7 +270,7 @@ const CONFIG = {
     // --- Green API (WhatsApp auto-message to demo visitors) ---
     greenApi: {
         idInstance: '1101817056',
-        apiTokenInstance: 'faebc932e6514a8eb5695d9a57aad22821fb37d36145468098'
+        apiTokenInstance: 'faebc932e6514a8eb5695d9a57aad22821fb37d36145468098',
         apiUrl: 'https://api.green-api.com'
     },
 
