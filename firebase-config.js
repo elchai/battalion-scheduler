@@ -52,6 +52,10 @@ async function firebaseLoadState() {
             state.personalEquipment = remoteState.personalEquipment || state.personalEquipment;
             state.rollCalls = remoteState.rollCalls || state.rollCalls;
             state.announcements = remoteState.announcements || state.announcements;
+            state.constraints = remoteState.constraints || state.constraints;
+            state.shiftHistory = remoteState.shiftHistory || state.shiftHistory;
+            state.initiativeTeams = remoteState.initiativeTeams || state.initiativeTeams;
+            state.training = remoteState.training || state.training;
             localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
             firestoreReady = true;
             return true;
@@ -169,6 +173,10 @@ function setupRealtimeListeners() {
                 state.personalEquipment = remoteState.personalEquipment || [];
                 state.rollCalls = remoteState.rollCalls || [];
                 state.announcements = remoteState.announcements || [];
+                state.constraints = remoteState.constraints || [];
+                state.shiftHistory = remoteState.shiftHistory || [];
+                state.initiativeTeams = remoteState.initiativeTeams || [];
+                state.training = remoteState.training || [];
                 localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');

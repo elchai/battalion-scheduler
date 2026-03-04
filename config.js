@@ -27,6 +27,7 @@ const CONFIG = {
 
     // --- Google Sheets ---
     sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
+    nispachimSheetId: '1mZOPiEIzRHj_lDqJWgh56JRkjTFvTWmx-GiVbr7Wwl4',
 
     // --- נתיבים ---
     deployPath: '/battalion-scheduler',
@@ -112,9 +113,20 @@ const CONFIG = {
             tasks: [],
             totals: { soldiers: 0, commanders: 0, officers: 0 }
         },
+        agam: {
+            name: 'אג"מ', location: 'מפקדה', baseName: 'מכבים',
+            units: ['קמב"צים', 'סמב"צים'],
+            tasks: [
+                { name: 'משמרת א׳', soldiers: 2, commanders: 0, officers: 2, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 2 } },
+                { name: 'משמרת ב׳', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
+                { name: 'משמרת ג׳', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } },
+                { name: 'כונן', soldiers: 2, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 2, commanders: 0, officers: 0 } }
+            ],
+            totals: { soldiers: 0, commanders: 0, officers: 0 }
+        },
         palsam: {
             name: 'פלס"ם', location: 'פלוגת סיוע מנהלתי', baseName: 'מכבים',
-            units: ['אג"מ', 'לוגיסטיקה', 'קשר', 'טנ"א', 'רפואה', 'מטבח', 'רכב', 'דת וז"ח', 'מפל"ג', 'מודיעין'],
+            units: ['לוגיסטיקה', 'קשר', 'טנ"א', 'רפואה', 'מטבח', 'רכב', 'דת וז"ח', 'מפל"ג', 'מודיעין'],
             tasks: [
                 { name: 'מטבח', soldiers: 5, commanders: 0, officers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
                 { name: 'שמירה', soldiers: 5, commanders: 0, officers: 0, shifts: 3, perShift: { soldiers: 5, commanders: 0, officers: 0 } },
@@ -134,6 +146,7 @@ const CONFIG = {
     departmentToCompany: {
         'חפ"ק מג"ד': 'hq',
         'לשכה': 'hq',
+        'אג"מ': 'agam',
         'מחלקת משא"ן': 'palsam',
         'מפקדת הפלס"ם': 'palsam',
         'פלגת הספקה': 'palsam',

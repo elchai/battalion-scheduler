@@ -20,6 +20,7 @@
     --pluga-c: #42a5f5;
     --pluga-d: #ffca28;
     --pluga-hq: #90a4ae;
+    --pluga-agam: #26a69a;
     --pluga-palsam: #ab47bc;
 }
 
@@ -51,6 +52,7 @@
     --primary-light: #5a8ac5;
     --primary-dark: #3a6aa5;
     --pluga-hq: #b0bec5;
+    --pluga-agam: #4db6ac;
     --pluga-palsam: #ce93d8;
 }
 [data-theme="dark"] body { background: var(--bg); color: var(--text); }
@@ -1612,7 +1614,7 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 20px; }
 .settings-card {
     background: white; border-radius: var(--radius); box-shadow: var(--shadow);
-    padding: 20px; border-top: 4px solid var(--primary);
+    padding: 20px; border-top: 4px solid var(--primary); overflow: hidden; min-width: 0;
 }
 .settings-card h3 { font-size: 1.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 .settings-field { margin-bottom: 12px; }
@@ -2175,3 +2177,30 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     .dashboard-stat-card .big-num { font-size: 1.6em; }
     .dashboard-stat-card { padding: 14px; }
 }
+
+/* Badge */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.82em;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+/* Training module */
+.training-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+.training-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+    border-top: 3px solid var(--primary);
+}
+.training-status-done { color: #2e7d32; font-weight: 600; }
+.training-status-pending { color: #e65100; font-weight: 600; }
+.training-status-na { color: var(--text-light); }

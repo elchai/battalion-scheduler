@@ -162,6 +162,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
             <span>צל"מ וציוד</span>
         </button>
+        <button class="sidebar-item tab-training" onclick="switchTab('training')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20L20 4M4 4l16 16M7 2l3 3-3 3M17 16l3 3-3 3"/></svg>
+            <span>אימונים</span>
+        </button>
         <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>פרוייקט הנשקים</span>
@@ -334,6 +338,7 @@
 <div class="tab-content" id="tab-c"><div class="main-content" id="content-c"></div></div>
 <div class="tab-content" id="tab-d"><div class="main-content" id="content-d"></div></div>
 <div class="tab-content" id="tab-hq"><div class="main-content" id="content-hq"></div></div>
+<div class="tab-content" id="tab-agam"><div class="main-content" id="content-agam"></div></div>
 <div class="tab-content" id="tab-palsam"><div class="main-content" id="content-palsam"></div></div>
 
 <!-- ====== TAB: COMMANDER DASHBOARD ====== -->
@@ -670,6 +675,11 @@
     </div>
 </div>
 
+<!-- ====== TAB: TRAINING ====== -->
+<div class="tab-content" id="tab-training">
+    <div class="main-content" id="content-training"></div>
+</div>
+
 <!-- ====== TAB: WEAPONS PROJECT ====== -->
 <div class="tab-content" id="tab-weapons">
     <div class="main-content">
@@ -753,6 +763,7 @@
                         <option value="c">פלוגה ג (חשמונאים)</option>
                         <option value="d">פלוגה ד (443)</option>
                         <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                        <option value="agam">אג"מ</option>
                         <option value="palsam">פלס"ם</option>
                     </select>
                 </div>
@@ -841,6 +852,11 @@
                     </select>
                 </div>
             </div>
+            <div class="form-group" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <label style="font-weight:600;">תקופות שירות (פיצול)</label>
+                <div id="servicePeriodsContainer"></div>
+                <button type="button" class="btn btn-sm" style="margin-top:6px;background:var(--bg);" onclick="addServicePeriodRow()">+ הוסף תקופה</button>
+            </div>
             <div class="form-group">
                 <label>הערות</label>
                 <textarea id="soldierNotes" rows="3" placeholder="הערות על החייל..." style="width:100%;resize:vertical;font-family:inherit;"></textarea>
@@ -849,6 +865,61 @@
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveSoldier()">שמור</button>
             <button class="btn" style="background:var(--bg)" onclick="closeModal('addSoldierModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Constraints Modal -->
+<div class="modal-overlay" id="constraintsModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header">
+            <h3 id="constraintsTitle">אילוצים</h3>
+            <button class="modal-close" onclick="closeModal('constraintsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius);">
+                <select id="constraintSoldier" style="flex:2;min-width:140px;">
+                    <option value="">-- בחר חייל --</option>
+                </select>
+                <input type="date" id="constraintStart" style="flex:1;">
+                <input type="date" id="constraintEnd" style="flex:1;">
+                <input type="text" id="constraintReason" placeholder="סיבה" style="flex:2;">
+                <button class="btn btn-primary btn-sm" onclick="addConstraint()">+ הוסף</button>
+            </div>
+            <div id="constraintsList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Replacement Suggestion Modal -->
+<div class="modal-overlay" id="replacementModal">
+    <div class="modal" style="max-width:550px;">
+        <div class="modal-header">
+            <h3>הצעת מחליפים</h3>
+            <button class="modal-close" onclick="closeModal('replacementModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="replacementContent"></div>
+    </div>
+</div>
+
+<!-- Auto Schedule Modal -->
+<div class="modal-overlay" id="autoScheduleModal">
+    <div class="modal" style="max-width:90vw;width:900px;max-height:90vh;">
+        <div class="modal-header">
+            <h3 id="autoScheduleTitle">שיבוץ אוטומטי</h3>
+            <button class="modal-close" onclick="closeModal('autoScheduleModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+                <div class="form-group" style="margin:0;"><label style="font-size:0.85em;">מתאריך</label><input type="date" id="autoSchedStart"></div>
+                <div class="form-group" style="margin:0;"><label style="font-size:0.85em;">עד תאריך</label><input type="date" id="autoSchedEnd"></div>
+                <button class="btn btn-primary" onclick="runAutoSchedule()" id="autoSchedRunBtn">הצע שיבוץ</button>
+            </div>
+            <div id="autoSchedPreview"></div>
+        </div>
+        <div class="modal-footer" id="autoSchedFooter" style="display:none;">
+            <button class="btn btn-primary" onclick="approveScheduleProposal()">אשר ושמור</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('autoScheduleModal')">ביטול</button>
         </div>
     </div>
 </div>

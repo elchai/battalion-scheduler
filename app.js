@@ -137,6 +137,14 @@ function canView(compKey) {
     return currentUser.unit === compKey;
 }
 
+function canEditShifts(compKey) {
+    if (!currentUser) return false;
+    if (isAdmin() || currentUser.unit === 'gdudi') return true;
+    if (currentUser.unit !== compKey) return false;
+    const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'קצין', 'מפקד'];
+    return cmdRoles.some(r => (currentUser.role || '').includes(r));
+}
+
 // --- Role detection & equipment signing permissions ---
 const SIGNING_ROLES = CONFIG.signingRoles;
 const WAREHOUSES = CONFIG.warehouses;
@@ -409,11 +417,13 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-c').forEach(el => el.style.display = (isGdudi || unit === 'c') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-d').forEach(el => el.style.display = (isGdudi || unit === 'd') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-hq').forEach(el => el.style.display = (isGdudi || unit === 'hq') ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-agam').forEach(el => el.style.display = (isGdudi || unit === 'agam') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-palsam').forEach(el => el.style.display = (isGdudi || unit === 'palsam') ? '' : 'none');
     document.querySelectorAll('.sidebar-item.tab-calendar').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
     const isCompanyCommander = CONFIG.combatCompanies.includes(unit);
@@ -560,6 +570,10 @@ function loadState() {
     if (!state.personalEquipment) state.personalEquipment = [];
     if (!state.rollCalls) state.rollCalls = [];
     if (!state.announcements) state.announcements = [];
+    if (!state.constraints) state.constraints = [];
+    if (!state.shiftHistory) state.shiftHistory = [];
+    if (!state.initiativeTeams) state.initiativeTeams = [];
+    if (!state.training) state.training = [];
 
     // Migration v1 already completed — just ensure flag is set for new devices
     if (!localStorage.getItem(CONFIG.storagePrefix + '_migration_clear_v1')) {
@@ -582,13 +596,22 @@ function loadState() {
 
     seedTestSoldier();
 
-    // Load demo seed data if available and state is empty
-    if (CONFIG.demoSeedData && state.soldiers.length <= 1) {
+    // Load demo seed data if available and state is empty or outdated
+    if (CONFIG.demoSeedData) {
         const seed = CONFIG.demoSeedData;
-        if (seed.soldiers) seed.soldiers.forEach(s => {
-            if (!state.soldiers.find(x => x.id === s.id)) state.soldiers.push(s);
-        });
-        saveState();
+        const expectedCount = seed.soldiers ? seed.soldiers.length : 0;
+        const demoSoldiers = state.soldiers.filter(s => s.id && s.id.startsWith('demo_'));
+        // Re-seed if demo soldiers are missing or count is too low
+        if (demoSoldiers.length < expectedCount * 0.8) {
+            // Remove old demo soldiers
+            state.soldiers = state.soldiers.filter(s => !s.id || !s.id.startsWith('demo_'));
+            if (seed.soldiers) seed.soldiers.forEach(s => state.soldiers.push(s));
+            if (seed.shifts) state.shifts = seed.shifts;
+            if (seed.leaves) state.leaves = seed.leaves;
+            if (seed.training) state.training = seed.training;
+            if (seed.constraints) state.constraints = seed.constraints;
+            saveState();
+        }
     }
 }
 
@@ -800,12 +823,22 @@ function syncFromGoogleSheets(silent) {
         fetch(url).then(r => r.text()).then(csv => ({ key, csv }))
     );
 
+    // Also fetch nispachim sheet if configured
+    if (CONFIG.nispachimSheetId) {
+        const nispUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.nispachimSheetId}/gviz/tq?tqx=out:csv`;
+        fetches.push(fetch(nispUrl).then(r => r.text()).then(csv => ({ key: 'nispachim', csv })));
+    }
+
     Promise.all(fetches).then(results => {
         const manualSoldiers = state.soldiers.filter(s => !s.fromSheets);
         let sheetSoldiers = [];
 
         results.forEach(({ key, csv }) => {
-            if (key === 'support') {
+            if (key === 'nispachim') {
+                const parsed = parseNispachimSheet(csv);
+                console.log(`Sheet nispachim: ${parsed.length} soldiers`);
+                sheetSoldiers.push(...parsed);
+            } else if (key === 'support') {
                 const parsed = parseSupportSheet(csv);
                 console.log(`Sheet support: ${parsed.length} soldiers`);
                 sheetSoldiers.push(...parsed);
@@ -858,6 +891,45 @@ function parseSupportSheet(csv) {
             role: f[4].trim() || 'לוחם',
             rank: '', fromSheets: true,
             arrival: (f[6] || '').trim()
+        });
+    }
+    return soldiers;
+}
+
+// Parse nispachim (attached soldiers) sheet - columns: שם מלא, תפקיד, מ.א., מס' נייד, ק.קישור, הערות
+function parseNispachimSheet(csv) {
+    const lines = csv.split('\n');
+    const soldiers = [];
+    for (let i = 1; i < lines.length; i++) {
+        const f = parseCSVLine(lines[i]);
+        if (f.length < 4) continue;
+        const name = f[0].trim();
+        const role = f[1].trim();
+        const id = f[2].trim();
+        const phone = f[3].trim();
+        const notes = (f[5] || '').trim();
+        if (!name || !id) continue;
+        if (notes.includes('לא אושר')) continue;
+
+        // Map role to unit
+        let unit = 'לוגיסטיקה';
+        if (role.includes('טבח') || role.includes('מטבח') || role.includes('כשרות')) unit = 'מטבח';
+        else if (role.includes('חובש') || role.includes('רופא') || role.includes('רפוא')) unit = 'רפואה';
+        else if (role.includes('נהג') || role.includes('רכב')) unit = 'רכב';
+        else if (role.includes('קשר')) unit = 'קשר';
+        else if (role.includes('טנ"א') || role.includes('מכונאי')) unit = 'טנ"א';
+        else if (role.includes('סמבצ') || role.includes('נתונים')) unit = 'לוגיסטיקה';
+
+        const existing = state.soldiers.find(s => s.personalId === id && s.fromSheets);
+        soldiers.push({
+            id: existing ? existing.id : 'sol_nisp_' + id + '_' + Math.random().toString(36).substr(2, 4),
+            name, personalId: id,
+            phone: phone || '',
+            company: 'palsam', unit,
+            role: role || 'לוחם',
+            rank: '', fromSheets: true,
+            nispach: true,
+            notes: notes.includes('ניוד') ? 'ניוד' : ''
         });
     }
     return soldiers;
@@ -1120,7 +1192,15 @@ function renderDashboard() {
     // === Alerts ===
     let alertsHtml = '';
     if (taskAlerts.length > 0) {
-        const topAlerts = taskAlerts.sort((a, b) => a.pct - b.pct).slice(0, 4);
+        // Show worst alert per company first, then fill remaining slots
+        taskAlerts.sort((a, b) => a.pct - b.pct);
+        const seen = new Set();
+        const prioritized = [];
+        taskAlerts.forEach(a => {
+            if (!seen.has(a.company)) { prioritized.push(a); seen.add(a.company); }
+        });
+        taskAlerts.forEach(a => { if (!prioritized.includes(a)) prioritized.push(a); });
+        const topAlerts = prioritized.slice(0, 8);
         topAlerts.forEach(a => {
             const cls = a.pct === 0 ? 'dash-alert-danger' : 'dash-alert-warn';
             const icon = a.pct === 0
@@ -1414,7 +1494,7 @@ function renderSoldiersGrid(compKey) {
         }
         return `<div class="person-card ${cls}" data-soldier-id="${s.id}">
             <div class="person-info">
-                <h4><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a></h4>
+                <h4><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>${s.tempAssigned ? ' <span style="font-size:0.75em;color:var(--text-light);font-weight:400;">(מוצב זמנית)</span>' : ''}</h4>
                 <div class="meta">${esc(s.role)}${s.unit ? ' | '+esc(s.unit) : ''}${s.personalId ? ' | '+esc(s.personalId) : ''}</div>
                 ${s.phone ? `<div class="meta">${s.phone}</div>` : ''}
                 ${rotInfo}
@@ -1444,7 +1524,9 @@ function renderCompanyTab(compKey) {
         <div class="action-bar">
             ${editable ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
             <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
-            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>` : ''}
+            <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>
+            <button class="btn" style="background:#ff9800;color:white;" onclick="openConstraints('${compKey}')">אילוצים</button>
+            <button class="btn" style="background:#7c4dff;color:white;" onclick="openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
             <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
         </div>
 
@@ -2411,6 +2493,7 @@ function switchTab(tab) {
         renderRestrictedTab('weapons', 'אין לך הרשאה לצפות במסך זה. יש לפנות למנהל המערכת');
         return;
     }
+    if (tab === 'training') renderTrainingTab();
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'commander') renderCommanderDashboard();
     if (tab === 'whatsapp') renderWhatsAppCenter();
@@ -2423,6 +2506,52 @@ function switchTab(tab) {
         document.body.classList.remove('sidebar-open');
     }
     setTimeout(refreshIcons, 50);
+}
+
+// ==================== SERVICE PERIODS (פיצול) ====================
+function addServicePeriodRow(start, end) {
+    const container = document.getElementById('servicePeriodsContainer');
+    const idx = container.children.length;
+    const div = document.createElement('div');
+    div.className = 'service-period-row';
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+    div.innerHTML = `
+        <input type="date" class="sp-start" value="${start || settings.operationStartDate || ''}" style="flex:1;">
+        <span>עד</span>
+        <input type="date" class="sp-end" value="${end || settings.operationEndDate || ''}" style="flex:1;">
+        <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1.2em;padding:2px 6px;">✕</button>
+    `;
+    container.appendChild(div);
+}
+
+function renderServicePeriods(periods) {
+    const container = document.getElementById('servicePeriodsContainer');
+    container.innerHTML = '';
+    if (!periods || periods.length === 0) {
+        addServicePeriodRow();
+    } else {
+        periods.forEach(p => addServicePeriodRow(p.start, p.end));
+    }
+}
+
+function getServicePeriodsFromForm() {
+    const rows = document.querySelectorAll('#servicePeriodsContainer .service-period-row');
+    const periods = [];
+    rows.forEach(row => {
+        const start = row.querySelector('.sp-start').value;
+        const end = row.querySelector('.sp-end').value;
+        if (start || end) periods.push({ start: start || '', end: end || '' });
+    });
+    return periods;
+}
+
+function isSoldierActiveOnDate(soldier, dateStr) {
+    if (!soldier.servicePeriods || soldier.servicePeriods.length === 0) return true;
+    return soldier.servicePeriods.some(p => {
+        const afterStart = !p.start || dateStr >= p.start;
+        const beforeEnd = !p.end || dateStr <= p.end;
+        return afterStart && beforeEnd;
+    });
 }
 
 // ==================== SOLDIER ====================
@@ -2441,6 +2570,7 @@ function openAddSoldier(company) {
     document.getElementById('soldierShirtSize').value = '';
     document.getElementById('soldierPantsSize').value = '';
     document.getElementById('soldierNotes').value = '';
+    renderServicePeriods([]);
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
 }
@@ -2588,6 +2718,7 @@ function openEditSoldier(id) {
     document.getElementById('soldierShirtSize').value = sol.shirtSize || '';
     document.getElementById('soldierPantsSize').value = sol.pantsSize || '';
     document.getElementById('soldierNotes').value = sol.notes || '';
+    renderServicePeriods(sol.servicePeriods || []);
     openModal('addSoldierModal');
 }
 
@@ -2618,6 +2749,7 @@ function saveSoldier() {
             sol.shirtSize = document.getElementById('soldierShirtSize').value;
             sol.pantsSize = document.getElementById('soldierPantsSize').value;
             sol.notes = document.getElementById('soldierNotes').value.trim();
+            sol.servicePeriods = getServicePeriodsFromForm();
             saveState();
             closeModal('addSoldierModal');
             renderCompanyTab(company);
@@ -2639,7 +2771,8 @@ function saveSoldier() {
             shoeSize: document.getElementById('soldierShoeSize').value,
             shirtSize: document.getElementById('soldierShirtSize').value,
             pantsSize: document.getElementById('soldierPantsSize').value,
-            notes: document.getElementById('soldierNotes').value.trim()
+            notes: document.getElementById('soldierNotes').value.trim(),
+            servicePeriods: getServicePeriodsFromForm()
         };
         state.soldiers.push(soldier);
         saveState();
@@ -2939,6 +3072,18 @@ function updateTaskCommanderSelect() {
 
 // Check soldier status for a specific date/time
 function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
+    // Check service periods (פיצול)
+    const soldier = state.soldiers.find(s => s.id === soldierId);
+    if (soldier && !isSoldierActiveOnDate(soldier, date)) {
+        return { available: false, onLeave: false, assignedTo: 'מחוץ לתקופת שירות' };
+    }
+
+    // Check constraints
+    const hasConstraint = state.constraints && state.constraints.some(c =>
+        c.soldierId === soldierId && date >= c.startDate && date <= c.endDate
+    );
+    if (hasConstraint) return { available: false, onLeave: false, assignedTo: 'אילוץ' };
+
     // Check if on leave
     const onLeave = state.leaves.some(l => l.soldierId === soldierId && isOnLeaveForDate(l, date));
     if (onLeave) return { available: false, onLeave: true, assignedTo: null };
@@ -2970,6 +3115,688 @@ function isOnLeaveForDate(leave, date) {
     const start = new Date(`${leave.startDate}T${leave.startTime || '00:00'}`);
     const end = new Date(`${leave.endDate}T${leave.endTime || '23:59'}`);
     return checkDate >= start && checkDate <= end;
+}
+
+// ==================== CONSTRAINTS (אילוצים) ====================
+function openConstraints(compKey) {
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const select = document.getElementById('constraintSoldier');
+    select.innerHTML = '<option value="">-- בחר חייל --</option>';
+    soldiers.sort((a, b) => a.name.localeCompare(b.name, 'he')).forEach(s => {
+        select.innerHTML += `<option value="${s.id}">${esc(s.name)}</option>`;
+    });
+    document.getElementById('constraintStart').value = '';
+    document.getElementById('constraintEnd').value = '';
+    document.getElementById('constraintReason').value = '';
+    document.getElementById('constraintsTitle').textContent = `אילוצים — ${compName(compKey)}`;
+    renderConstraintsList(compKey);
+    openModal('constraintsModal');
+    document.getElementById('constraintsModal').dataset.company = compKey;
+}
+
+function addConstraint() {
+    const compKey = document.getElementById('constraintsModal').dataset.company;
+    const soldierId = document.getElementById('constraintSoldier').value;
+    const startDate = document.getElementById('constraintStart').value;
+    const endDate = document.getElementById('constraintEnd').value;
+    const reason = document.getElementById('constraintReason').value.trim();
+    if (!soldierId) { showToast('יש לבחור חייל', 'error'); return; }
+    if (!startDate || !endDate) { showToast('יש לבחור תאריכים', 'error'); return; }
+    if (startDate > endDate) { showToast('תאריך התחלה חייב להיות לפני תאריך סיום', 'error'); return; }
+
+    const constraint = {
+        id: 'con_' + Date.now(),
+        soldierId, startDate, endDate, reason,
+        createdBy: currentUser ? currentUser.name : ''
+    };
+    state.constraints.push(constraint);
+
+    // Check if soldier is assigned to shifts in this period
+    const affectedShifts = state.shifts.filter(sh =>
+        sh.soldiers.includes(soldierId) && sh.date >= startDate && sh.date <= endDate
+    );
+
+    if (affectedShifts.length > 0) {
+        const soldierName = state.soldiers.find(s => s.id === soldierId)?.name || '';
+        showReplacementSuggestions(affectedShifts, soldierId, soldierName, compKey);
+    }
+
+    saveState();
+    renderConstraintsList(compKey);
+    document.getElementById('constraintSoldier').value = '';
+    document.getElementById('constraintStart').value = '';
+    document.getElementById('constraintEnd').value = '';
+    document.getElementById('constraintReason').value = '';
+    showToast('אילוץ נוסף בהצלחה');
+}
+
+function deleteConstraint(id) {
+    const compKey = document.getElementById('constraintsModal').dataset.company;
+    state.constraints = state.constraints.filter(c => c.id !== id);
+    saveState();
+    renderConstraintsList(compKey);
+    showToast('אילוץ הוסר');
+}
+
+function renderConstraintsList(compKey) {
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const solIds = new Set(soldiers.map(s => s.id));
+    const constraints = state.constraints.filter(c => solIds.has(c.soldierId));
+    const container = document.getElementById('constraintsList');
+    if (constraints.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:20px;">אין אילוצים פעילים</div>';
+        return;
+    }
+    container.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:var(--bg);"><th style="padding:8px;text-align:right;">חייל</th><th>מתאריך</th><th>עד תאריך</th><th>סיבה</th><th>נוצר ע"י</th><th></th></tr></thead>
+        <tbody>${constraints.map(c => {
+            const sol = state.soldiers.find(s => s.id === c.soldierId);
+            return `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px;">${sol ? esc(sol.name) : '?'}</td>
+                <td style="padding:8px;">${formatDate(c.startDate)}</td>
+                <td style="padding:8px;">${formatDate(c.endDate)}</td>
+                <td style="padding:8px;">${esc(c.reason || '')}</td>
+                <td style="padding:8px;font-size:0.85em;">${esc(c.createdBy || '')}</td>
+                <td style="padding:8px;"><button class="btn btn-sm" style="background:var(--danger);color:white;padding:2px 8px;" onclick="deleteConstraint('${c.id}')">מחק</button></td>
+            </tr>`;
+        }).join('')}</tbody>
+    </table>`;
+}
+
+function findReplacementSoldiers(compKey, date, startTime, endTime, role) {
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const available = [];
+    soldiers.forEach(s => {
+        const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
+        if (!status.available) return;
+        if (!isSoldierActiveOnDate(s, date)) return;
+        // Count how many shifts this soldier had recently (fairness)
+        const recentShifts = state.shiftHistory ? state.shiftHistory.filter(h => h.soldierId === s.id).length : 0;
+        available.push({ soldier: s, recentShifts });
+    });
+    // Sort by fairness (fewer shifts first), then matching role
+    available.sort((a, b) => {
+        const roleMatchA = role && a.soldier.role === role ? -1 : 0;
+        const roleMatchB = role && b.soldier.role === role ? -1 : 0;
+        if (roleMatchA !== roleMatchB) return roleMatchA - roleMatchB;
+        return a.recentShifts - b.recentShifts;
+    });
+    return available.map(a => a.soldier);
+}
+
+function showReplacementSuggestions(affectedShifts, removedSoldierId, soldierName, compKey) {
+    let html = `<div style="margin-bottom:12px;padding:10px;background:#fff3e0;border-radius:var(--radius);border-right:4px solid #ff9800;">
+        <strong>${esc(soldierName)}</strong> משובץ ב-${affectedShifts.length} משמרות בטווח האילוץ.
+    </div>`;
+
+    affectedShifts.forEach(sh => {
+        const replacements = findReplacementSoldiers(compKey, sh.date, sh.startTime, sh.endTime, null);
+        const top3 = replacements.slice(0, 5);
+        html += `<div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:var(--radius);">
+            <div style="font-weight:600;margin-bottom:6px;">${esc(sh.task)} — ${formatDate(sh.date)} ${sh.startTime}-${sh.endTime}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-sm" style="background:var(--danger);color:white;" onclick="removeFromShift('${sh.id}','${removedSoldierId}')">הסר בלי מחליף</button>
+                ${top3.map(s => `<button class="btn btn-sm" style="background:var(--success);color:white;" onclick="replaceInShift('${sh.id}','${removedSoldierId}','${s.id}')">${esc(s.name)}</button>`).join('')}
+            </div>
+        </div>`;
+    });
+
+    document.getElementById('replacementContent').innerHTML = html;
+    openModal('replacementModal');
+}
+
+function removeFromShift(shiftId, soldierId) {
+    const sh = state.shifts.find(s => s.id === shiftId);
+    if (!sh) return;
+    sh.soldiers = sh.soldiers.filter(id => id !== soldierId);
+    if (sh.taskCommander === soldierId) sh.taskCommander = '';
+    saveState();
+    showToast('חייל הוסר מהמשמרת');
+    // Refresh replacement modal if still open
+    const compKey = document.getElementById('constraintsModal').dataset.company;
+    if (compKey) renderCompanyTab(compKey);
+}
+
+function replaceInShift(shiftId, oldSoldierId, newSoldierId) {
+    const sh = state.shifts.find(s => s.id === shiftId);
+    if (!sh) return;
+    const idx = sh.soldiers.indexOf(oldSoldierId);
+    if (idx >= 0) sh.soldiers[idx] = newSoldierId;
+    else sh.soldiers.push(newSoldierId);
+    if (sh.taskCommander === oldSoldierId) sh.taskCommander = newSoldierId;
+    // Record in shift history
+    if (state.shiftHistory) {
+        state.shiftHistory.push({
+            soldierId: newSoldierId,
+            date: sh.date,
+            task: sh.task,
+            shiftType: sh.startTime < '12:00' ? 'morning' : sh.startTime < '18:00' ? 'afternoon' : 'night',
+            company: sh.company
+        });
+    }
+    saveState();
+    const newName = state.soldiers.find(s => s.id === newSoldierId)?.name || '';
+    showToast(`${newName} הוחלף בהצלחה`);
+    const compKey = document.getElementById('constraintsModal').dataset.company;
+    if (compKey) renderCompanyTab(compKey);
+}
+
+// ==================== AUTO SCHEDULE ENGINE ====================
+let _autoScheduleProposal = null;
+let _autoScheduleCompany = null;
+
+function openAutoSchedule(compKey) {
+    _autoScheduleCompany = compKey;
+    _autoScheduleProposal = null;
+    // Default: tomorrow to end of week
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const endWeek = new Date(tomorrow); endWeek.setDate(endWeek.getDate() + (6 - endWeek.getDay()));
+    document.getElementById('autoSchedStart').value = tomorrow.toISOString().slice(0, 10);
+    document.getElementById('autoSchedEnd').value = endWeek.toISOString().slice(0, 10);
+    document.getElementById('autoSchedPreview').innerHTML = '<div style="text-align:center;color:var(--text-light);padding:40px;">בחר טווח תאריכים ולחץ "הצע שיבוץ"</div>';
+    document.getElementById('autoSchedFooter').style.display = 'none';
+    document.getElementById('autoScheduleTitle').textContent = `שיבוץ אוטומטי — ${compName(compKey)}`;
+    openModal('autoScheduleModal');
+}
+
+function runAutoSchedule() {
+    const compKey = _autoScheduleCompany;
+    const startDate = document.getElementById('autoSchedStart').value;
+    const endDate = document.getElementById('autoSchedEnd').value;
+    if (!startDate || !endDate) { showToast('יש לבחור תאריכים', 'error'); return; }
+    if (startDate > endDate) { showToast('תאריך התחלה חייב להיות לפני סיום', 'error'); return; }
+
+    const proposal = generateScheduleProposal(compKey, startDate, endDate);
+    _autoScheduleProposal = proposal;
+    renderScheduleProposal(proposal);
+    document.getElementById('autoSchedFooter').style.display = '';
+}
+
+function generateScheduleProposal(compKey, startDate, endDate) {
+    const comp = companyData[compKey];
+    if (!comp || !comp.tasks || comp.tasks.length === 0) return [];
+
+    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const proposal = []; // Array of { date, tasks: [{ task, shifts: [{ shiftName, startTime, endTime, soldiers: [id], warnings: [] }] }] }
+
+    // Track assignments for fairness
+    const assignmentCount = {};
+    soldiers.forEach(s => { assignmentCount[s.id] = 0; });
+    // Pre-count from history
+    if (state.shiftHistory) {
+        state.shiftHistory.forEach(h => {
+            if (assignmentCount[h.soldierId] !== undefined) assignmentCount[h.soldierId]++;
+        });
+    }
+
+    // Track last shift type for rotation
+    const lastShiftType = {};
+
+    // Shift time definitions
+    const shiftTimes = {
+        3: [
+            { name: 'בוקר', start: '06:00', end: '14:00' },
+            { name: 'צהריים', start: '14:00', end: '22:00' },
+            { name: 'לילה', start: '22:00', end: '06:00' }
+        ],
+        2: [
+            { name: 'יום', start: '06:00', end: '18:00' },
+            { name: 'לילה', start: '18:00', end: '06:00' }
+        ],
+        1: [
+            { name: 'יום שלם', start: '06:00', end: '22:00' }
+        ]
+    };
+
+    // Role classification
+    const isOfficer = (s) => ['קצין', 'מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'].some(r => (s.role || '').includes(r));
+    const isCommander = (s) => ['מפקד', 'מ"כ', 'מ"מ', 'סמל', 'סמב"צ'].some(r => (s.role || '').includes(r));
+    const isSoldier = (s) => !isOfficer(s) && !isCommander(s);
+
+    // Medic check
+    const isMedic = (s) => (s.role || '').includes('חובש') || (s.role || '').includes('רופא');
+
+    // Track used soldiers per day-shift to avoid double booking
+    const usedMap = {}; // key: date+startTime+endTime => Set of soldier ids
+
+    function getUsedKey(date, start, end) { return `${date}_${start}_${end}`; }
+
+    function markUsed(date, start, end, solId) {
+        const key = getUsedKey(date, start, end);
+        if (!usedMap[key]) usedMap[key] = new Set();
+        usedMap[key].add(solId);
+    }
+
+    function isUsed(date, start, end, solId) {
+        const key = getUsedKey(date, start, end);
+        return usedMap[key] && usedMap[key].has(solId);
+    }
+
+    // Check if soldier has enough rest since a shift
+    function hasEnoughRest(solId, date, startTime) {
+        // Simple check: don't assign to morning if did night before
+        const prevDate = new Date(date + 'T00:00:00');
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevDateStr = prevDate.toISOString().slice(0, 10);
+        const nightKey = getUsedKey(prevDateStr, '22:00', '06:00');
+        if (usedMap[nightKey] && usedMap[nightKey].has(solId) && startTime < '14:00') return false;
+        return true;
+    }
+
+    // Initiative team members locked
+    const initiativeLocked = new Set();
+    if (state.initiativeTeams) {
+        state.initiativeTeams.forEach(team => {
+            (team.soldiers || []).forEach(id => initiativeLocked.add(id));
+            if (team.officerId) initiativeLocked.add(team.officerId);
+            if (team.ncoId) initiativeLocked.add(team.ncoId);
+        });
+    }
+
+    // Generate dates
+    const dates = [];
+    let d = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    while (d <= end) {
+        dates.push(d.toISOString().slice(0, 10));
+        d.setDate(d.getDate() + 1);
+    }
+
+    // Check if soldier leaving tomorrow
+    function isLeavingTomorrow(solId, date) {
+        const tomorrow = new Date(date + 'T00:00:00');
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+        return state.leaves.some(l => l.soldierId === solId && l.startDate === tomorrowStr);
+    }
+
+    // Pick best soldier for a role
+    function pickSoldier(date, startTime, endTime, roleFilter, taskName) {
+        const eligible = soldiers.filter(s => {
+            if (!isSoldierActiveOnDate(s, date)) return false;
+            if (isUsed(date, startTime, endTime, s.id)) return false;
+            if (initiativeLocked.has(s.id)) return false;
+            if (!hasEnoughRest(s.id, date, startTime)) return false;
+            // Check existing shift status
+            const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
+            if (!status.available) return false;
+            // Role filter
+            if (roleFilter === 'officer' && !isOfficer(s)) return false;
+            if (roleFilter === 'commander' && !isCommander(s)) return false;
+            if (roleFilter === 'soldier' && !isSoldier(s)) return false;
+            // Officers/commanders not in kitchen
+            if (taskName.includes('מטבח') && (isOfficer(s) || isCommander(s))) return false;
+            // Officers/commanders not in bunker
+            if (taskName.includes('בונקר') && (isOfficer(s) || isCommander(s))) return false;
+            // Medics only in חפ"ק and יזומות
+            if (isMedic(s) && !taskName.includes('חפ') && !taskName.includes('יזומ')) return false;
+            return true;
+        });
+
+        // Sort by fairness + pre-leave night preference
+        eligible.sort((a, b) => {
+            // Pre-leave soldiers prefer night
+            if (startTime >= '22:00') {
+                const aLeaving = isLeavingTomorrow(a.id, date) ? -1 : 0;
+                const bLeaving = isLeavingTomorrow(b.id, date) ? -1 : 0;
+                if (aLeaving !== bLeaving) return aLeaving - bLeaving;
+            }
+            return (assignmentCount[a.id] || 0) - (assignmentCount[b.id] || 0);
+        });
+
+        if (eligible.length === 0) return null;
+        const picked = eligible[0];
+        markUsed(date, startTime, endTime, picked.id);
+        assignmentCount[picked.id] = (assignmentCount[picked.id] || 0) + 1;
+        return picked.id;
+    }
+
+    // Process each date
+    dates.forEach(date => {
+        const dayProposal = { date, tasks: [] };
+
+        comp.tasks.forEach(task => {
+            const shifts = shiftTimes[task.shifts] || shiftTimes[1];
+            const taskProposal = { task: task.name, shifts: [] };
+
+            shifts.forEach(shift => {
+                const shiftProposal = {
+                    shiftName: shift.name,
+                    startTime: shift.start,
+                    endTime: shift.end,
+                    soldiers: [],
+                    warnings: []
+                };
+
+                // Pick officers
+                for (let i = 0; i < (task.perShift?.officers || 0); i++) {
+                    const id = pickSoldier(date, shift.start, shift.end, 'officer', task.name);
+                    if (id) shiftProposal.soldiers.push(id);
+                    else shiftProposal.warnings.push('חסר קצין');
+                }
+
+                // Pick commanders
+                for (let i = 0; i < (task.perShift?.commanders || 0); i++) {
+                    const id = pickSoldier(date, shift.start, shift.end, 'commander', task.name);
+                    if (id) shiftProposal.soldiers.push(id);
+                    else shiftProposal.warnings.push('חסר מפקד');
+                }
+
+                // Pick soldiers
+                for (let i = 0; i < (task.perShift?.soldiers || 0); i++) {
+                    const id = pickSoldier(date, shift.start, shift.end, 'soldier', task.name);
+                    if (id) shiftProposal.soldiers.push(id);
+                    else shiftProposal.warnings.push('חסר חייל');
+                }
+
+                taskProposal.shifts.push(shiftProposal);
+            });
+
+            dayProposal.tasks.push(taskProposal);
+        });
+
+        proposal.push(dayProposal);
+    });
+
+    return proposal;
+}
+
+function renderScheduleProposal(proposal) {
+    const container = document.getElementById('autoSchedPreview');
+    if (!proposal || proposal.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:40px;">לא נמצאו משימות לשיבוץ</div>';
+        return;
+    }
+
+    let html = '';
+    proposal.forEach((day, dayIdx) => {
+        html += `<div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 8px;padding:8px 12px;background:var(--primary);color:white;border-radius:var(--radius) var(--radius) 0 0;">${formatDate(day.date)} — ${getDayName(day.date)}</h4>
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+                <thead><tr style="background:var(--bg);"><th style="padding:6px 8px;text-align:right;">משימה</th><th>משמרת</th><th>שעות</th><th>משובצים</th><th>אזהרות</th></tr></thead>
+                <tbody>`;
+
+        day.tasks.forEach((task, taskIdx) => {
+            task.shifts.forEach((shift, shiftIdx) => {
+                const soldierNames = shift.soldiers.map(id => {
+                    const s = state.soldiers.find(x => x.id === id);
+                    return s ? esc(s.name) : '?';
+                });
+                const warningClass = shift.warnings.length > 0 ? 'background:#fff3e0;' : '';
+                const errorClass = shift.soldiers.length === 0 && (shift.warnings.length > 0) ? 'background:#ffebee;' : '';
+
+                html += `<tr style="border-bottom:1px solid var(--border);${warningClass}${errorClass}">
+                    <td style="padding:6px 8px;font-weight:600;">${esc(task.task)}</td>
+                    <td style="padding:6px 8px;">${esc(shift.shiftName)}</td>
+                    <td style="padding:6px 8px;">${shift.startTime}-${shift.endTime}</td>
+                    <td style="padding:6px 8px;">
+                        ${soldierNames.map((name, solIdx) => `<span class="badge" style="margin:2px;display:inline-flex;align-items:center;gap:4px;">${name}
+                            <button style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.9em;padding:0 2px;" onclick="swapSoldierInProposal(${dayIdx},${taskIdx},${shiftIdx},${solIdx})">&#x21c4;</button>
+                        </span>`).join('')}
+                    </td>
+                    <td style="padding:6px 8px;color:var(--danger);font-size:0.85em;">${shift.warnings.join(', ')}</td>
+                </tr>`;
+            });
+        });
+
+        html += `</tbody></table></div></div>`;
+    });
+
+    // Summary
+    let totalSlots = 0, filledSlots = 0, warnings = 0;
+    proposal.forEach(day => day.tasks.forEach(task => task.shifts.forEach(shift => {
+        totalSlots += shift.soldiers.length + shift.warnings.length;
+        filledSlots += shift.soldiers.length;
+        warnings += shift.warnings.length;
+    })));
+
+    html = `<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="padding:10px 16px;background:#e8f5e9;border-radius:var(--radius);"><strong>${filledSlots}</strong> משובצים</div>
+        <div style="padding:10px 16px;background:${warnings > 0 ? '#fff3e0' : '#e8f5e9'};border-radius:var(--radius);"><strong>${warnings}</strong> חריגות</div>
+        <div style="padding:10px 16px;background:var(--bg);border-radius:var(--radius);"><strong>${proposal.length}</strong> ימים</div>
+    </div>` + html;
+
+    container.innerHTML = html;
+}
+
+function getDayName(dateStr) {
+    const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    return 'יום ' + days[new Date(dateStr + 'T12:00:00').getDay()];
+}
+
+function swapSoldierInProposal(dayIdx, taskIdx, shiftIdx, solIdx) {
+    if (!_autoScheduleProposal) return;
+    const shift = _autoScheduleProposal[dayIdx]?.tasks[taskIdx]?.shifts[shiftIdx];
+    if (!shift) return;
+    const day = _autoScheduleProposal[dayIdx];
+    const currentId = shift.soldiers[solIdx];
+
+    // Find available replacements
+    const available = findReplacementSoldiers(_autoScheduleCompany, day.date, shift.startTime, shift.endTime, null);
+    const filtered = available.filter(s => s.id !== currentId && !shift.soldiers.includes(s.id));
+
+    if (filtered.length === 0) {
+        showToast('אין חיילים זמינים להחלפה', 'error');
+        return;
+    }
+
+    // Show a quick select
+    const currentName = state.soldiers.find(s => s.id === currentId)?.name || '?';
+    let html = `<div style="margin-bottom:12px;"><strong>החלף את ${esc(currentName)}:</strong></div>`;
+    html += `<div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+    filtered.slice(0, 8).forEach(s => {
+        html += `<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="doSwapInProposal(${dayIdx},${taskIdx},${shiftIdx},${solIdx},'${s.id}')">${esc(s.name)}</button>`;
+    });
+    html += `</div>`;
+
+    document.getElementById('replacementContent').innerHTML = html;
+    openModal('replacementModal');
+}
+
+function doSwapInProposal(dayIdx, taskIdx, shiftIdx, solIdx, newSoldierId) {
+    if (!_autoScheduleProposal) return;
+    _autoScheduleProposal[dayIdx].tasks[taskIdx].shifts[shiftIdx].soldiers[solIdx] = newSoldierId;
+    closeModal('replacementModal');
+    renderScheduleProposal(_autoScheduleProposal);
+    showToast('חייל הוחלף בהצעה');
+}
+
+function approveScheduleProposal() {
+    if (!_autoScheduleProposal || !_autoScheduleCompany) return;
+    let count = 0;
+
+    _autoScheduleProposal.forEach(day => {
+        day.tasks.forEach(task => {
+            task.shifts.forEach(shift => {
+                if (shift.soldiers.length === 0) return;
+                const shiftObj = {
+                    id: 'sh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    company: _autoScheduleCompany,
+                    task: task.task,
+                    date: day.date,
+                    shiftName: shift.shiftName,
+                    startTime: shift.startTime,
+                    endTime: shift.endTime,
+                    soldiers: [...shift.soldiers],
+                    taskCommander: shift.soldiers[0] || ''
+                };
+                state.shifts.push(shiftObj);
+
+                // Record history
+                shift.soldiers.forEach(solId => {
+                    state.shiftHistory.push({
+                        soldierId: solId,
+                        date: day.date,
+                        task: task.task,
+                        shiftType: shift.startTime < '12:00' ? 'morning' : shift.startTime < '18:00' ? 'afternoon' : 'night',
+                        company: _autoScheduleCompany
+                    });
+                });
+                count++;
+            });
+        });
+    });
+
+    saveState();
+    closeModal('autoScheduleModal');
+    renderCompanyTab(_autoScheduleCompany);
+    showToast(`${count} שיבוצים נשמרו בהצלחה`, 'success');
+    _autoScheduleProposal = null;
+}
+
+// ==================== INITIATIVE TEAMS (צוות יזומות) ====================
+function getActiveInitiativeTeam(compKey) {
+    if (!state.initiativeTeams) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    return state.initiativeTeams.find(t => t.company === compKey && t.startDate <= today && t.endDate >= today);
+}
+
+// ==================== TRAINING MODULE (אימונים) ====================
+const DEFAULT_TRAINING_TYPES = [
+    { id: 'squad_open', name: 'תרגיל כיתה שטח פתוח', type: 'boolean' },
+    { id: 'squad_urban', name: 'תרגיל כיתה שטח בנוי', type: 'boolean' },
+    { id: 'advanced_shooting', name: 'אימון ירי מתקדם', type: 'boolean' },
+    { id: 'weapon_zero', name: 'בקרת איפוס נשק', type: 'date' },
+    { id: 'grenade', name: 'אימון זריקת רימון', type: 'boolean' }
+];
+
+function getTrainingTypes() {
+    return settings.trainingTypes || DEFAULT_TRAINING_TYPES;
+}
+
+let trainingCompanyFilter = 'all';
+
+function renderTrainingTab() {
+    const container = document.getElementById('content-training');
+    if (!container) return;
+    const canManage = currentUser && (currentUser.unit === 'gdudi' || isAdmin());
+    const types = getTrainingTypes();
+
+    // Filter soldiers
+    let soldiers = [...state.soldiers];
+    if (trainingCompanyFilter !== 'all') {
+        soldiers = soldiers.filter(s => s.company === trainingCompanyFilter);
+    }
+    soldiers.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+
+    // Stats
+    const totalSoldiers = soldiers.length;
+    const statsPerType = types.map(t => {
+        const completed = soldiers.filter(s => {
+            const rec = (state.training || []).find(r => r.soldierId === s.id && r.typeId === t.id);
+            if (t.type === 'date') return rec && rec.date;
+            return rec && rec.done;
+        }).length;
+        return { ...t, completed, pct: totalSoldiers > 0 ? Math.round(completed / totalSoldiers * 100) : 0 };
+    });
+
+    let html = `
+        <div class="section-header">
+            <div class="section-title" style="display:flex;align-items:center;gap:10px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20L20 4M4 4l16 16M7 2l3 3-3 3M17 16l3 3-3 3"/></svg>
+                מעקב אימונים
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <select onchange="trainingCompanyFilter=this.value;renderTrainingTab()" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);">
+                <option value="all" ${trainingCompanyFilter === 'all' ? 'selected' : ''}>כל הגדוד</option>
+                ${allCompanyKeys().map(k => `<option value="${k}" ${trainingCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
+            </select>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px;">
+            ${statsPerType.map(t => `
+                <div class="training-card" style="text-align:center;">
+                    <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">${esc(t.name)}</div>
+                    <div style="font-size:1.8em;font-weight:700;color:${t.pct >= 80 ? 'var(--success)' : t.pct >= 50 ? '#ff9800' : 'var(--danger)'};">${t.pct}%</div>
+                    <div style="font-size:0.78em;color:var(--text-light);">${t.completed}/${totalSoldiers}</div>
+                </div>
+            `).join('')}
+        </div>`;
+
+    // Table
+    html += `<div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+            <thead><tr style="background:var(--bg);">
+                <th style="padding:8px;text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">חייל</th>
+                <th style="padding:8px;text-align:right;">פלוגה</th>
+                ${types.map(t => `<th style="padding:8px;text-align:center;">${esc(t.name)}</th>`).join('')}
+            </tr></thead>
+            <tbody>`;
+
+    soldiers.forEach(s => {
+        html += `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:6px 8px;position:sticky;right:0;background:var(--card);z-index:1;font-weight:500;">
+                <a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>
+            </td>
+            <td style="padding:6px 8px;font-size:0.85em;">${compName(s.company)}</td>`;
+
+        types.forEach(t => {
+            const rec = (state.training || []).find(r => r.soldierId === s.id && r.typeId === t.id);
+            if (t.type === 'date') {
+                const dateVal = rec ? rec.date || '' : '';
+                html += `<td style="padding:4px 6px;text-align:center;">
+                    <input type="date" value="${dateVal}" style="width:130px;font-size:0.85em;padding:2px 4px;border:1px solid var(--border);border-radius:6px;"
+                        onchange="updateTraining('${s.id}','${t.id}','date',this.value)" ${canManage || canEditShifts(s.company) ? '' : 'disabled'}>
+                </td>`;
+            } else {
+                const done = rec && rec.done;
+                html += `<td style="padding:4px 6px;text-align:center;">
+                    <input type="checkbox" ${done ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--success);"
+                        onchange="updateTraining('${s.id}','${t.id}','boolean',this.checked)" ${canManage || canEditShifts(s.company) ? '' : 'disabled'}>
+                </td>`;
+            }
+        });
+
+        html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+
+    container.innerHTML = html;
+}
+
+function updateTraining(soldierId, typeId, type, value) {
+    if (!state.training) state.training = [];
+    let rec = state.training.find(r => r.soldierId === soldierId && r.typeId === typeId);
+    if (!rec) {
+        rec = { soldierId, typeId };
+        state.training.push(rec);
+    }
+    if (type === 'date') {
+        rec.date = value;
+        rec.done = !!value;
+    } else {
+        rec.done = value;
+    }
+    saveState();
+}
+
+function addTrainingType() {
+    if (!settings.trainingTypes) settings.trainingTypes = [...DEFAULT_TRAINING_TYPES];
+    const id = 'custom_' + Date.now();
+    settings.trainingTypes.push({ id, name: 'אימון חדש', type: 'boolean' });
+    saveSettings();
+    renderSettingsTab();
+}
+
+function removeTrainingType(idx) {
+    if (!settings.trainingTypes) settings.trainingTypes = [...DEFAULT_TRAINING_TYPES];
+    settings.trainingTypes.splice(idx, 1);
+    saveSettings();
+    renderSettingsTab();
+}
+
+function updateTrainingTypeName(idx, name) {
+    if (!settings.trainingTypes) settings.trainingTypes = [...DEFAULT_TRAINING_TYPES];
+    settings.trainingTypes[idx].name = name;
+    saveSettings();
+}
+
+function updateTrainingTypeType(idx, type) {
+    if (!settings.trainingTypes) settings.trainingTypes = [...DEFAULT_TRAINING_TYPES];
+    settings.trainingTypes[idx].type = type;
+    saveSettings();
 }
 
 function hasTimeOverlap(soldierId, date, startTime, endTime, excludeShiftId) {
@@ -3528,6 +4355,24 @@ function renderSettingsTab() {
                 <input type="time" value="${settings.operationEndTime || '14:00'}" onchange="settings.operationEndTime=this.value;saveSettings();">
             </div>
         </div>
+    </div>
+
+    <!-- Training Types -->
+    <div class="settings-card">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M4 20L20 4M4 4l16 16M7 2l3 3-3 3M17 16l3 3-3 3"/></svg> סוגי אימונים</h3>
+        <div id="trainingTypesSettings">
+            ${getTrainingTypes().map((t, i) => `
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                    <input type="text" value="${esc(t.name)}" style="flex:2;" onchange="updateTrainingTypeName(${i},this.value)">
+                    <select style="flex:1;" onchange="updateTrainingTypeType(${i},this.value)">
+                        <option value="boolean" ${t.type === 'boolean' ? 'selected' : ''}>כן/לא</option>
+                        <option value="date" ${t.type === 'date' ? 'selected' : ''}>תאריך</option>
+                    </select>
+                    <button class="btn btn-sm" style="background:var(--danger);color:white;padding:2px 8px;" onclick="removeTrainingType(${i})">✕</button>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-sm" style="margin-top:8px;" onclick="addTrainingType()">+ הוסף סוג אימון</button>
     </div>
 
     <!-- Security -->
