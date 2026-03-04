@@ -199,7 +199,7 @@ function sendGreenApiWhatsApp(firstName, phone) {
     if (cleanPhone.startsWith('0')) cleanPhone = '972' + cleanPhone.slice(1);
     if (!cleanPhone.match(/^\d{10,15}$/)) return;
     const chatId = cleanPhone + '@c.us';
-    const message = `שלום ${firstName} 😊\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן בוואצאפ\nבהצלחה!`;
+    const message = `שלום ${firstName} 😊\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`;
     const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
     fetch(url, {
         method: 'POST',
@@ -9127,7 +9127,7 @@ function confirmGeneratePakal() {
     const soldierId = document.getElementById('pakalGenSoldier').value;
     if (!soldierId) { showToast('בחר חייל', 'error'); return; }
     if (state.personalEquipment.find(pe => pe.soldierId === soldierId)) {
-        showToast('לחייל זה כבר יש פק"ל', 'error'); return;
+        showToast('לחייל זה כבר הונפק ציוד', 'error'); return;
     }
 
     // Collect selected items from the items table
@@ -9156,7 +9156,7 @@ function confirmGeneratePakal() {
 
     generatePersonalEquipment(soldierId, selectedItems);
     closeModal('generatePakalModal');
-    showToast(`פק"ל נוצר עם ${selectedItems.length} פריטים`);
+    showToast(`ציוד הונפק עם ${selectedItems.length} פריטים`);
     if (equipmentSubTab === 'pakal') renderPakalSubTab();
 }
 
@@ -9211,7 +9211,7 @@ function generatePersonalEquipment(soldierId, selectedItems) {
         roleSetId: roleSet ? roleSet.id : null,
         items,
         bulkSignature: { signed: false, signatureImg: null, signedDate: null, issuedBy: '', issuerSignatureImg: null },
-        history: [{ date: new Date().toISOString(), action: 'created', details: 'פק"ל נוצר' }]
+        history: [{ date: new Date().toISOString(), action: 'created', details: 'ציוד הונפק' }]
     };
     state.personalEquipment.push(pe);
     saveState();
@@ -9242,7 +9242,7 @@ function confirmBulkGeneratePakal() {
         }
     });
     closeModal('bulkGeneratePakalModal');
-    showToast(`נוצרו ${count} פק"לים חדשים`);
+    showToast(`הונפק ציוד ל-${count} חיילים`);
     if (equipmentSubTab === 'pakal') renderPakalSubTab();
 }
 
@@ -9289,12 +9289,12 @@ function renderPakalSubTab() {
 
     container.innerHTML = `
         <div class="action-bar">
-            <button class="btn btn-primary" onclick="openGeneratePakalModal()">+ יצירת פק"ל לחייל</button>
-            <button class="btn btn-success" onclick="openBulkGeneratePakalModal()">יצירת פק"ל לפלוגה</button>
+            <button class="btn btn-primary" onclick="openGeneratePakalModal()">+ הנפקת ציוד לחייל</button>
+            <button class="btn btn-success" onclick="openBulkGeneratePakalModal()">הנפקת ציוד לפלוגה</button>
             <button class="btn" style="background:var(--bg)" onclick="exportPakalCSV()">ייצוא CSV</button>
         </div>
         <div class="quick-stats" style="margin-bottom:14px;">
-            <div class="quick-stat"><div class="value">${stats.total}</div><div class="label">סה"כ פק"לים</div></div>
+            <div class="quick-stat"><div class="value">${stats.total}</div><div class="label">סה"כ חתימות על ציוד</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--success)"><div class="value" style="color:var(--success)">${stats.signed}</div><div class="label">חתמו</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--danger)"><div class="value" style="color:var(--danger)">${stats.unsigned}</div><div class="label">לא חתמו</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--warning)"><div class="value" style="color:var(--warning)">${stats.partial}</div><div class="label">חלקי</div></div>
@@ -9309,7 +9309,7 @@ function renderPakalSubTab() {
             <button class="filter-btn ${pakalFilter==='unsigned'?'active':''}" onclick="setPakalFilter('unsigned',this)">לא חתמו (${stats.unsigned})</button>
             <button class="filter-btn ${pakalFilter==='partial'?'active':''}" onclick="setPakalFilter('partial',this)">חלקי (${stats.partial})</button>
         </div>
-        ${pelist.length === 0 ? '<div class="empty-state"><p>אין פק"לים להצגה</p></div>' :
+        ${pelist.length === 0 ? '<div class="empty-state"><p>אין חתימות ציוד להצגה</p></div>' :
         pelist.map(pe => renderPakalCard(pe)).join('')}
     `;
 }
@@ -9375,11 +9375,11 @@ function updatePakalSerial(soldierId, itemIdx, value) {
 }
 
 async function deletePakal(soldierId) {
-    if (!await customConfirm('למחוק את הפק"ל של חייל זה?')) return;
+    if (!await customConfirm('למחוק את הציוד של חייל זה?')) return;
     state.personalEquipment = state.personalEquipment.filter(pe => pe.soldierId !== soldierId);
     saveState();
     renderPakalSubTab();
-    showToast('פק"ל נמחק');
+    showToast('ציוד נמחק');
 }
 
 // --- Bulk Sign ---
@@ -9470,7 +9470,7 @@ function loadSavedSignature() {
 function confirmBulkSign() {
     const soldierId = document.getElementById('bulkSignSoldierId').value;
     const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
-    if (!pe) { showToast('פק"ל לא נמצא', 'error'); return; }
+    if (!pe) { showToast('ציוד לא נמצא', 'error'); return; }
 
     if (isCanvasEmpty('bulkSignCanvas')) { showToast('חייל חייב לחתום', 'error'); return; }
     if (isCanvasEmpty('issuerSignCanvas')) { showToast('מנפיק חייב לחתום', 'error'); return; }
@@ -9545,7 +9545,7 @@ function openAddExtraItemModal(soldierId) {
 function confirmAddExtraItem() {
     const soldierId = document.getElementById('extraItemSoldierId').value;
     const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
-    if (!pe) { showToast('פק"ל לא נמצא', 'error'); return; }
+    if (!pe) { showToast('ציוד לא נמצא', 'error'); return; }
 
     const name = document.getElementById('extraItemName').value.trim();
     if (!name) { showToast('נא למלא שם פריט', 'error'); return; }
@@ -9570,7 +9570,7 @@ function confirmAddExtraItem() {
     saveState();
     closeModal('addExtraItemModal');
     if (equipmentSubTab === 'pakal') renderPakalSubTab();
-    showToast(`פריט "${name}" נוסף לפק"ל`);
+    showToast(`פריט "${name}" נוסף לציוד`);
 }
 
 // --- Return Pakal ---
@@ -9608,7 +9608,7 @@ function openReturnPakalModal(soldierId) {
 function confirmReturnPakal() {
     const soldierId = document.getElementById('returnPakalSoldierId').value;
     const pe = state.personalEquipment.find(p => p.soldierId === soldierId);
-    if (!pe) { showToast('פק"ל לא נמצא', 'error'); return; }
+    if (!pe) { showToast('ציוד לא נמצא', 'error'); return; }
 
     if (isCanvasEmpty('returnPakalCanvas')) { showToast('נדרשת חתימת מחזיר', 'error'); return; }
 
@@ -9692,7 +9692,7 @@ function renderPalsamDashboard() {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
             <div class="dashboard-stat-card" style="border-top:3px solid var(--primary);">
                 <div class="big-num" style="color:var(--primary);">${allStats.total}</div>
-                <div class="label">סה"כ פק"לים</div>
+                <div class="label">סה"כ חתימות על ציוד</div>
             </div>
             <div class="dashboard-stat-card" style="border-top:3px solid var(--success);">
                 <div class="big-num" style="color:var(--success);">${allStats.signed}</div>
@@ -9758,7 +9758,7 @@ function renderPalsamDashboard() {
                         <td style="text-align:center;">${s.pe.items.length}</td>
                         <td style="display:flex;gap:4px;">
                             <button class="btn btn-success btn-sm" onclick="openBulkSignModal('${s.id}')">חתימה</button>
-                            ${s.phone ? `<a class="btn btn-sm" style="background:#25D366;color:#fff;" href="https://wa.me/972${s.phone.replace(/^0/,'').replace(/-/g,'')}?text=${encodeURIComponent('שלום ' + s.name + ', יש לך פק"ל ציוד שממתין לחתימתך במערכת הגדודית. נא להגיע לפלס"ם לחתום.')}" target="_blank">WhatsApp</a>` : ''}
+                            ${s.phone ? `<a class="btn btn-sm" style="background:#25D366;color:#fff;" href="https://wa.me/972${s.phone.replace(/^0/,'').replace(/-/g,'')}?text=${encodeURIComponent('שלום ' + s.name + ', יש ציוד שממתין לחתימתך במערכת הגדודית. נא להגיע לפלס"ם לחתום.')}" target="_blank">WhatsApp</a>` : ''}
                         </td>
                     </tr>`).join('')}
                 </tbody>
@@ -9794,7 +9794,7 @@ function generatePakalPDF(soldierId) {
     const infoTd = `padding:4px 10px;font-size:14px;${ws}`;
     const html = `
     <div style="font-family:Arial,sans-serif;direction:rtl;padding:20px;max-width:700px;margin:0 auto;${ws}">
-        <h1 style="text-align:center;color:#1a3a5c;border-bottom:3px solid #1a3a5c;padding-bottom:10px;margin:0 0 15px;${ws}">פק"ל אישי - טופס חתימה על ציוד</h1>
+        <h1 style="text-align:center;color:#1a3a5c;border-bottom:3px solid #1a3a5c;padding-bottom:10px;margin:0 0 15px;${ws}">טופס חתימה על ציוד אישי</h1>
         <table style="margin:15px 0;">
             <tr><td style="${infoTd}"><strong>שם:</strong></td><td style="${infoTd}">${sol.name}</td><td style="${infoTd}"><strong>מספר אישי:</strong></td><td style="${infoTd}">${sol.personalId || '-'}</td></tr>
             <tr><td style="${infoTd}"><strong>תפקיד:</strong></td><td style="${infoTd}">${sol.role || 'לוחם'}</td><td style="${infoTd}"><strong>פלוגה:</strong></td><td style="${infoTd}">${compName}</td></tr>
