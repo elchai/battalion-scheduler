@@ -637,6 +637,10 @@ function loadState() {
             if (seed.leaves) state.leaves = seed.leaves;
             if (seed.training) state.training = seed.training;
             if (seed.constraints) state.constraints = seed.constraints;
+            if (seed.personalEquipment) state.personalEquipment = seed.personalEquipment;
+            if (seed.signatureLog) seed.signatureLog.forEach(e => state.signatureLog.push(e));
+            if (seed.weaponsData) state.weaponsData = seed.weaponsData;
+            if (seed.equipment) state.equipment = seed.equipment;
             localStorage.setItem(CONFIG.storagePrefix + 'SeedVer', String(CONFIG.demoSeedVersion || 0));
             saveState();
         }
