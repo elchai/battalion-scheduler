@@ -332,6 +332,9 @@ function _generateDemoEquipment(soldiers) {
     ];
 
     soldiers.forEach((s, idx) => {
+        // Only ~35% get equipment (keeps localStorage under 5MB limit)
+        if (idx % 3 !== 0) return;
+
         const isPalsam = s.company === 'palsam';
         const isCombat = ['a','b','c','d'].includes(s.company);
         const isCmd = ['מ"כ','מפקד','סמב"צ','מ"פ','סמ"פ','קצין','רס"פ'].some(r => s.role.includes(r));
@@ -452,10 +455,10 @@ function _generateDemoWeaponsData(soldiers) {
     const cmdNames = { a: 'דוד כהן', b: 'אלחי פיין', c: 'משה לוי', d: 'יוסי ברק', hq: 'אבי שמש', agam: 'רון דגן' };
     const cmdRanks = { a: 'סרן', b: 'סרן', c: 'סרן', d: 'רס"ן', hq: 'סגן', agam: 'סגן' };
 
-    // ~90% of combat soldiers have completed weapons forms
+    // ~60% of combat soldiers have completed weapons forms
     const combatSoldiers = soldiers.filter(s => ['a','b','c','d','hq','agam'].includes(s.company));
     combatSoldiers.forEach((s, idx) => {
-        if ((idx % 10) >= 9) return; // skip ~10%
+        if (idx % 5 >= 3) return; // ~60%
         const nameParts = s.name.split(' ');
 
         weaponsData.push({
@@ -775,7 +778,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 7,
+    demoSeedVersion: 8,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
