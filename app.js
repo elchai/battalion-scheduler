@@ -750,10 +750,21 @@ function cleanupOldData() {
 // ==================== INIT ====================
 // Google Sheets config
 function getSheetUrls() {
-    const base = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:csv`;
-    const urls = { support: base };
+    const id = settings.sheetId;
+    const urls = {};
+    // Prefer export endpoint (ignores sheet filters) when gid is available
+    // Fallback to gviz/tq for tabs without gid
+    const gvizBase = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
+    const exportBase = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv`;
+    urls.support = gvizBase; // first tab (support staff — hq, agam, palsam)
+    const supportKeys = ['hq', 'agam', 'palsam'];
     Object.entries(CONFIG.companies).forEach(([k, v]) => {
-        if (v.sheetTab) urls[k] = base + '&sheet=' + encodeURIComponent(v.sheetTab);
+        if (supportKeys.includes(k)) return; // covered by urls.support
+        if (v.sheetGid) {
+            urls[k] = exportBase + '&gid=' + v.sheetGid;
+        } else if (v.sheetTab) {
+            urls[k] = gvizBase + '&sheet=' + encodeURIComponent(v.sheetTab);
+        }
     });
     return urls;
 }
