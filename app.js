@@ -768,8 +768,8 @@ function getSheetUrls() {
     // Fallback to gviz/tq for tabs without gid
     const gvizBase = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
     const exportBase = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv`;
-    urls.support = gvizBase; // first tab (support staff — hq, agam, palsam)
-    const supportKeys = ['hq', 'agam', 'palsam'];
+    urls.support = gvizBase; // first tab (support staff — hq, palsam)
+    const supportKeys = ['hq', 'palsam']; // agam has its own tab with sheetGid
     Object.entries(CONFIG.companies).forEach(([k, v]) => {
         if (supportKeys.includes(k)) return; // covered by urls.support
         if (v.sheetGid) {
@@ -910,9 +910,9 @@ function syncFromGoogleSheets(silent) {
                 const parsed = parseNispachimSheet(csv);
                 console.log(`Sheet nispachim: ${parsed.length} soldiers`);
                 sheetSoldiers.push(...parsed);
-            } else if (key === 'support') {
+            } else if (key === 'support' || key === 'agam') {
                 const parsed = parseSupportSheet(csv);
-                console.log(`Sheet support: ${parsed.length} soldiers`);
+                console.log(`Sheet ${key}: ${parsed.length} soldiers`);
                 sheetSoldiers.push(...parsed);
             } else {
                 const parsed = parseCombatSheet(csv, key);
