@@ -15,10 +15,11 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
+    var _cb = 'v84';
     if (_isDemo) {
-        document.write('<script src="config-demo.js"><\/script>');
+        document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
-        document.write('<script src="config.js"><\/script>');
+        document.write('<script src="config.js?' + _cb + '"><\/script>');
     }
     </script>
     <script>

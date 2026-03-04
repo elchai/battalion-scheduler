@@ -3729,12 +3729,12 @@ function renderTrainingTab() {
     let html = `
         <div class="section-header">
             <div class="section-title" style="display:flex;align-items:center;gap:10px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20L20 4M4 4l16 16M7 2l3 3-3 3M17 16l3 3-3 3"/></svg>
+                <img src="training-icon.png" width="22" height="22" style="opacity:0.85;" alt="">
                 מעקב אימונים
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-            <select onchange="trainingCompanyFilter=this.value;renderTrainingTab()" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);">
+            <select onchange="trainingCompanyFilter=this.value;renderTrainingTab()" style="padding:8px 14px;border-radius:var(--radius);border:2px solid var(--primary-light);background:var(--bg);color:var(--text);font-weight:600;font-size:0.9em;cursor:pointer;">
                 <option value="all" ${trainingCompanyFilter === 'all' ? 'selected' : ''}>כל הגדוד</option>
                 ${allCompanyKeys().map(k => `<option value="${k}" ${trainingCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
             </select>
