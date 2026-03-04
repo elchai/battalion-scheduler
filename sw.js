@@ -1,4 +1,4 @@
-const CACHE_NAME = 'battalion-v83';
+const CACHE_NAME = 'battalion-v84';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
     '/battalion-scheduler/app.js',
     '/battalion-scheduler/firebase-config.js',
     '/battalion-scheduler/logo.png',
+    '/battalion-scheduler/training-icon.png',
     '/battalion-scheduler/doc-logo.png',
     '/battalion-scheduler/stamp.png',
     '/battalion-scheduler/manifest.json',

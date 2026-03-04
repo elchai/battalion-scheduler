@@ -205,6 +205,9 @@ function sendGreenApiWhatsApp(firstName, phone) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chatId, message })
+    }).then(r => r.json()).then(data => {
+        if (data.idMessage) console.log('WhatsApp sent:', data.idMessage);
+        else console.warn('WhatsApp response:', data);
     }).catch(err => console.warn('Green API send failed:', err));
 }
 
@@ -624,15 +627,17 @@ function loadState() {
         const seed = CONFIG.demoSeedData;
         const expectedCount = seed.soldiers ? seed.soldiers.length : 0;
         const demoSoldiers = state.soldiers.filter(s => s.id && s.id.startsWith('demo_'));
-        // Re-seed if demo soldiers are missing or count is too low
-        if (demoSoldiers.length < expectedCount * 0.8) {
-            // Remove old demo soldiers
+        const storedSeedVer = parseInt(localStorage.getItem(CONFIG.storagePrefix + 'SeedVer') || '0');
+        const needReseed = demoSoldiers.length < expectedCount * 0.8 || storedSeedVer < (CONFIG.demoSeedVersion || 0);
+        if (needReseed) {
+            // Remove old demo soldiers and re-seed
             state.soldiers = state.soldiers.filter(s => !s.id || !s.id.startsWith('demo_'));
             if (seed.soldiers) seed.soldiers.forEach(s => state.soldiers.push(s));
             if (seed.shifts) state.shifts = seed.shifts;
             if (seed.leaves) state.leaves = seed.leaves;
             if (seed.training) state.training = seed.training;
             if (seed.constraints) state.constraints = seed.constraints;
+            localStorage.setItem(CONFIG.storagePrefix + 'SeedVer', String(CONFIG.demoSeedVersion || 0));
             saveState();
         }
     }

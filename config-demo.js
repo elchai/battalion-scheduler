@@ -302,9 +302,9 @@ const CONFIG = {
     // --- פלוגות ---
     companies: {
         a: {
-            name: 'פלוגה 1', location: 'בסיס צפון', baseName: 'בסיס צפון', forecast: 90,
+            name: "פלוגה א'", location: 'בסיס צפון', baseName: 'בסיס צפון', forecast: 90,
             units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-            sheetTab: 'פלוגה 1',
+            sheetTab: "פלוגה א'",
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
                 { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
@@ -316,9 +316,9 @@ const CONFIG = {
             totals: { soldiers: 30, commanders: 4, officers: 1 }
         },
         b: {
-            name: 'פלוגה 2', location: 'בסיס מרכז', baseName: 'בסיס מרכז', forecast: 100,
+            name: "פלוגה ב'", location: 'בסיס מרכז', baseName: 'בסיס מרכז', forecast: 100,
             units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-            sheetTab: 'פלוגה 2',
+            sheetTab: "פלוגה ב'",
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
                 { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
@@ -332,9 +332,9 @@ const CONFIG = {
             totals: { soldiers: 39, commanders: 7, officers: 1 }
         },
         c: {
-            name: 'פלוגה 3', location: 'בסיס דרום', baseName: 'בסיס דרום', forecast: 85,
+            name: "פלוגה ג'", location: 'בסיס דרום', baseName: 'בסיס דרום', forecast: 85,
             units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-            sheetTab: 'פלוגה 3',
+            sheetTab: "פלוגה ג'",
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
                 { name: 'סיור צפון', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
@@ -346,9 +346,9 @@ const CONFIG = {
             totals: { soldiers: 33, commanders: 7, officers: 1 }
         },
         d: {
-            name: 'פלוגה 4', location: 'בסיס מערב', baseName: 'בסיס מערב', forecast: 95,
+            name: "פלוגה ד'", location: 'בסיס מערב', baseName: 'בסיס מערב', forecast: 95,
             units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
-            sheetTab: 'פלוגה 4',
+            sheetTab: "פלוגה ד'",
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
                 { name: 'סיור', soldiers: 6, commanders: 3, officers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 0 } },
@@ -414,6 +414,7 @@ const CONFIG = {
     developerPhoneDisplay: '054-2012000',
 
     // --- נתוני דמו ---
+    demoSeedVersion: 3,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
