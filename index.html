@@ -10,12 +10,12 @@
     <link rel="icon" id="favicon" href="logo.png" type="image/png">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" id="appleTouchIcon" href="logo.png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" id="mainStylesheet">
     <script>
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v100';
+    var _cb = 'v101';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -26,6 +26,9 @@
     document.getElementById('favicon').href = CONFIG.logoPath;
     document.getElementById('appleTouchIcon').href = CONFIG.logoPath;
     document.title = CONFIG.systemTitle + ' | ' + CONFIG.systemSubtitle;
+    // Cache-bust local assets
+    document.getElementById('mainStylesheet').href = 'style.css?' + _cb;
+
     </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
@@ -1639,14 +1642,14 @@
 <!-- Firebase SDK (loaded before app for sync) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
+<script>document.write('<script src="firebase-config.js?' + _cb + '"><\/script>');</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="app.js"></script>
+<script>document.write('<script src="app.js?' + _cb + '"><\/script>');</script>
 <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
 </html>
