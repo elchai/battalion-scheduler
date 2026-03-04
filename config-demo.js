@@ -637,7 +637,7 @@ const CONFIG = {
         appId: "1:782286427873:web:385fa860253eedd8d909a0",
         measurementId: "G-WWXZCY49E1"
     },
-    firebaseEnabled: true,
+    firebaseEnabled: false,
     firestoreCollection: 'battalion-demo',
 
     // --- Google Sheets (empty — demo uses seed data) ---

@@ -858,6 +858,7 @@ function renderAll() {
 // ==================== GOOGLE SHEETS SYNC ====================
 let syncInProgress = false;
 function syncFromGoogleSheets(silent) {
+    if (CONFIG.isDemo) { if (!silent) showToast('סנכרון מגוגל שיטס לא זמין במצב דמו', 'info'); return; }
     if (syncInProgress) { if (!silent) showToast('סנכרון כבר פעיל, אנא המתן...', 'info'); return; }
     syncInProgress = true;
 
