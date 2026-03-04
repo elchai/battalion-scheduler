@@ -195,7 +195,7 @@ function sendGreenApiWhatsApp(firstName, phone) {
     const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
     if (!idInstance || !apiTokenInstance) return;
     // Normalize phone: remove leading 0, add 972 prefix
-    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    let cleanPhone = phone.replace(/[\s\-\(\)\+]/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '972' + cleanPhone.slice(1);
     if (!cleanPhone.match(/^\d{10,15}$/)) return;
     const chatId = cleanPhone + '@c.us';
@@ -225,7 +225,7 @@ function doLogin() {
         document.getElementById('loginError').classList.add('show');
         return;
     }
-    if (!unit) {
+    if (!unit && !CONFIG.skipPassword) {
         document.getElementById('loginError').textContent = 'יש לבחור מסגרת';
         document.getElementById('loginError').classList.add('show');
         return;
