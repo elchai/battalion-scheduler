@@ -775,7 +775,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 6,
+    demoSeedVersion: 7,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,

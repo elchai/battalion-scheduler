@@ -807,12 +807,13 @@ async function init() {
     updateShiftOptions();
     checkSession();
 
-    // Register Service Worker for PWA
+    // Register Service Worker for PWA — bypass HTTP cache for SW updates
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
         navigator.serviceWorker.addEventListener('message', event => {
             if (event.data && event.data.type === 'SW_UPDATED') {
-                showToast('גרסה חדשה זמינה - רענן את הדף', 'info');
+                showToast('מעדכן גרסה...', 'info');
+                setTimeout(() => location.reload(), 1000);
             }
         });
     }
