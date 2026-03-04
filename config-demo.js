@@ -387,9 +387,6 @@ function _generateDemoEquipment(soldiers) {
     ];
 
     soldiers.forEach((s, idx) => {
-        // ~50% get equipment (keeps localStorage under 5MB limit)
-        if (idx % 2 !== 0) return;
-
         const isPalsam = s.company === 'palsam';
         const isCombat = ['a','b','c','d'].includes(s.company);
         const isCmd = ['מ"כ','מפקד','סמב"צ','מ"פ','סמ"פ','קצין','רס"פ'].some(r => s.role.includes(r));
@@ -403,12 +400,20 @@ function _generateDemoEquipment(soldiers) {
             itemTemplates = isCmd ? [...combatItems, ...cmdExtraItems] : combatItems;
         }
 
+        const issuer = sigIssuers[idx % sigIssuers.length];
+        // 80% signed, 20% unsigned
+        const isSigned = (idx % 5 !== 0);
+
         const items = itemTemplates.map((item, ii) => {
-            // ~10% of items have been exchanged, ~5% missing
-            let status = 'issued';
-            const itemSeed = idx * 100 + ii;
-            if (itemSeed % 20 === 0) status = 'exchanged';
-            else if (itemSeed % 20 === 1) status = 'missing';
+            // For unsigned soldiers: items stay 'pending'
+            // For signed: ~10% exchanged, ~5% missing, rest issued
+            let status = 'pending';
+            if (isSigned) {
+                status = 'issued';
+                const itemSeed = idx * 100 + ii;
+                if (itemSeed % 20 === 0) status = 'exchanged';
+                else if (itemSeed % 20 === 1) status = 'missing';
+            }
 
             return {
                 itemId: 'pi_' + (piCounter++),
@@ -419,17 +424,13 @@ function _generateDemoEquipment(soldiers) {
                 serialNumber: item.requiresSerial ? makeSerial() : '',
                 source: 'base',
                 status,
-                issuedQuantity: item.quantity,
+                issuedQuantity: isSigned ? item.quantity : 0,
                 linkedEquipmentIds: [],
-                issuedDate: '2026-02-19T08:00:00.000Z',
+                issuedDate: isSigned ? '2026-02-19T08:00:00.000Z' : null,
                 returnedDate: status === 'exchanged' ? '2026-02-28T12:00:00.000Z' : null,
                 notes: status === 'exchanged' ? 'הוחלף עקב תקלה' : status === 'missing' ? 'דווח חסר' : ''
             };
         });
-
-        const issuer = sigIssuers[idx % sigIssuers.length];
-        // 80% signed, 20% unsigned
-        const isSigned = (idx % 5 !== 0);
 
         const history = [{ date: '2026-02-19T08:00:00.000Z', action: 'created', details: 'ציוד הונפק' }];
         if (isSigned) history.push({ date: '2026-02-19T10:00:00.000Z', action: 'signed', details: 'חתימה על ציוד' });
@@ -844,7 +845,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 9,
+    demoSeedVersion: 10,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
