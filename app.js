@@ -4565,8 +4565,8 @@ function loadTasksFromStorage() {
             if (tasksData[k]) companyData[k].tasks = tasksData[k];
         });
     }
-    // Add מפל"ג to combat companies only if no saved tasks exist yet
-    if (!saved) {
+    // Add מפל"ג to combat companies only if no saved tasks exist yet (skip in demo)
+    if (!saved && !CONFIG.isDemo) {
         CONFIG.combatCompanies.forEach(k => {
             if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
                 companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } });
