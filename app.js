@@ -1286,7 +1286,7 @@ function renderDashboard() {
     if (needsRange.length > 0) {
         alertsHtml += `<div class="dash-alert dash-alert-warn" style="cursor:pointer;" onclick="openRangeResetSummary()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span><strong>${needsRange.length} חיילים</strong> צריכים איפוס מטווח (6+ חודשים) — לחץ לריכוז</span>
+            <span><strong>שים לב!</strong> יש חיילים שהנשק שלהם לא מאופס — לחץ לריכוז</span>
         </div>`;
     }
 

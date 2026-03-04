@@ -477,9 +477,8 @@ function _generateDemoWeaponsData(soldiers) {
             phone: s.phone || '',
             landline: idx % 5 === 0 ? '0' + (2 + (idx % 7)) + '-' + String(1000000 + idx * 111).slice(0,7) : '',
             personalWeaponSource: idx % 20 === 0 ? 'צה"ל' : '',
-            rangeDate: idx % 10 < 4 ? '2025-' + String(1 + (idx % 8)).padStart(2,'0') + '-15'
-                     : idx % 10 < 7 ? '2026-' + String(1 + (idx % 2)).padStart(2,'0') + '-15'
-                     : '',
+            rangeDate: idx % 20 === 0 ? '2025-' + String(6 + (idx % 4)).padStart(2,'0') + '-15'
+                     : '2026-02-' + String(1 + (idx % 28)).padStart(2,'0'),
             enlistmentDate: '20' + String(15 + (idx % 8)).padStart(2,'0') + '-03-01',
             dischargeDate: '20' + String(18 + (idx % 8)).padStart(2,'0') + '-03-01',
             medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
