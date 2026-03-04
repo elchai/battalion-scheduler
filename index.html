@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v99';
+    var _cb = 'v100';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -296,6 +296,17 @@
             <button class="btn btn-danger" id="confirmYes">אישור</button>
             <button class="btn btn-secondary" id="confirmNo">ביטול</button>
         </div>
+    </div>
+</div>
+
+<!-- Range Reset Summary Modal -->
+<div class="modal-overlay" id="rangeResetModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header">
+            <span>ריכוז חיילים לאיפוס מטווח</span>
+            <button class="modal-close" onclick="closeModal('rangeResetModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="rangeResetContent" style="max-height:70vh;overflow-y:auto;"></div>
     </div>
 </div>
 

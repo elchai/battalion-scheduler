@@ -1273,6 +1273,23 @@ function renderDashboard() {
         }
     });
 
+    // Check for soldiers needing range qualification renewal (6+ months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const sixMonthsStr = sixMonthsAgo.toISOString().split('T')[0];
+    const needsRange = state.soldiers.filter(s => {
+        if (!canView(s.company)) return false;
+        const wp = state.weaponsData.find(w => w.soldierId === s.id);
+        if (!wp) return true; // no weapons data = needs range
+        return !wp.rangeDate || wp.rangeDate < sixMonthsStr;
+    });
+    if (needsRange.length > 0) {
+        alertsHtml += `<div class="dash-alert dash-alert-warn" style="cursor:pointer;" onclick="openRangeResetSummary()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span><strong>${needsRange.length} חיילים</strong> צריכים איפוס מטווח (6+ חודשים) — לחץ לריכוז</span>
+        </div>`;
+    }
+
     if (alertsEl) alertsEl.innerHTML = alertsHtml;
 }
 
@@ -7991,6 +8008,51 @@ function populateCitiesDatalist() {
 function renderRestrictedTab(tabName, message) {
     const el = document.getElementById('tab-' + tabName);
     if (el) el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center;color:#666;"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:16px;opacity:0.4;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><div style="font-size:1.1em;font-weight:600;margin-bottom:8px;">${message}</div><div style="font-size:0.85em;opacity:0.7;">לקבלת גישה מלאה צור קשר</div></div>`;
+}
+
+function openRangeResetSummary() {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const sixMonthsStr = sixMonthsAgo.toISOString().split('T')[0];
+
+    const byCompany = {};
+    ALL_COMPANIES.forEach(k => { if (canView(k)) byCompany[k] = []; });
+
+    state.soldiers.forEach(s => {
+        if (!canView(s.company)) return;
+        const wp = state.weaponsData.find(w => w.soldierId === s.id);
+        const rangeDate = wp ? wp.rangeDate : '';
+        if (!rangeDate || rangeDate < sixMonthsStr) {
+            byCompany[s.company] = byCompany[s.company] || [];
+            byCompany[s.company].push({ name: s.name, role: s.role || '', unit: s.unit || '', rangeDate });
+        }
+    });
+
+    let html = '';
+    let totalCount = 0;
+    ALL_COMPANIES.forEach(k => {
+        if (!byCompany[k] || byCompany[k].length === 0) return;
+        const soldiers = byCompany[k];
+        totalCount += soldiers.length;
+        html += `<div style="margin-bottom:16px;">
+            <div style="font-weight:700;font-size:1em;padding:8px 12px;background:var(--primary);color:white;border-radius:var(--radius);">
+                ${companyData[k].name} (${soldiers.length})
+            </div>
+            <table style="width:100%;margin-top:4px;font-size:0.85em;">
+                <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 8px;">שם</th><th>תפקיד</th><th>מחלקה</th><th>תאריך איפוס אחרון</th></tr></thead>
+                <tbody>${soldiers.map(s => `<tr>
+                    <td style="padding:4px 8px;font-weight:600;">${esc(s.name)}</td>
+                    <td>${esc(s.role)}</td>
+                    <td>${esc(s.unit)}</td>
+                    <td style="color:${s.rangeDate ? 'var(--danger)' : 'var(--text-light)'};">${s.rangeDate ? formatDate(s.rangeDate) : 'לא בוצע'}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+    });
+
+    const content = document.getElementById('rangeResetContent');
+    content.innerHTML = `<div style="padding:4px 0 12px;font-size:0.9em;color:var(--text-light);">סה"כ <strong>${totalCount}</strong> חיילים שלא ביצעו איפוס מטווח ב-6 חודשים האחרונים</div>` + html;
+    openModal('rangeResetModal');
 }
 
 function renderWeaponsTab() {
