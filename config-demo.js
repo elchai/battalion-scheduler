@@ -293,6 +293,7 @@ const CONFIG = {
     // --- נתיבים ---
     deployPath: '/battalion-scheduler/demo',
     logoPath: 'demo/logo.png',
+    loginLogoPath: 'demo/logo-login.png',
     docLogoPath: 'demo/doc-logo.png',
     stampPath: 'demo/stamp.png',
 

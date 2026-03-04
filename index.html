@@ -38,7 +38,7 @@
         <h2 id="loginTitle">מערכת ניהול גדודי</h2>
         <div class="subtitle" id="loginSubtitle">תעסוקה מבצעית</div>
         <script>
-        document.getElementById('loginLogo').src = CONFIG.logoPath;
+        document.getElementById('loginLogo').src = CONFIG.loginLogoPath || CONFIG.logoPath;
         document.getElementById('loginLogo').alt = CONFIG.battalionName;
         document.getElementById('loginTitle').textContent = CONFIG.systemTitle;
         document.getElementById('loginSubtitle').textContent = CONFIG.systemSubtitle;
