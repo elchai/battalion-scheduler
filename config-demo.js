@@ -183,7 +183,7 @@ function _generateDemoShifts(soldiers) {
     for (let day = 0; day < 14; day++) {
         const d = new Date(baseDate);
         d.setDate(d.getDate() + day);
-        const dateStr = d.toISOString().slice(0, 10);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
         Object.keys(taskDefs).forEach(compKey => {
             const compSoldiers = soldiers.filter(s => s.company === compKey);
@@ -878,7 +878,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 11,
+    demoSeedVersion: 12,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,

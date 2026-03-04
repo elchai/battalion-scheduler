@@ -950,7 +950,8 @@ function parseSupportSheet(csv) {
             company, unit: dept,
             role: f[4].trim() || 'לוחם',
             rank: '', fromSheets: true,
-            arrival: (f[6] || '').trim()
+            arrival: (f[6] || '').trim(),
+            notArrived: (f[6] || '').trim() !== 'מגיע'
         });
     }
     return soldiers;
@@ -1026,7 +1027,8 @@ function parseCombatSheet(csv, companyKey) {
             company: companyKey, unit: unitLabel,
             role: role || (staffType === 'סגל' ? 'מפקד' : 'לוחם'),
             rank: staffType || '', fromSheets: true,
-            arrival, certification: cert || ''
+            arrival, certification: cert || '',
+            notArrived: arrival !== 'מגיע'
         });
     }
     return soldiers;
@@ -1087,6 +1089,8 @@ function renderOverview() {
         const regCount = state.soldiers.filter(s => s.company === key).length;
         const total = (key === 'hq' || key === 'palsam') ? regCount : comp.totals.soldiers + comp.totals.commanders + comp.totals.officers;
         const onLeave = state.leaves.filter(l => l.company === key && isCurrentlyOnLeave(l)).length;
+        const notArrivedCount = state.soldiers.filter(s => s.company === key && s.notArrived).length;
+        const homeCount = onLeave + notArrivedCount;
         const card = document.createElement('div');
         card.className = `company-card ${comp.colorClass}`;
         if (canView(key)) {
@@ -1117,7 +1121,7 @@ function renderOverview() {
                 </div>` : ''}
                 <div style="display:flex;justify-content:space-between;font-size:0.82em;color:var(--text-light);">
                     <span>${comp.tasks.length} משימות</span>
-                    <span>${onLeave > 0 ? onLeave + ' בבית' : 'כולם בבסיס'}</span>
+                    <span>${homeCount > 0 ? homeCount + ' בבית' : 'כולם בבסיס'}</span>
                 </div>
             </div>`;
         grid.appendChild(card);
@@ -1138,6 +1142,7 @@ function renderDashboard() {
         const c = companyData[k];
         const regCount = state.soldiers.filter(s => s.company === k).length;
         const total = c.totals.soldiers + c.totals.commanders + c.totals.officers;
+        const notArrivedCount = state.soldiers.filter(s => s.company === k && s.notArrived).length;
         const onLeave = state.leaves.filter(l => l.company === k && isCurrentlyOnLeave(l)).length;
 
         // Rotation leaves
@@ -1155,7 +1160,7 @@ function renderDashboard() {
         const assignedIds = new Set();
         state.shifts.filter(sh => sh.company === k).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
-        const home = onLeave + rotLeave;
+        const home = onLeave + rotLeave + notArrivedCount;
         const assigned = assignedIds.size;
         const available = Math.max(0, regCount - assigned - home);
 
@@ -1201,7 +1206,8 @@ function renderDashboard() {
 
     // === Task Readiness (today only) ===
     let taskAlerts = [];
-    const todayForAlerts = new Date().toISOString().split('T')[0];
+    const _now = new Date();
+    const todayForAlerts = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
     mainCompanies.forEach(k => {
         const comp = companyData[k];
         comp.tasks.forEach(task => {
@@ -1276,11 +1282,11 @@ function renderDashboard() {
     }
 
     // Alert: soldiers who didn't arrive to מילואים
-    const notArrived = state.leaves.filter(l => l.reason === 'לא הגיע' && canView(state.soldiers.find(s => s.id === l.soldierId)?.company));
-    if (notArrived.length > 0) {
+    const notArrivedSoldiers = state.soldiers.filter(s => s.notArrived && canView(s.company));
+    if (notArrivedSoldiers.length > 0) {
         alertsHtml += `<div class="dash-alert dash-alert-danger">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-            <span><strong>${notArrived.length} חיילים</strong> לא הגיעו למילואים</span>
+            <span><strong>${notArrivedSoldiers.length} חיילים</strong> לא הגיעו למילואים</span>
         </div>`;
     }
 
@@ -1553,14 +1559,15 @@ function getFilteredSoldiers(compKey) {
     // Status filter
     if (ss.filter !== 'all') {
         soldiers = soldiers.filter(s => {
-            const onLeave = leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
+            const isNotArrived = s.notArrived === true;
+            const onLeave = !isNotArrived && leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
             const rotGroup = getRotationGroupForSoldier(s.id);
             const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
-            const isHome = onLeave || (rotStatus && !rotStatus.inBase);
-            const isAssigned = shifts.some(sh => sh.soldiers.includes(s.id));
+            const isHome = isNotArrived || onLeave || (rotStatus && !rotStatus.inBase);
+            const isAssigned = !isHome && shifts.some(sh => sh.soldiers.includes(s.id));
 
             if (ss.filter === 'home') return isHome;
-            if (ss.filter === 'assigned') return isAssigned && !isHome;
+            if (ss.filter === 'assigned') return isAssigned;
             if (ss.filter === 'available') return !isHome && !isAssigned;
             return true;
         });
@@ -1588,13 +1595,14 @@ function renderSoldiersGrid(compKey) {
     }
 
     gridEl.innerHTML = '<div class="personnel-grid">' + soldiers.map(s => {
-        const onLeave = leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
+        const isNotArrived = s.notArrived === true;
+        const onLeave = !isNotArrived && leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
         const rotGroup = getRotationGroupForSoldier(s.id);
         const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
-        const isHome = onLeave || (rotStatus && !rotStatus.inBase);
-        const isAssigned = shifts.some(sh => sh.soldiers.includes(s.id));
+        const isHome = isNotArrived || onLeave || (rotStatus && !rotStatus.inBase);
+        const isAssigned = !isHome && shifts.some(sh => sh.soldiers.includes(s.id));
         const cls = isHome ? 'on-leave' : isAssigned ? 'on-duty' : 'unassigned';
-        const txt = isHome ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
+        const txt = isNotArrived ? 'לא הגיע' : onLeave ? 'בבית' : (rotStatus && !rotStatus.inBase) ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
         const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
         let rotInfo = '';
         if (rotGroup && rotStatus) {
@@ -1610,7 +1618,7 @@ function renderSoldiersGrid(compKey) {
             <div style="display:flex;align-items:center;gap:6px;">
                 <span class="person-status ${badge}">${txt}</span>
                 ${canEdit(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
-                <button class="btn btn-icon btn-sm" style="background:#9C27B0;color:white;" onclick="openTransferSoldier('${s.id}')" title="העבר פלוגה">&#8644;</button>
+                <button class="btn btn-icon btn-sm" style="background:${s.notArrived ? '#e74c3c' : '#78909C'};color:white;" onclick="toggleNotArrived('${s.id}')" title="${s.notArrived ? 'סמן כמגיע' : 'סמן כלא מגיע'}">${s.notArrived ? '&#10007;' : '&#10003;'}</button>
                 ${!(CONFIG.skipPassword && s.id.startsWith('demo_')) ? `<button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}` : ''}
             </div>
         </div>`;
@@ -2855,12 +2863,18 @@ function saveSoldier() {
             sol.pantsSize = document.getElementById('soldierPantsSize').value;
             sol.notes = document.getElementById('soldierNotes').value.trim();
             sol.servicePeriods = getServicePeriodsFromForm();
+            // If all service periods removed → mark as not arrived
+            if (sol.servicePeriods.length === 0 && !sol.notArrived) {
+                sol.notArrived = true;
+                state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== editId); });
+            }
             saveState();
             closeModal('addSoldierModal');
             renderCompanyTab(company);
             renderOverview();
+            renderDashboard();
             updateGlobalStats();
-            showToast(`${name} עודכן בהצלחה`);
+            showToast(sol.notArrived ? `${name} סומן כלא מגיע למילואים` : `${name} עודכן בהצלחה`);
         }
     } else {
         // Add new soldier
@@ -2903,6 +2917,28 @@ function saveSoldier() {
             }, 200);
         }
     }
+}
+
+async function toggleNotArrived(soldierId) {
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+    if (!canEdit(sol.company) && !isAdmin()) { showToast('אין הרשאה', 'error'); return; }
+
+    if (!sol.notArrived) {
+        if (!await customConfirm(`לסמן את ${sol.name} כלא מגיע למילואים?`)) return;
+        sol.notArrived = true;
+        state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== soldierId); });
+        showToast(`${sol.name} סומן כלא מגיע למילואים`);
+    } else {
+        sol.notArrived = false;
+        showToast(`${sol.name} סומן כמגיע למילואים`);
+    }
+
+    saveState();
+    renderCompanyTab(sol.company);
+    renderOverview();
+    renderDashboard();
+    updateGlobalStats();
 }
 
 async function deleteSoldier(id) {
@@ -3177,8 +3213,12 @@ function updateTaskCommanderSelect() {
 
 // Check soldier status for a specific date/time
 function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
-    // Check service periods (פיצול)
     const soldier = state.soldiers.find(s => s.id === soldierId);
+    // Check notArrived
+    if (soldier && soldier.notArrived) {
+        return { available: false, onLeave: false, assignedTo: 'לא הגיע למילואים' };
+    }
+    // Check service periods (פיצול)
     if (soldier && !isSoldierActiveOnDate(soldier, date)) {
         return { available: false, onLeave: false, assignedTo: 'מחוץ לתקופת שירות' };
     }
@@ -8086,7 +8126,7 @@ function openRangeResetSummary() {
     });
 
     const content = document.getElementById('rangeResetContent');
-    content.innerHTML = `<div style="padding:4px 0 12px;font-size:0.9em;color:var(--text-light);">סה"כ <strong>${totalCount}</strong> חיילים שלא ביצעו איפוס מטווח ב-6 חודשים האחרונים</div>` + html;
+    content.innerHTML = `<div style="padding:4px 0 12px;font-size:0.9em;color:var(--text-light);">סה"כ <strong>${totalCount}</strong> חיילים שלא ביצעו מטווח איפוס ב-6 חודשים האחרונים</div>` + html;
     openModal('rangeResetModal');
 }
 
