@@ -127,32 +127,33 @@ function _generateDemoShifts(soldiers) {
             { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
             { name: 'תצפית', s: 2, c: 0, o: 0, numShifts: 3 },
             { name: 'שמירה', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'צוותי יזומות', s: 20, c: 2, o: 0, numShifts: 1, time: ['06:00','22:00'] },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
         ],
         b: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
-            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
-            { name: 'מחסום', s: 3, c: 1, o: 0, numShifts: 3 },
-            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'סיור קל', s: 2, c: 1, o: 0, numShifts: 3 },
             { name: 'בונקר', s: 1, c: 0, o: 0, numShifts: 3 },
             { name: 'ש.ג', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'כ"כ', s: 4, c: 1, o: 0, numShifts: 1 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
         ],
         c: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
-            { name: 'סיור צפון', s: 2, c: 1, o: 0, numShifts: 3 },
-            { name: 'סיור דרום', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'סיור קל צפון', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'סיור קל דרום', s: 2, c: 1, o: 0, numShifts: 3 },
             { name: 'הגנת מחנה', s: 2, c: 0, o: 0, numShifts: 3 },
-            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'כ"כ', s: 5, c: 1, o: 0, numShifts: 1 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
         ],
         d: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
             { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
-            { name: 'מחסום', s: 4, c: 1, o: 0, numShifts: 3 },
-            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'מחסום בל', s: 4, c: 1, o: 0, numShifts: 3 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
         ],
         hq: [
@@ -244,6 +245,77 @@ function _generateDemoShifts(soldiers) {
         });
     }
     return shifts;
+}
+
+function _generateDemoTasks() {
+    // Must match task names used in _generateDemoShifts taskDefs
+    const defs = {
+        a: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'תצפית', s: 2, c: 0, o: 0, numShifts: 3 },
+            { name: 'שמירה', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'צוותי יזומות', s: 22, c: 2, o: 0, numShifts: 1 },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1 }
+        ],
+        b: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור קל', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'בונקר', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'ש.ג', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'כ"כ', s: 4, c: 1, o: 0, numShifts: 1 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1 },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1 }
+        ],
+        c: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור קל צפון', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'סיור קל דרום', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'הגנת מחנה', s: 2, c: 0, o: 0, numShifts: 3 },
+            { name: 'כ"כ', s: 5, c: 1, o: 0, numShifts: 1 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1 },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1 }
+        ],
+        d: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'מחסום בל', s: 4, c: 1, o: 0, numShifts: 3 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1 },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1 }
+        ],
+        hq: [
+            { name: 'תורנות חפ"ק', s: 2, c: 0, o: 1, numShifts: 1 },
+            { name: 'קישור', s: 2, c: 0, o: 0, numShifts: 1 }
+        ],
+        agam: [
+            { name: 'משמרת א׳', s: 2, c: 0, o: 2, numShifts: 1 },
+            { name: 'משמרת ב׳', s: 2, c: 0, o: 0, numShifts: 1 },
+            { name: 'משמרת ג׳', s: 2, c: 0, o: 0, numShifts: 1 },
+            { name: 'כונן', s: 2, c: 0, o: 0, numShifts: 1 }
+        ],
+        palsam: [
+            { name: 'מטבח', s: 5, c: 0, o: 0, numShifts: 1 },
+            { name: 'שמירה', s: 5, c: 0, o: 0, numShifts: 3 },
+            { name: 'נהיגה', s: 5, c: 0, o: 0, numShifts: 1 },
+            { name: 'תורנות', s: 3, c: 0, o: 0, numShifts: 3 },
+            { name: 'אחזקה', s: 3, c: 0, o: 0, numShifts: 1 },
+            { name: 'ניקיון מחנה', s: 3, c: 0, o: 0, numShifts: 1 },
+            { name: 'הובלות', s: 2, c: 0, o: 0, numShifts: 1 }
+        ]
+    };
+    const tasks = {};
+    Object.entries(defs).forEach(([k, arr]) => {
+        tasks[k] = arr.map(t => ({
+            name: t.name,
+            soldiers: t.s * t.numShifts,
+            commanders: t.c * t.numShifts,
+            officers: t.o * t.numShifts,
+            shifts: t.numShifts,
+            perShift: { soldiers: t.s, commanders: t.c, officers: t.o }
+        }));
+    });
+    return tasks;
 }
 
 function _generateDemoLeaves(soldiers) {
@@ -696,6 +768,7 @@ function _generateDemoInventory(soldiers) {
 // Build seed data
 const _demoSoldiers = _generateDemoSoldiers();
 const _demoShifts = _generateDemoShifts(_demoSoldiers);
+const _demoTasks = _generateDemoTasks();
 const _demoLeaves = _generateDemoLeaves(_demoSoldiers);
 const _demoTraining = _generateDemoTraining(_demoSoldiers);
 const _demoConstraints = _generateDemoConstraints(_demoSoldiers);
@@ -716,6 +789,7 @@ const CONFIG = {
     // --- כניסה ---
     password: 'demo',
     adminName: 'ישראל ישראלי',
+    isDemo: true,
     skipPassword: true,
     collectVisitorData: true,
     visitorCollection: 'demo-visitors',
@@ -878,7 +952,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 12,
+    demoSeedVersion: 13,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
@@ -888,7 +962,8 @@ const CONFIG = {
         personalEquipment: _demoEquipment,
         signatureLog: _demoSignatureLog,
         weaponsData: _demoWeaponsData,
-        equipment: _demoInventory
+        equipment: _demoInventory,
+        tasks: _demoTasks
     }
 };
 

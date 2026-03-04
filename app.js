@@ -124,22 +124,26 @@ function isAdmin() {
     return currentUser && currentUser.name === settings.adminName;
 }
 
+function isGdudiAccess() {
+    return currentUser && (currentUser.unit === 'gdudi' || currentUser.unit === 'hq');
+}
+
 function canEdit(compKey) {
     if (!currentUser) return false;
     if (isAdmin()) return true;
-    if (currentUser.unit === 'gdudi') return true;
+    if (isGdudiAccess()) return true;
     return currentUser.unit === compKey;
 }
 
 function canView(compKey) {
     if (!currentUser) return false;
-    if (currentUser.unit === 'gdudi') return true;
+    if (isGdudiAccess()) return true;
     return currentUser.unit === compKey;
 }
 
 function canEditShifts(compKey) {
     if (!currentUser) return false;
-    if (isAdmin() || currentUser.unit === 'gdudi') return true;
+    if (isAdmin() || isGdudiAccess()) return true;
     if (currentUser.unit !== compKey) return false;
     const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'קצין', 'מפקד'];
     return cmdRoles.some(r => (currentUser.role || '').includes(r));
@@ -161,7 +165,7 @@ function detectUserRole() {
     if (!currentUser) return null;
     const match = state.soldiers.find(s =>
         s.name === currentUser.name &&
-        (currentUser.unit === 'palsam' || currentUser.unit === 'gdudi' || s.company === currentUser.unit)
+        (currentUser.unit === 'palsam' || isGdudiAccess() || s.company === currentUser.unit)
     );
     if (match) {
         currentUser.role = match.role || '';
@@ -175,7 +179,7 @@ function detectUserRole() {
 
 function canSignEquipment() {
     if (!currentUser) return false;
-    if (currentUser.unit === 'palsam' || currentUser.unit === 'gdudi') return true;
+    if (currentUser.unit === 'palsam' || isGdudiAccess()) return true;
     if (isAdmin()) return true;
     if (!currentUser.role) return false;
     return SIGNING_ROLES.some(r => currentUser.role.includes(r));
@@ -339,12 +343,12 @@ function activateApp() {
 
     // Set calendar filter to user's company
     const calFilter = document.getElementById('calCompanyFilter');
-    if (calFilter && currentUser.unit !== 'gdudi') {
+    if (calFilter && !isGdudiAccess()) {
         calFilter.value = currentUser.unit;
     }
 
     // Auto-switch to the relevant tab
-    if (currentUser.unit !== 'gdudi') {
+    if (!isGdudiAccess()) {
         switchTab(currentUser.unit);
     } else {
         switchTab('all');
@@ -434,7 +438,7 @@ function renderSoldierShifts() {
 
 function applyUnitFilter() {
     const unit = currentUser.unit;
-    const isGdudi = unit === 'gdudi';
+    const isGdudi = unit === 'gdudi' || unit === 'hq';
 
     // Show/hide sidebar items based on access level
     document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = '');
@@ -642,6 +646,12 @@ function loadState() {
             if (seed.weaponsData) state.weaponsData = seed.weaponsData;
             if (seed.equipment) state.equipment = seed.equipment;
             localStorage.setItem(CONFIG.storagePrefix + 'SeedVer', String(CONFIG.demoSeedVersion || 0));
+            // Save demo task definitions so dashboard alerts match demo shifts
+            if (seed.tasks) {
+                localStorage.setItem(CONFIG.storagePrefix + 'Tasks', JSON.stringify(seed.tasks));
+            } else {
+                localStorage.removeItem(CONFIG.storagePrefix + 'Tasks');
+            }
             saveState();
         }
     }
@@ -1809,7 +1819,7 @@ function renderRotationTab() {
 }
 
 function getVisibleRotGroups() {
-    if (!currentUser || currentUser.unit === 'gdudi' || isAdmin()) return state.rotationGroups;
+    if (!currentUser || isGdudiAccess() || isAdmin()) return state.rotationGroups;
     return state.rotationGroups.filter(g =>
         g.soldiers.some(sid => {
             const sol = state.soldiers.find(s => s.id === sid);
@@ -1875,7 +1885,7 @@ function renderRotationCalendar() {
 function renderRotationGroups() {
     const container = document.getElementById('rotationGroupsContainer');
     const visibleGroups = getVisibleRotGroups();
-    const canManage = !currentUser || currentUser.unit === 'gdudi' || isAdmin();
+    const canManage = !currentUser || isGdudiAccess() || isAdmin();
     if (visibleGroups.length === 0) {
         container.innerHTML = `<div class="empty-state">
             <div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
@@ -2218,7 +2228,7 @@ function renderCommanderDashboard() {
 
     // Determine which company to show
     let compKey = commanderViewCompany || (currentUser && currentUser.unit) || 'a';
-    if (compKey === 'gdudi') compKey = 'a';
+    if (compKey === 'gdudi' || compKey === 'hq') compKey = 'a';
     const comp = companyData[compKey];
     if (!comp) return;
 
@@ -2261,7 +2271,7 @@ function renderCommanderDashboard() {
     });
 
     // Company selector for gdudi users
-    const compSelector = (currentUser && currentUser.unit) === 'gdudi' ? `
+    const compSelector = (currentUser && (currentUser.unit === 'gdudi' || currentUser.unit === 'hq')) ? `
         <select id="cmdCompanySelect" onchange="switchCommanderCompany(this.value)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
             ${allCompanyKeys().map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
         </select>` : '';
@@ -2961,7 +2971,7 @@ async function deleteSoldier(id) {
 function canTransfer(fromComp, toComp) {
     if (!currentUser) return false;
     if (isAdmin()) return true;
-    if (currentUser.unit === 'gdudi') return true;
+    if (isGdudiAccess()) return true;
     return currentUser.unit === fromComp || currentUser.unit === toComp;
 }
 
@@ -3815,7 +3825,7 @@ let trainingCompanyFilter = 'all';
 function renderTrainingTab() {
     const container = document.getElementById('content-training');
     if (!container) return;
-    const canManage = currentUser && (currentUser.unit === 'gdudi' || isAdmin());
+    const canManage = currentUser && (isGdudiAccess() || isAdmin());
     const types = getTrainingTypes();
 
     // Filter soldiers
@@ -4368,7 +4378,7 @@ function esc(text) {
 
 function updateGlobalStats() {
     const unit = currentUser ? currentUser.unit : 'gdudi';
-    const isGdudi = unit === 'gdudi';
+    const isGdudi = unit === 'gdudi' || unit === 'hq';
 
     // Filter data by user's unit
     const filterCompanies = isGdudi ? ALL_COMPANIES : [unit];
@@ -4617,12 +4627,18 @@ function renderTaskEditor() {
 function updateTask(compKey, index, field, value) {
     const t = companyData[compKey].tasks[index];
     if (field === 'name') t.name = value;
-    else if (field === 'shifts') t.shifts = value;
-    else {
+    else if (field === 'shifts') {
+        t.shifts = value;
+        // Recalc totals
+        t.soldiers = t.perShift.soldiers * value;
+        t.commanders = t.perShift.commanders * value;
+        t.officers = t.perShift.officers * value;
+    } else {
         t.perShift[field] = value;
         t[field] = value * t.shifts;
     }
     saveTasksToStorage();
+    renderDashboard();
     showToast('משימה עודכנה');
 }
 
@@ -6329,7 +6345,7 @@ function openSignEquipment() {
     // Company filtering
     const signCompDd = document.getElementById('signCompany');
     const signCompGroup = document.getElementById('signCompanyGroup');
-    if (currentUser.unit !== 'palsam' && currentUser.unit !== 'gdudi') {
+    if (currentUser.unit !== 'palsam' && !isGdudiAccess()) {
         signCompDd.value = currentUser.unit;
         if (signCompGroup) signCompGroup.style.display = 'none';
     } else {
@@ -6827,7 +6843,7 @@ function confirmSignEquipment() {
 function openReturnEquipment() {
     const compDd = document.getElementById('returnCompany');
     const compGroup = document.getElementById('returnCompanyGroup');
-    if (currentUser.unit !== 'palsam' && currentUser.unit !== 'gdudi') {
+    if (currentUser.unit !== 'palsam' && !isGdudiAccess()) {
         compDd.value = currentUser.unit;
         if (compGroup) compGroup.style.display = 'none';
     } else {
@@ -9103,7 +9119,7 @@ function openGeneratePakalModal() {
     const compDropdown = document.getElementById('pakalGenCompany');
     const userUnit = currentUser?.unit;
     // Non-palsam/gdudi users → lock to their company
-    if (userUnit && userUnit !== 'gdudi' && userUnit !== 'palsam') {
+    if (userUnit && !isGdudiAccess() && userUnit !== 'palsam') {
         compDropdown.value = userUnit;
         compDropdown.disabled = true;
     } else {
@@ -9293,7 +9309,7 @@ function generatePersonalEquipment(soldierId, selectedItems) {
 function openBulkGeneratePakalModal() {
     const compDropdown = document.getElementById('bulkPakalCompany');
     const userUnit = currentUser?.unit;
-    if (userUnit && userUnit !== 'gdudi' && userUnit !== 'palsam') {
+    if (userUnit && !isGdudiAccess() && userUnit !== 'palsam') {
         compDropdown.value = userUnit;
         compDropdown.disabled = true;
     } else {
@@ -9340,7 +9356,7 @@ function renderPakalSubTab() {
 
     // Filter by current user's company (palsam + gdudi see all)
     const userUnit = currentUser?.unit;
-    if (userUnit && userUnit !== 'gdudi' && userUnit !== 'palsam') {
+    if (userUnit && !isGdudiAccess() && userUnit !== 'palsam') {
         pelist = pelist.filter(pe => pe.soldier.company === userUnit);
     }
 
