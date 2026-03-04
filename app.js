@@ -4375,6 +4375,8 @@ function renderSettingsTab() {
                 <label>שעת התחלה</label>
                 <input type="time" value="${settings.operationStartTime || '14:00'}" onchange="settings.operationStartTime=this.value;saveSettings();">
             </div>
+        </div>
+        <div class="settings-row">
             <div class="settings-field">
                 <label>סיום תעסוקה</label>
                 <input type="date" value="${settings.operationEndDate || ''}" onchange="settings.operationEndDate=this.value;saveSettings();">
