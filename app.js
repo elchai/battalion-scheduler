@@ -1188,18 +1188,20 @@ function renderDashboard() {
         </div>`;
     }).join('');
 
-    // === Task Readiness ===
+    // === Task Readiness (today only) ===
     let taskAlerts = [];
+    const todayForAlerts = new Date().toISOString().split('T')[0];
     mainCompanies.forEach(k => {
         const comp = companyData[k];
         comp.tasks.forEach(task => {
             const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
             if (needed <= 0) return;
-            const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name)
+            const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name && sh.date === todayForAlerts)
                 .reduce((sum, sh) => sum + sh.soldiers.length, 0);
-            const pct = Math.round((assigned / needed) * 100);
-            if (pct < 50) {
-                taskAlerts.push({ company: comp.name, task: task.name, pct, needed, assigned });
+            const missing = needed - assigned;
+            if (missing > 0) {
+                const pct = Math.round((assigned / needed) * 100);
+                taskAlerts.push({ company: comp.name, task: task.name, pct, needed, assigned, missing });
             }
         });
     });
@@ -1257,7 +1259,7 @@ function renderDashboard() {
                 : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
             alertsHtml += `<div class="dash-alert ${cls}">
                 ${icon}
-                <span><strong>${a.company}</strong> - ${a.task}: ${a.assigned}/${a.needed} משובצים (${a.pct}%)</span>
+                <span><strong>${a.company}</strong> - ${a.task}: חסרים ${a.missing} (${a.assigned}/${a.needed} משובצים)</span>
             </div>`;
         });
     }

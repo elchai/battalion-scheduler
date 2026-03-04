@@ -114,26 +114,69 @@ function _generateDemoSoldiers() {
 
 function _generateDemoShifts(soldiers) {
     const shifts = [];
-    const tasks = {
-        a: ['חפק מפ','סיור','תצפית','שמירה','צוות יזומות','תורן מטבח'],
-        b: ['חפק מפ','סיור','מחסום','חמל','בונקר','ש.ג','צוות יזומות','תורן מטבח'],
-        c: ['חפק מפ','סיור צפון','סיור דרום','הגנת מחנה','צוות יזומות','תורן מטבח'],
-        d: ['חפק מפ','סיור','מחסום','צוות יזומות','תורן מטבח'],
-        hq: ['תורנות חפ"ק','קישור','תורנות רס"פ'],
-        agam: ['משמרת א׳','משמרת ב׳','משמרת ג׳','כונן','חמל גדודי','תקשוב','אבטחת מידע'],
-        palsam: ['מטבח','שמירה','נהיגה','תורנות','אחזקה','ניקיון מחנה','הובלות']
-    };
     const shiftDefs = [
         { name: 'בוקר', start: '06:00', end: '14:00' },
         { name: 'צהריים', start: '14:00', end: '22:00' },
         { name: 'לילה', start: '22:00', end: '06:00' }
     ];
-    // AGM has its own shift structure
-    const agamShiftMap = {
-        'משמרת א׳': { name: 'בוקר', start: '06:00', end: '14:00' },
-        'משמרת ב׳': { name: 'צהריים', start: '14:00', end: '22:00' },
-        'משמרת ג׳': { name: 'לילה', start: '22:00', end: '06:00' },
-        'כונן': { name: 'יום', start: '08:00', end: '20:00' }
+
+    // Task definitions matching CONFIG.companies — { perShift: {s,c,o}, shifts, time }
+    const taskDefs = {
+        a: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'תצפית', s: 2, c: 0, o: 0, numShifts: 3 },
+            { name: 'שמירה', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
+        ],
+        b: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'מחסום', s: 3, c: 1, o: 0, numShifts: 3 },
+            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'בונקר', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'ש.ג', s: 1, c: 0, o: 0, numShifts: 3 },
+            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
+        ],
+        c: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור צפון', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'סיור דרום', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'הגנת מחנה', s: 2, c: 0, o: 0, numShifts: 3 },
+            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
+        ],
+        d: [
+            { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'מחסום', s: 4, c: 1, o: 0, numShifts: 3 },
+            { name: 'צוות יזומות', s: 9, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
+        ],
+        hq: [
+            { name: 'תורנות חפ"ק', s: 2, c: 0, o: 1, numShifts: 1 },
+            { name: 'קישור', s: 2, c: 0, o: 0, numShifts: 1 }
+        ],
+        agam: [
+            { name: 'משמרת א׳', s: 2, c: 0, o: 2, numShifts: 1, time: ['06:00','14:00'] },
+            { name: 'משמרת ב׳', s: 2, c: 0, o: 0, numShifts: 1, time: ['14:00','22:00'] },
+            { name: 'משמרת ג׳', s: 2, c: 0, o: 0, numShifts: 1, time: ['22:00','06:00'] },
+            { name: 'כונן', s: 2, c: 0, o: 0, numShifts: 1, time: ['08:00','20:00'] },
+            { name: 'חמל גדודי', s: 3, c: 0, o: 0, numShifts: 1, time: ['07:00','19:00'] },
+            { name: 'תקשוב', s: 2, c: 0, o: 0, numShifts: 1, time: ['07:00','19:00'] },
+            { name: 'אבטחת מידע', s: 2, c: 0, o: 0, numShifts: 1, time: ['07:00','19:00'] }
+        ],
+        palsam: [
+            { name: 'מטבח', s: 5, c: 0, o: 0, numShifts: 1, time: ['05:00','20:00'] },
+            { name: 'שמירה', s: 5, c: 0, o: 0, numShifts: 3 },
+            { name: 'נהיגה', s: 5, c: 0, o: 0, numShifts: 1, time: ['06:00','20:00'] },
+            { name: 'תורנות', s: 3, c: 0, o: 0, numShifts: 3 },
+            { name: 'אחזקה', s: 3, c: 0, o: 0, numShifts: 1, time: ['07:00','17:00'] },
+            { name: 'ניקיון מחנה', s: 3, c: 0, o: 0, numShifts: 1, time: ['06:00','14:00'] },
+            { name: 'הובלות', s: 2, c: 0, o: 0, numShifts: 1, time: ['07:00','19:00'] }
+        ]
     };
 
     const baseDate = new Date('2026-02-25T00:00:00');
@@ -142,70 +185,60 @@ function _generateDemoShifts(soldiers) {
         d.setDate(d.getDate() + day);
         const dateStr = d.toISOString().slice(0, 10);
 
-        Object.keys(tasks).forEach(compKey => {
+        Object.keys(taskDefs).forEach(compKey => {
             const compSoldiers = soldiers.filter(s => s.company === compKey);
             const soldiersPool = compSoldiers.filter(s => ['לוחם','נהג','קשר','חובש'].includes(s.role));
             const commanders = compSoldiers.filter(s => ['מ"כ','מפקד','סמב"צ'].some(r => s.role.includes(r)));
             const officers = compSoldiers.filter(s => ['מ"פ','סמ"פ','קצין','רס"פ'].some(r => s.role.includes(r)));
-            let solIdx = (day * 4) % Math.max(soldiersPool.length, 1);
+            let solIdx = (day * 7) % Math.max(soldiersPool.length, 1);
             let cmdIdx = day % Math.max(commanders.length, 1);
             let offIdx = day % Math.max(officers.length, 1);
 
-            (tasks[compKey] || []).forEach(task => {
-                // Single-shift tasks (initiatives, kitchen, agam)
-                if (task === 'צוות יזומות') {
-                    const assigned = [];
-                    for (let i = 0; i < 6; i++) {
-                        if (soldiersPool.length > 0) { assigned.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
-                    }
-                    if (commanders.length > 0) { assigned.push(commanders[cmdIdx % commanders.length].id); cmdIdx++; }
-                    if (officers.length > 0) { assigned.push(officers[offIdx % officers.length].id); offIdx++; }
-                    shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: 'יום', startTime: '06:00', endTime: '22:00', soldiers: assigned, taskCommander: assigned[assigned.length - 1] || '' });
-                    return;
+            function pickSoldiers(n) {
+                const arr = [];
+                for (let i = 0; i < n; i++) {
+                    if (soldiersPool.length > 0) { arr.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
                 }
-                if (task === 'תורן מטבח') {
-                    const assigned = [];
-                    if (soldiersPool.length > 0) { assigned.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
-                    shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: 'יום', startTime: '06:00', endTime: '18:00', soldiers: assigned, taskCommander: '' });
-                    return;
+                return arr;
+            }
+            function pickCommanders(n) {
+                const arr = [];
+                for (let i = 0; i < n; i++) {
+                    if (commanders.length > 0) { arr.push(commanders[cmdIdx % commanders.length].id); cmdIdx++; }
                 }
-                if (agamShiftMap[task]) {
-                    const sh = agamShiftMap[task];
-                    const assigned = [];
-                    for (let i = 0; i < 2; i++) {
-                        if (soldiersPool.length > 0) { assigned.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
-                    }
-                    if (task === 'משמרת א׳' && officers.length > 0) { assigned.push(officers[offIdx % officers.length].id); offIdx++; }
-                    shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: sh.name, startTime: sh.start, endTime: sh.end, soldiers: assigned, taskCommander: assigned[0] || '' });
-                    return;
+                return arr;
+            }
+            function pickOfficers(n) {
+                const arr = [];
+                for (let i = 0; i < n; i++) {
+                    if (officers.length > 0) { arr.push(officers[offIdx % officers.length].id); offIdx++; }
                 }
-                // Single-shift day tasks (maintenance, logistics, HQ duties)
-                const dayTasks = ['אחזקה','ניקיון מחנה','הובלות','חמל גדודי','תקשוב','אבטחת מידע','תורנות רס"פ','תורנות'];
-                if (dayTasks.includes(task)) {
-                    const assigned = [];
-                    const num = (task === 'מטבח' || task === 'חמל גדודי') ? 3 : 2;
-                    for (let i = 0; i < num; i++) {
-                        if (soldiersPool.length > 0) { assigned.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
-                    }
-                    if (task === 'תורנות רס"פ' && officers.length > 0) { assigned.push(officers[offIdx % officers.length].id); offIdx++; }
-                    shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: 'יום', startTime: '07:00', endTime: '19:00', soldiers: assigned, taskCommander: assigned[0] || '' });
-                    return;
-                }
+                return arr;
+            }
 
-                // Regular 3-shift tasks
-                shiftDefs.forEach(sh => {
-                    const assigned = [];
-                    const numSoldiers = (task.includes('מחסום') ? 3 : 2);
-                    for (let i = 0; i < numSoldiers; i++) {
-                        if (soldiersPool.length > 0) { assigned.push(soldiersPool[solIdx % soldiersPool.length].id); solIdx++; }
-                    }
-                    if (task.includes('סיור') || task.includes('מחסום')) {
-                        if (commanders.length > 0) { assigned.push(commanders[cmdIdx % commanders.length].id); cmdIdx++; }
-                    }
-                    if (task.includes('חפק') || task.includes('חפ"ק')) {
-                        if (officers.length > 0) { assigned.push(officers[offIdx % officers.length].id); offIdx++; }
-                    }
-                    shifts.push({ id: 'sh_demo_' + shifts.length, company: compKey, task, date: dateStr, shiftName: sh.name, startTime: sh.start, endTime: sh.end, soldiers: assigned, taskCommander: assigned[0] || '' });
+            (taskDefs[compKey] || []).forEach(task => {
+                const shiftCount = task.numShifts;
+                const shiftsToUse = shiftCount === 1
+                    ? [{ name: 'יום', start: (task.time || ['07:00','19:00'])[0], end: (task.time || ['07:00','19:00'])[1] }]
+                    : shiftDefs;
+
+                shiftsToUse.forEach(sh => {
+                    const assigned = [
+                        ...pickSoldiers(task.s),
+                        ...pickCommanders(task.c),
+                        ...pickOfficers(task.o)
+                    ];
+                    shifts.push({
+                        id: 'sh_demo_' + shifts.length,
+                        company: compKey,
+                        task: task.name,
+                        date: dateStr,
+                        shiftName: sh.name,
+                        startTime: sh.start,
+                        endTime: sh.end,
+                        soldiers: assigned,
+                        taskCommander: assigned[assigned.length - 1] || ''
+                    });
                 });
             });
         });
@@ -845,7 +878,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 10,
+    demoSeedVersion: 11,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
