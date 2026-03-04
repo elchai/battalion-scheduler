@@ -449,47 +449,47 @@ function _generateDemoWeaponsData(soldiers) {
     const weaponsData = [];
     const cities = ['ירושלים','תל אביב','חיפה','באר שבע','נתניה','פתח תקווה','ראשון לציון','אשדוד','הרצליה','רעננה','כפר סבא','מודיעין','רמת גן','גבעתיים','חולון'];
     const streets = ['הרצל','ז\'בוטינסקי','בן גוריון','ויצמן','רוטשילד','אלנבי','דיזנגוף','בגין','רבין','שמעון פרס'];
-    const weaponTypes = ['M4','M4','M4','M16','M4','M4','נגב','M4','MAG','M4'];
-    const cmdNames = ['דוד כהן','משה לוי','יוסי ברק'];
-    const cmdRanks = ['סרן','רס"ן','סגן'];
+    const cmdNames = { a: 'דוד כהן', b: 'אלחי פיין', c: 'משה לוי', d: 'יוסי ברק', hq: 'אבי שמש', agam: 'רון דגן' };
+    const cmdRanks = { a: 'סרן', b: 'סרן', c: 'סרן', d: 'רס"ן', hq: 'סגן', agam: 'סגן' };
 
     // ~90% of combat soldiers have completed weapons forms
     const combatSoldiers = soldiers.filter(s => ['a','b','c','d','hq','agam'].includes(s.company));
     combatSoldiers.forEach((s, idx) => {
         if ((idx % 10) >= 9) return; // skip ~10%
         const nameParts = s.name.split(' ');
-        const healthAnswers = {};
-        for (let q = 1; q <= 20; q++) healthAnswers['q' + q] = 'no';
-        // A few soldiers answer 'yes' to some health questions
-        if (idx % 15 === 0) { healthAnswers.q3 = 'yes'; healthAnswers.q7 = 'yes'; }
 
         weaponsData.push({
             soldierId: s.id,
+            company: s.company,
             firstName: nameParts[0] || '',
             lastName: nameParts.slice(1).join(' ') || '',
             idNumber: s.personalId || '',
             personalNum: s.personalId || '',
             birthYear: String(1985 + (idx % 20)),
             fatherName: _FIRST_NAMES[(idx * 7) % _FIRST_NAMES.length],
-            phone: s.phone || '',
-            phone2: '',
-            address: streets[idx % streets.length] + ' ' + (1 + (idx % 50)),
+            street: streets[idx % streets.length],
+            houseNum: String(1 + (idx % 50)),
             city: cities[idx % cities.length],
+            postalCode: String(1000000 + (idx * 137) % 9000000),
+            phone: s.phone || '',
+            landline: idx % 5 === 0 ? '0' + (2 + (idx % 7)) + '-' + String(1000000 + idx * 111).slice(0,7) : '',
+            personalWeaponSource: idx % 20 === 0 ? 'צה"ל' : '',
+            rangeDate: '2025-' + String(1 + (idx % 12)).padStart(2,'0') + '-15',
+            enlistmentDate: '20' + String(15 + (idx % 8)).padStart(2,'0') + '-03-01',
+            dischargeDate: '20' + String(18 + (idx % 8)).padStart(2,'0') + '-03-01',
+            medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
             rank: s.rank || '',
-            role: s.role || '',
-            healthAnswers,
-            healthSig: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
-            waiverSig: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
-            requestSig: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
-            cmdSig: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
-            cmdName: cmdNames[idx % cmdNames.length],
-            cmdRank: cmdRanks[idx % cmdRanks.length],
+            combatCertified: idx % 8 !== 0,
+            idPhoto: idx % 3 === 0 ? null : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            doctorApproval: idx % 4 === 0 ? null : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            cmdName: cmdNames[s.company] || 'מפקד',
+            cmdRank: cmdRanks[s.company] || 'סרן',
             cmdId: String(100000 + idx),
-            cmdRole: 'מ"פ',
-            weaponType: weaponTypes[idx % weaponTypes.length],
-            weaponSerial: String(990000 + idx * 3),
-            idPhoto: null,
-            date: '2026-02-19'
+            cmdRole: 'מ"פ ' + (s.company === 'hq' ? 'חפ"ק' : s.company === 'agam' ? 'אג"מ' : s.company + '\''),
+            cmdSig: idx % 5 === 0 ? null : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            cmdDate: '2026-02-19',
+            lastUpdated: '2026-02-19T10:00:00',
+            source: 'app'
         });
     });
     return weaponsData;

@@ -162,6 +162,10 @@ const CONFIG = {
     defaultWeaponType: 'M-16',
     defaultSigningUnit: 'פלוגת פלס"ם',
 
+    // --- נשקים — סנכרון גוגל שיטס ---
+    weaponsSheetId: '',       // Google Sheets ID of responses table
+    weaponsScriptUrl: '',     // Google Apps Script Web App URL for push
+
     // --- קרדיט ---
     developerName: 'אלחי פיין',
     developerPhone: '972542012000',
