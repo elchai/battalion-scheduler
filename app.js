@@ -1244,6 +1244,7 @@ function renderOverview() {
 
 // ==================== DASHBOARD ====================
 function renderDashboard() {
+    const heroEl = document.getElementById('dashboardHeroStats');
     const grid = document.getElementById('dashboardGrid');
     const alertsEl = document.getElementById('dashboardAlerts');
     if (!grid) return;
@@ -1259,7 +1260,6 @@ function renderDashboard() {
         const notArrivedCount = state.soldiers.filter(s => s.company === k && s.notArrived).length;
         const onLeave = state.leaves.filter(l => l.company === k && isCurrentlyOnLeave(l)).length;
 
-        // Rotation leaves
         let rotLeave = 0;
         state.rotationGroups.forEach(g => {
             const status = getRotationStatus(g, new Date());
@@ -1278,14 +1278,63 @@ function renderDashboard() {
         const assigned = assignedIds.size;
         const available = Math.max(0, regCount - assigned - home);
 
-        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available };
+        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount };
         totalPersonnel += regCount;
         totalAssigned += assigned;
         totalHome += home;
         totalAvailable += available;
     });
 
-    // === DONUT CHART - Personnel Status ===
+    const mainCompanies = ALL_COMPANIES.filter(k => compStats[k].regCount > 0);
+    const activeCompCount = mainCompanies.length;
+
+    // === HERO STATS ===
+    if (heroEl) {
+        heroEl.innerHTML = `
+            <div class="dash-hero-card hero-total">
+                <div class="dash-hero-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div class="dash-hero-info">
+                    <div class="dash-hero-num">${totalPersonnel}</div>
+                    <div class="dash-hero-label">סה"כ כוח אדם</div>
+                    <div class="dash-hero-sub">${activeCompCount} יחידות פעילות</div>
+                </div>
+            </div>
+            <div class="dash-hero-card hero-assigned">
+                <div class="dash-hero-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="dash-hero-info">
+                    <div class="dash-hero-num">${totalAssigned}</div>
+                    <div class="dash-hero-label">משובצים למשימות</div>
+                    <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAssigned/totalPersonnel*100) : 0}% מהכוח</div>
+                </div>
+            </div>
+            <div class="dash-hero-card hero-home">
+                <div class="dash-hero-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="dash-hero-info">
+                    <div class="dash-hero-num">${totalHome}</div>
+                    <div class="dash-hero-label">בבית</div>
+                    <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalHome/totalPersonnel*100) : 0}% מהכוח</div>
+                </div>
+            </div>
+            <div class="dash-hero-card hero-available">
+                <div class="dash-hero-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="dash-hero-info">
+                    <div class="dash-hero-num">${totalAvailable}</div>
+                    <div class="dash-hero-label">זמינים</div>
+                    <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}% מהכוח</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // === DONUT CHART ===
     const donutData = [
         { label: 'משובצים', value: totalAssigned, color: '#27ae60' },
         { label: 'בבית', value: totalHome, color: '#e74c3c' },
@@ -1300,8 +1349,7 @@ function renderDashboard() {
         return `${d.color} ${start}deg ${start + size}deg`;
     }).join(', ');
 
-    // === BAR CHART - Company manning (all companies with soldiers) ===
-    const mainCompanies = ALL_COMPANIES.filter(k => compStats[k].regCount > 0);
+    // === BAR CHART ===
     const maxVal = Math.max(...mainCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
     const barsHtml = mainCompanies.map(k => {
         const cs = compStats[k];
@@ -1310,38 +1358,61 @@ function renderDashboard() {
         const forecastPct = forecast > 0 ? (forecast / maxVal) * 100 : 0;
         return `<div class="bar-row">
             <div class="bar-label">${cs.name}</div>
-            <div class="bar-track" style="position:relative;">
-                <div class="bar-fill" style="width:${pct}%;background:${cs.color};">${cs.regCount}</div>
-                ${forecast > 0 ? `<div style="position:absolute;right:${100-forecastPct}%;top:0;bottom:0;border-left:2px dashed rgba(0,0,0,0.3);" title="צפי: ${forecast}"></div>` : ''}
+            <div class="bar-track">
+                <div class="bar-fill" style="width:${pct}%;background:${cs.color || 'var(--primary)'};">${cs.regCount}</div>
+                ${forecast > 0 ? `<div class="bar-forecast-line" style="right:${100-forecastPct}%;" title="צפי: ${forecast}"></div>` : ''}
             </div>
-            ${forecast > 0 ? `<div style="font-size:0.7em;color:var(--text-light);min-width:30px;text-align:center;">${forecast}</div>` : ''}
+            ${forecast > 0 ? `<div class="bar-forecast-tag">${forecast}</div>` : '<div style="width:28px;"></div>'}
         </div>`;
     }).join('');
 
-    // === Task Readiness (today only) ===
-    let taskAlerts = [];
+    // === READINESS per company (today) ===
     const _now = new Date();
     const todayForAlerts = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+    let taskAlerts = [];
+    const readinessItems = [];
     mainCompanies.forEach(k => {
         const comp = companyData[k];
+        if (!comp.tasks || comp.tasks.length === 0) return;
+        let totalNeeded = 0, totalFilled = 0;
         comp.tasks.forEach(task => {
             const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
             if (needed <= 0) return;
             const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name && sh.date === todayForAlerts)
                 .reduce((sum, sh) => sum + sh.soldiers.length, 0);
+            totalNeeded += needed;
+            totalFilled += Math.min(assigned, needed);
             const missing = needed - assigned;
             if (missing > 0) {
                 const pct = Math.round((assigned / needed) * 100);
                 taskAlerts.push({ company: comp.name, task: task.name, pct, needed, assigned, missing });
             }
         });
+        const readinessPct = totalNeeded > 0 ? Math.round((totalFilled / totalNeeded) * 100) : 100;
+        const color = readinessPct >= 80 ? '#27ae60' : readinessPct >= 50 ? '#f39c12' : '#e74c3c';
+        readinessItems.push({ name: comp.name, pct: readinessPct, filled: totalFilled, needed: totalNeeded, color });
     });
 
-    // === Render ===
+    const readinessHtml = readinessItems.length > 0 ? readinessItems.map(r => `
+        <div class="readiness-item">
+            <div class="readiness-item-header">
+                <span>${r.name}</span>
+                <span style="color:${r.color};font-weight:700;">${r.pct}%</span>
+            </div>
+            <div class="readiness-bar-bg">
+                <div class="readiness-bar-fill" style="width:${r.pct}%;background:${r.color};"></div>
+            </div>
+            <div class="readiness-pct">${r.filled}/${r.needed} משובצים</div>
+        </div>
+    `).join('') : '<div style="text-align:center;color:var(--text-light);padding:16px;font-size:0.88em;">אין משימות מוגדרות להיום</div>';
+
+    // === Render grid ===
     grid.innerHTML = `
         <div class="dash-card">
             <div class="dash-card-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+                <div class="title-icon" style="background:#e8f5e9;color:#27ae60;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+                </div>
                 פיזור כוח אדם
             </div>
             <div class="donut-wrap">
@@ -1352,29 +1423,41 @@ function renderDashboard() {
                     </div>
                 </div>
                 <div class="donut-legend">
-                    ${donutData.map(d => `
-                        <div class="donut-legend-item">
+                    ${donutData.map(d => {
+                        const pctVal = donutTotal > 0 ? Math.round(d.value / donutTotal * 100) : 0;
+                        return `<div class="donut-legend-item">
                             <span class="donut-legend-dot" style="background:${d.color}"></span>
                             <span>${d.label}</span>
+                            <span class="pct">${pctVal}%</span>
                             <span class="val">${d.value}</span>
-                        </div>
-                    `).join('')}
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>
         </div>
         <div class="dash-card">
             <div class="dash-card-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                איוש לפי פלוגה
+                <div class="title-icon" style="background:#e3f2fd;color:var(--primary);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                </div>
+                איוש לפי יחידה
             </div>
             <div class="bar-chart">${barsHtml}</div>
+        </div>
+        <div class="dash-card dash-card-full">
+            <div class="dash-card-title">
+                <div class="title-icon" style="background:#fff3e0;color:#e65100;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                מוכנות משימות - היום
+            </div>
+            <div class="readiness-grid">${readinessHtml}</div>
         </div>
     `;
 
     // === Alerts ===
     let alertsHtml = '';
     if (taskAlerts.length > 0) {
-        // Show worst alert per company first, then fill remaining slots
         taskAlerts.sort((a, b) => a.pct - b.pct);
         const seen = new Set();
         const prioritized = [];
@@ -1390,12 +1473,11 @@ function renderDashboard() {
                 : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
             alertsHtml += `<div class="dash-alert ${cls}">
                 ${icon}
-                <span><strong>${a.company}</strong> - ${a.task}: חסרים ${a.missing} (${a.assigned}/${a.needed} משובצים)</span>
+                <span><strong>${a.company}</strong> - ${a.task}: חסרים ${a.missing} (${a.assigned}/${a.needed})</span>
             </div>`;
         });
     }
 
-    // Alert: soldiers who didn't arrive to מילואים
     const notArrivedSoldiers = state.soldiers.filter(s => s.notArrived && canView(s.company));
     if (notArrivedSoldiers.length > 0) {
         alertsHtml += `<div class="dash-alert dash-alert-danger">
@@ -1404,7 +1486,6 @@ function renderDashboard() {
         </div>`;
     }
 
-    // Alert: soldiers without signed equipment
     const unsignedPE = state.soldiers.filter(s => {
         if (!canView(s.company)) return false;
         const pe = (state.personalEquipment || []).find(p => p.soldierId === s.id);
@@ -1417,25 +1498,23 @@ function renderDashboard() {
         </div>`;
     }
 
-    // Check for companies with many soldiers at home
     mainCompanies.forEach(k => {
         const cs = compStats[k];
         if (cs.regCount > 0 && cs.home > cs.regCount * 0.4) {
             alertsHtml += `<div class="dash-alert dash-alert-info">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span><strong>${cs.name}</strong>: ${cs.home} חיילים בבית (${Math.round(cs.home/cs.regCount*100)}% מהכוח)</span>
+                <span><strong>${cs.name}</strong>: ${cs.home} בבית (${Math.round(cs.home/cs.regCount*100)}%)</span>
             </div>`;
         }
     });
 
-    // Check for soldiers needing range qualification renewal (6+ months)
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     const sixMonthsStr = sixMonthsAgo.toISOString().split('T')[0];
     const needsRange = state.soldiers.filter(s => {
         if (!canView(s.company)) return false;
         const wp = state.weaponsData.find(w => w.soldierId === s.id);
-        if (!wp) return true; // no weapons data = needs range
+        if (!wp) return true;
         return !wp.rangeDate || wp.rangeDate < sixMonthsStr;
     });
     if (needsRange.length > 0) {
