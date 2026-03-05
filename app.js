@@ -8746,6 +8746,100 @@ function saveWeaponsForm() {
     }
 }
 
+// --- SmoovSign: Send weapons questionnaire via personal links ---
+
+let _smoovSDK = null;
+function getSmoovSDK() {
+    if (!_smoovSDK && typeof SmoovSDK !== 'undefined') _smoovSDK = new SmoovSDK();
+    return _smoovSDK;
+}
+
+async function sendWeaponsQuestionnaire() {
+    const smoov = getSmoovSDK();
+    if (!smoov) { showToast('SmoovSign SDK לא נטען', 'error'); return; }
+    if (!CONFIG.weaponsWebhookUrl) { showToast('לא הוגדר webhook URL', 'error'); return; }
+
+    const compFilter = document.getElementById('weaponsSendCompany').value;
+    let soldiers = [...state.soldiers];
+    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
+    soldiers = soldiers.filter(s => s.phone);
+
+    if (!soldiers.length) {
+        showToast('לא נמצאו חיילים עם מספר טלפון' + (compFilter !== 'all' ? ' בפלוגה שנבחרה' : ''), 'error');
+        return;
+    }
+
+    const compNames = getCompNames();
+    const compLabel = compFilter === 'all' ? 'כל הפלוגות' : compNames[compFilter] || compFilter;
+    if (!confirm(`לשלוח שאלון נשקים ל-${soldiers.length} חיילים (${compLabel})?`)) return;
+
+    const btn = document.getElementById('btnSendWeaponsQ');
+    if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
+
+    try {
+        const people = soldiers.map(s => {
+            const nameParts = s.name.split(' ');
+            return {
+                name: s.name,
+                phone: s.phone,
+                data: {
+                    'שם פרטי': nameParts[0] || '',
+                    'שם משפחה': nameParts.slice(1).join(' ') || '',
+                    'מספר אישי': s.personalId || '',
+                    'פלוגה': compNames[s.company] || s.company || '',
+                    'דרגה': s.rank || '',
+                    'טלפון': s.phone || ''
+                }
+            };
+        });
+
+        const links = await smoov.createPersonalLinks({
+            fileName: 'שאלון נשקים - גדוד 1875',
+            fields: [
+                { type: 'text', label: 'שם פרטי', x: 50, y: 40, w: 220, h: 40 },
+                { type: 'text', label: 'שם משפחה', x: 300, y: 40, w: 220, h: 40 },
+                { type: 'text', label: 'מספר אישי', x: 50, y: 100, w: 220, h: 40 },
+                { type: 'text', label: 'תעודת זהות', x: 300, y: 100, w: 220, h: 40 },
+                { type: 'text', label: 'פלוגה', x: 550, y: 100, w: 180, h: 40 },
+                { type: 'text', label: 'דרגה', x: 550, y: 40, w: 180, h: 40 },
+                { type: 'text', label: 'טלפון', x: 50, y: 160, w: 220, h: 40 },
+                { type: 'text', label: 'שנת לידה', x: 300, y: 160, w: 220, h: 40 },
+                { type: 'text', label: 'עיר מגורים', x: 50, y: 220, w: 220, h: 40 },
+                { type: 'text', label: 'רחוב', x: 300, y: 220, w: 220, h: 40 },
+                { type: 'text', label: 'מקור נשק אישי', x: 50, y: 280, w: 300, h: 40 },
+                { type: 'date', label: 'תאריך מטווח אחרון', x: 400, y: 280, w: 200, h: 40 },
+                { type: 'checkbox', label: 'אני כשיר קרבי', x: 50, y: 340, w: 30, h: 30, required: false },
+                { type: 'signature', label: 'חתימה', x: 50, y: 400, w: 300, h: 100 }
+            ],
+            webhookUrl: CONFIG.weaponsWebhookUrl,
+            webhookMeta: { project: 'weapons', battalion: '1875' },
+            createdBy: settings.adminName || 'battalion-scheduler',
+            people
+        });
+
+        // Open WhatsApp for each soldier
+        let sent = 0;
+        for (const link of links) {
+            if (!link.phone) continue;
+            const phone = link.phone.replace(/[^0-9]/g, '');
+            if (phone.length < 9) continue;
+            const intl = phone.startsWith('0') ? '972' + phone.substring(1) : phone;
+            const msg = `שלום ${link.name}, מלא/י את שאלון הנשקים:\n${link.signUrl}`;
+            window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
+            sent++;
+            // Small delay between opens so browser doesn't block popups
+            if (sent < links.length) await new Promise(r => setTimeout(r, 800));
+        }
+
+        showToast(`נשלחו ${sent} שאלונים בהצלחה`);
+    } catch (err) {
+        console.error('sendWeaponsQuestionnaire error:', err);
+        showToast('שגיאה בשליחת שאלונים: ' + (err.message || err), 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> שלח שאלון נשקים'; }
+    }
+}
+
 // --- Google Sheets Sync ---
 
 async function pushWeaponsToSheets(data) {

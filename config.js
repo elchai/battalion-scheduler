@@ -169,8 +169,9 @@ const CONFIG = {
     defaultSigningUnit: 'פלוגת פלס"ם',
 
     // --- נשקים — סנכרון גוגל שיטס ---
-    weaponsSheetId: '',       // Google Sheets ID of responses table
+    weaponsSheetId: '1paWndmcqlsaKZJLYDcI2KHRkO5b2nkNarQj6Vo16Uk0',
     weaponsScriptUrl: '',     // Google Apps Script Web App URL for push
+    weaponsWebhookUrl: 'https://script.google.com/macros/s/AKfycbyJGBHavKFvkF2gf3ct_EXCDicLDb5hSmh91X-NPa-DBD8KjxGpQxRq5wqhhm7vlctZ/exec',
 
     // --- קרדיט ---
     developerName: 'אלחי פיין',

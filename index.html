@@ -696,6 +696,21 @@
             </div>
         </div>
         <div class="quick-stats" id="weaponsStats"></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+            <select id="weaponsSendCompany" class="form-select" style="width:auto;min-width:140px;">
+                <option value="all">כל הפלוגות</option>
+                <option value="a">פלוגה א'</option>
+                <option value="b">פלוגה ב'</option>
+                <option value="c">פלוגה ג'</option>
+                <option value="d">פלוגה ד'</option>
+                <option value="hq">חפ"ק</option>
+                <option value="palsam">פלס"ם</option>
+            </select>
+            <button class="btn btn-primary" onclick="sendWeaponsQuestionnaire()" id="btnSendWeaponsQ">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                שלח שאלון נשקים
+            </button>
+        </div>
         <div class="search-bar">
             <span class="search-icon"><i data-lucide="search"></i></span>
             <input type="text" id="weaponsSearch" placeholder="חיפוש לפי שם חייל..." oninput="renderWeaponsTab()">
@@ -1631,6 +1646,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://smoovsign.com/smoov-sdk.js"></script>
 <script>document.write('<script src="app.js?' + _cb + '"><\/script>');</script>
 <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
