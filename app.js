@@ -481,6 +481,9 @@ function activateApp() {
         document.body.classList.remove('sidebar-open');
     }
     refreshIcons();
+
+    // Auto-sync from Google Sheets on login
+    syncFromGoogleSheets(true);
 }
 
 function activateSoldierView() {
