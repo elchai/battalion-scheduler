@@ -318,15 +318,7 @@
 <!-- ====== TAB: OVERVIEW ====== -->
 <div class="tab-content active" id="tab-all">
     <div class="main-content">
-        <div class="quick-stats">
-            <div class="quick-stat"><div class="value" id="statTotalPersonnel">198</div><div class="label">סה"כ כוח אדם</div></div>
-            <div class="quick-stat"><div class="value">4</div><div class="label">פלוגות</div></div>
-            <div class="quick-stat"><div class="value" id="statAssigned">0</div><div class="label">משובצים</div></div>
-            <div class="quick-stat"><div class="value" id="statHome">0</div><div class="label">בבית</div></div>
-            <div class="quick-stat"><div class="value" id="statAvailable">0</div><div class="label">זמינים</div></div>
-
-        </div>
-        <!-- Dashboard Charts -->
+        <div class="dash-hero-stats" id="dashboardHeroStats"></div>
         <div class="dashboard-grid" id="dashboardGrid"></div>
 
         <!-- Alerts -->
@@ -707,9 +699,9 @@
                 <option value="hq">חפ"ק</option>
                 <option value="palsam">פלס"ם</option>
             </select>
-            <button class="btn btn-primary" onclick="sendWeaponsQuestionnaire()" id="btnSendWeaponsQ">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                שלח שאלון נשקים
+            <button class="btn btn-primary" onclick="openWeaponsWhatsAppModal()" id="btnSendWeaponsQ">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                שלח בוואטסאפ
             </button>
             <button class="btn btn-outline" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
@@ -1645,6 +1637,74 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>document.write('<script src="firebase-config.js?' + _cb + '"><\/script>');</script>
+
+<!-- WhatsApp Send Modal -->
+<div class="modal-overlay" id="weaponsWhatsAppModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header">
+            <h3>שליחת הודעת וואטסאפ - טפסי נשקים</h3>
+            <button class="modal-close" onclick="closeModal('weaponsWhatsAppModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+                <label style="font-weight:600;">פלוגה:</label>
+                <select id="waCompanyFilter" class="form-select" style="width:auto;min-width:140px;" onchange="updateWaSoldierList()">
+                    <option value="all">כל הפלוגות</option>
+                    <option value="a">פלוגה א'</option>
+                    <option value="b">פלוגה ב'</option>
+                    <option value="c">פלוגה ג'</option>
+                    <option value="d">פלוגה ד'</option>
+                    <option value="hq">חפ"ק</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:5px;margin-right:10px;">
+                    <input type="checkbox" id="waOnlyUnsigned" checked onchange="updateWaSoldierList()">
+                    רק מי שלא חתם ב-EasyDo
+                </label>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">בחר חיילים לשליחה:</label>
+                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                    <button class="btn btn-sm btn-outline" onclick="waSelectAll(true)">סמן הכל</button>
+                    <button class="btn btn-sm btn-outline" onclick="waSelectAll(false)">נקה הכל</button>
+                    <span id="waSelectedCount" style="align-self:center;color:var(--text-light);font-size:13px;"></span>
+                </div>
+                <div id="waSoldierList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">תוכן ההודעה:</label>
+                <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">השתמש ב-<code>{שם}</code> לשם החייל, <code>{קישור_רופא}</code> לטופס הרופא, <code>{קישור_easydo}</code> לקישור EasyDo</div>
+                <textarea id="waMessageTemplate" class="form-control" rows="8" style="font-size:14px;line-height:1.6;direction:rtl;" oninput="updateWaPreview()"></textarea>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">תצוגה מקדימה (חייל ראשון):</label>
+                <div id="waPreview" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;white-space:pre-wrap;font-size:13px;direction:rtl;max-height:150px;overflow-y:auto;"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <label style="font-weight:600;">שיטת שליחה:</label>
+                <select id="waSendMethod" class="form-select" style="width:auto;">
+                    <option value="greenapi">Green API (אוטומטי)</option>
+                    <option value="wame">wa.me (פתיחת לשוניות)</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:5px;">
+                    השהיה:
+                    <input type="number" id="waSendDelay" class="form-control" style="width:70px;" value="3" min="1" max="30">
+                    שניות
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;">
+            <div id="waSendProgress" style="font-size:13px;color:var(--text-light);"></div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-outline" onclick="closeModal('weaponsWhatsAppModal')">ביטול</button>
+                <button class="btn btn-primary" id="btnWaSend" onclick="sendWeaponsWhatsApp()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                    שלח עכשיו
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

@@ -173,6 +173,21 @@ const CONFIG = {
     weaponsScriptUrl: '',     // Google Apps Script Web App URL for push
     weaponsWebhookUrl: 'https://script.google.com/macros/s/AKfycbyJGBHavKFvkF2gf3ct_EXCDicLDb5hSmh91X-NPa-DBD8KjxGpQxRq5wqhhm7vlctZ/exec',
 
+    // --- קישורי טפסי EasyDo לנשקים ---
+    weaponsDoctorFormUrl: 'https://drive.google.com/file/d/1lKNX1VZhSaNUlOtz89ouQgRsp-hgLM12/view?usp=sharing',
+    weaponsEasyDoLinks: {
+        a: 'https://app.easydo.co.il/publicForm/0b59184c-1f03-4d2a-a4fa-8be2117add1a',
+        b: 'https://app.easydo.co.il/publicForm/1824f62e-43d0-4dd7-8c4e-ead01b87beae',
+        c: 'https://app.easydo.co.il/publicForm/2b516ac1-096b-40f3-b9a5-0643b2604d78',
+        d: 'https://app.easydo.co.il/publicForm/e73c8347-53bb-48d4-971d-6770d3fb01f0',
+        palsam: 'https://app.easydo.co.il/publicForm/75c19217-1bef-4d2a-b6fc-5a95d07d3c80',
+        hq: 'https://app.easydo.co.il/publicForm/75c19217-1bef-4d2a-b6fc-5a95d07d3c80',
+        battalion: 'https://app.easydo.co.il/publicForm/36c98175-c3f4-4468-bc55-1d95aeccd2cd',
+    },
+
+    // --- Green API (WhatsApp) ---
+    greenApi: null, // { idInstance: '...', apiTokenInstance: '...', apiUrl: 'https://api.green-api.com' }
+
     // --- קרדיט ---
     developerName: 'אלחי פיין',
     developerPhone: '972542012000',

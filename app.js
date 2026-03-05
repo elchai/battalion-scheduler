@@ -8838,90 +8838,174 @@ function getSmoovSDK() {
     return _smoovSDK;
 }
 
-async function sendWeaponsQuestionnaire() {
-    const smoov = getSmoovSDK();
-    if (!smoov) { showToast('SmoovSign SDK לא נטען', 'error'); return; }
-    if (!CONFIG.weaponsWebhookUrl) { showToast('לא הוגדר webhook URL', 'error'); return; }
+// ========== WhatsApp Send Modal ==========
 
-    const compFilter = document.getElementById('weaponsSendCompany').value;
-    let soldiers = [...state.soldiers];
-    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
-    soldiers = soldiers.filter(s => s.phone);
+const WA_DEFAULT_TEMPLATE = `שלום {שם}, זאת הודעה אוטומטית ממערכת ניהול הגדוד.
+ראינו שעדיין לא סיימת את התהליך של הגשת בקשה לאחזקת נשק בבית.
 
+בשלב ראשון עליך להחתים רופא בטופס המצורף בקישור הזה:
+{קישור_רופא}
+
+אם יש לך את האישור חתום וכן צילום תעודת זהות, אתה מוזמן להתחיל בתהליך החתימה בקישור המצורף כאן:
+{קישור_easydo}`;
+
+let _waSending = false;
+
+function openWeaponsWhatsAppModal() {
+    const tpl = document.getElementById('waMessageTemplate');
+    if (tpl && !tpl.value) tpl.value = WA_DEFAULT_TEMPLATE;
+    // Set company filter from main weapons filter
+    const mainComp = document.getElementById('weaponsSendCompany');
+    const waComp = document.getElementById('waCompanyFilter');
+    if (mainComp && waComp) waComp.value = mainComp.value;
+    // Auto-select Green API if configured, else wa.me
+    const methodEl = document.getElementById('waSendMethod');
+    if (methodEl) methodEl.value = CONFIG.greenApi ? 'greenapi' : 'wame';
+    document.getElementById('waSendProgress').textContent = '';
+    updateWaSoldierList();
+    openModal('weaponsWhatsAppModal');
+}
+
+function getWaSoldiers() {
+    const comp = document.getElementById('waCompanyFilter').value;
+    const onlyUnsigned = document.getElementById('waOnlyUnsigned').checked;
+    let soldiers = [...state.soldiers].filter(s => s.phone);
+    if (comp !== 'all') soldiers = soldiers.filter(s => s.company === comp);
+    if (onlyUnsigned) soldiers = soldiers.filter(s => !getEasyDoStatus(s));
+    return soldiers;
+}
+
+function updateWaSoldierList() {
+    const soldiers = getWaSoldiers();
+    const container = document.getElementById('waSoldierList');
+    const compNames = getCompNames();
     if (!soldiers.length) {
-        showToast('לא נמצאו חיילים עם מספר טלפון' + (compFilter !== 'all' ? ' בפלוגה שנבחרה' : ''), 'error');
+        container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);">לא נמצאו חיילים מתאימים</div>';
+        document.getElementById('waSelectedCount').textContent = '0 חיילים';
+        updateWaPreview();
+        return;
+    }
+    container.innerHTML = soldiers.map(s => `
+        <label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;" class="wa-soldier-row">
+            <input type="checkbox" checked data-soldier-id="${s.id}" onchange="updateWaSelectedCount();updateWaPreview()">
+            <span style="font-weight:500;">${esc(s.name)}</span>
+            <span style="color:var(--text-light);font-size:12px;">${esc(compNames[s.company] || s.company)}</span>
+            <span style="color:var(--text-light);font-size:12px;">${esc(s.phone)}</span>
+        </label>
+    `).join('');
+    updateWaSelectedCount();
+    updateWaPreview();
+}
+
+function waSelectAll(checked) {
+    document.querySelectorAll('#waSoldierList input[type="checkbox"]').forEach(cb => cb.checked = checked);
+    updateWaSelectedCount();
+    updateWaPreview();
+}
+
+function updateWaSelectedCount() {
+    const count = document.querySelectorAll('#waSoldierList input[type="checkbox"]:checked').length;
+    document.getElementById('waSelectedCount').textContent = `${count} חיילים נבחרו`;
+}
+
+function getEasyDoLink(soldier) {
+    const links = CONFIG.weaponsEasyDoLinks || {};
+    return links[soldier.company] || links.battalion || '';
+}
+
+function buildWaMessage(soldier) {
+    const tpl = document.getElementById('waMessageTemplate').value;
+    const firstName = soldier.name.split(' ')[0];
+    return tpl
+        .replace(/\{שם\}/g, firstName)
+        .replace(/\{קישור_רופא\}/g, CONFIG.weaponsDoctorFormUrl || '')
+        .replace(/\{קישור_easydo\}/g, getEasyDoLink(soldier));
+}
+
+function updateWaPreview() {
+    const preview = document.getElementById('waPreview');
+    const soldiers = getWaSoldiers();
+    const checkedIds = new Set();
+    document.querySelectorAll('#waSoldierList input[type="checkbox"]:checked').forEach(cb => checkedIds.add(cb.dataset.soldierId));
+    const first = soldiers.find(s => checkedIds.has(s.id));
+    if (first) {
+        preview.textContent = buildWaMessage(first);
+    } else {
+        preview.textContent = 'אין חיילים נבחרים';
+    }
+}
+
+function normalizePhone(phone) {
+    let clean = phone.replace(/[\s\-\(\)\+]/g, '');
+    if (clean.startsWith('0')) clean = '972' + clean.slice(1);
+    return clean;
+}
+
+async function sendWeaponsWhatsApp() {
+    if (_waSending) return;
+    const checkedBoxes = document.querySelectorAll('#waSoldierList input[type="checkbox"]:checked');
+    const selectedIds = new Set();
+    checkedBoxes.forEach(cb => selectedIds.add(cb.dataset.soldierId));
+    const soldiers = getWaSoldiers().filter(s => selectedIds.has(s.id));
+
+    if (!soldiers.length) { showToast('לא נבחרו חיילים', 'error'); return; }
+
+    const method = document.getElementById('waSendMethod').value;
+    const delay = parseInt(document.getElementById('waSendDelay').value) || 3;
+
+    if (method === 'greenapi' && !CONFIG.greenApi) {
+        showToast('Green API לא מוגדר בהגדרות. השתמש בשיטת wa.me או הגדר greenApi ב-config.js', 'error');
         return;
     }
 
-    const compNames = getCompNames();
-    const compLabel = compFilter === 'all' ? 'כל הפלוגות' : compNames[compFilter] || compFilter;
-    if (!confirm(`לשלוח שאלון נשקים ל-${soldiers.length} חיילים (${compLabel})?`)) return;
+    if (!confirm(`לשלוח הודעה ל-${soldiers.length} חיילים?`)) return;
 
-    const btn = document.getElementById('btnSendWeaponsQ');
+    _waSending = true;
+    const btn = document.getElementById('btnWaSend');
     if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
+    const progressEl = document.getElementById('waSendProgress');
 
-    try {
-        const people = soldiers.map(s => {
-            const nameParts = s.name.split(' ');
-            return {
-                name: s.name,
-                phone: s.phone,
-                data: {
-                    'שם פרטי': nameParts[0] || '',
-                    'שם משפחה': nameParts.slice(1).join(' ') || '',
-                    'מספר אישי': s.personalId || '',
-                    'פלוגה': compNames[s.company] || s.company || '',
-                    'דרגה': s.rank || '',
-                    'טלפון': s.phone || ''
-                }
-            };
-        });
+    let sent = 0, failed = 0;
 
-        const links = await smoov.createPersonalLinks({
-            fileName: 'שאלון נשקים - גדוד 1875',
-            fields: [
-                { type: 'text', label: 'שם פרטי', x: 50, y: 40, w: 220, h: 40 },
-                { type: 'text', label: 'שם משפחה', x: 300, y: 40, w: 220, h: 40 },
-                { type: 'text', label: 'מספר אישי', x: 50, y: 100, w: 220, h: 40 },
-                { type: 'text', label: 'תעודת זהות', x: 300, y: 100, w: 220, h: 40 },
-                { type: 'text', label: 'פלוגה', x: 550, y: 100, w: 180, h: 40 },
-                { type: 'text', label: 'דרגה', x: 550, y: 40, w: 180, h: 40 },
-                { type: 'text', label: 'טלפון', x: 50, y: 160, w: 220, h: 40 },
-                { type: 'text', label: 'שנת לידה', x: 300, y: 160, w: 220, h: 40 },
-                { type: 'text', label: 'עיר מגורים', x: 50, y: 220, w: 220, h: 40 },
-                { type: 'text', label: 'רחוב', x: 300, y: 220, w: 220, h: 40 },
-                { type: 'text', label: 'מקור נשק אישי', x: 50, y: 280, w: 300, h: 40 },
-                { type: 'date', label: 'תאריך מטווח אחרון', x: 400, y: 280, w: 200, h: 40 },
-                { type: 'checkbox', label: 'אני כשיר קרבי', x: 50, y: 340, w: 30, h: 30, required: false },
-                { type: 'signature', label: 'חתימה', x: 50, y: 400, w: 300, h: 100 }
-            ],
-            webhookUrl: CONFIG.weaponsWebhookUrl,
-            webhookMeta: { project: 'weapons', battalion: '1875' },
-            createdBy: settings.adminName || 'battalion-scheduler',
-            people
-        });
+    for (let i = 0; i < soldiers.length; i++) {
+        const s = soldiers[i];
+        const msg = buildWaMessage(s);
+        const phone = normalizePhone(s.phone);
+        progressEl.textContent = `שולח ${i + 1} / ${soldiers.length} — ${s.name}...`;
 
-        // Open WhatsApp for each soldier
-        let sent = 0;
-        for (const link of links) {
-            if (!link.phone) continue;
-            const phone = link.phone.replace(/[^0-9]/g, '');
-            if (phone.length < 9) continue;
-            const intl = phone.startsWith('0') ? '972' + phone.substring(1) : phone;
-            const msg = `שלום ${link.name}, מלא/י את שאלון הנשקים:\n${link.signUrl}`;
-            window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
-            sent++;
-            // Small delay between opens so browser doesn't block popups
-            if (sent < links.length) await new Promise(r => setTimeout(r, 800));
+        try {
+            if (method === 'greenapi') {
+                const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
+                const chatId = phone + '@c.us';
+                const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatId, message: msg })
+                });
+                const data = await resp.json();
+                if (data.idMessage) { sent++; } else { failed++; console.warn('WA fail:', s.name, data); }
+            } else {
+                // wa.me fallback
+                const intl = phone.startsWith('972') ? phone : '972' + phone;
+                window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
+                sent++;
+            }
+        } catch (err) {
+            failed++;
+            console.warn('WA send error for', s.name, err);
         }
 
-        showToast(`נשלחו ${sent} שאלונים בהצלחה`);
-    } catch (err) {
-        console.error('sendWeaponsQuestionnaire error:', err);
-        showToast('שגיאה בשליחת שאלונים: ' + (err.message || err), 'error');
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> שלח שאלון נשקים'; }
+        // Delay between sends
+        if (i < soldiers.length - 1) {
+            await new Promise(r => setTimeout(r, delay * 1000));
+        }
     }
+
+    progressEl.textContent = `הושלם: ${sent} נשלחו${failed ? `, ${failed} נכשלו` : ''}`;
+    showToast(`נשלחו ${sent} הודעות${failed ? ` (${failed} נכשלו)` : ''}`, failed ? 'warning' : 'success');
+    _waSending = false;
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg> שלח עכשיו'; }
 }
 
 // --- Google Sheets Sync ---
