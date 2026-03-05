@@ -736,6 +736,7 @@ function loadState() {
     if (!state.shiftHistory) state.shiftHistory = [];
     if (!state.initiativeTeams) state.initiativeTeams = [];
     if (!state.training) state.training = [];
+    if (!state.waSendLog) state.waSendLog = [];
 
     // Normalize shifts — ensure every shift has a soldiers array
     if (state.shifts) state.shifts.forEach(sh => { if (!Array.isArray(sh.soldiers)) sh.soldiers = []; });
@@ -912,6 +913,19 @@ async function init() {
     } else if (state.soldiers.length === 0) {
         syncFromGoogleSheets(true);
     }
+    // One-time cleanup: remove test soldier "ישראל ישראלי"
+    const testSoldier = state.soldiers.find(s => s.name === 'ישראל ישראלי');
+    if (testSoldier) {
+        const tid = testSoldier.id;
+        state.soldiers = state.soldiers.filter(s => s.id !== tid);
+        state.signatureLog = (state.signatureLog || []).filter(l => l.soldierId !== tid);
+        state.weaponsData = (state.weaponsData || []).filter(w => w.soldierId !== tid);
+        state.personalEquipment = (state.personalEquipment || []).filter(p => p.soldierId !== tid);
+        state.training = (state.training || []).filter(t => t.soldierId !== tid);
+        saveState();
+        console.log('Removed test soldier: ישראל ישראלי');
+    }
+
     // Auto-cleanup: remove shifts/leaves older than 30 days
     cleanupOldData();
     renderAll();
@@ -1252,6 +1266,7 @@ function renderDashboard() {
     const grid = document.getElementById('dashboardGrid');
     const alertsEl = document.getElementById('dashboardAlerts');
     if (!grid) return;
+    updateOpModeUI();
 
     // Calculate stats per company
     const compStats = {};
@@ -1534,6 +1549,92 @@ function renderDashboard() {
     }
 
     if (alertsEl) alertsEl.innerHTML = alertsHtml;
+
+    // Set today's date in search
+    const dashDateEl = document.getElementById('dashSearchDate');
+    if (dashDateEl && !dashDateEl.value) dashDateEl.value = localToday();
+}
+
+// ==================== DASHBOARD SOLDIER SEARCH ====================
+function dashboardSoldierSearch() {
+    const query = (document.getElementById('dashSoldierSearch').value || '').trim().toLowerCase();
+    const resultsEl = document.getElementById('dashSearchResults');
+    if (!resultsEl) return;
+
+    if (!query || query.length < 2) {
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        return;
+    }
+
+    const searchDate = document.getElementById('dashSearchDate').value || localToday();
+    const compNames = getCompNames();
+
+    // Find matching soldiers
+    const matchedSoldiers = state.soldiers.filter(s => s.name.toLowerCase().includes(query));
+
+    if (!matchedSoldiers.length) {
+        resultsEl.style.display = 'block';
+        resultsEl.innerHTML = '<div class="dash-search-no-result">לא נמצאו חיילים תואמים</div>';
+        return;
+    }
+
+    let html = '';
+    matchedSoldiers.forEach(s => {
+        // Find shifts for this soldier on the selected date
+        const dayShifts = state.shifts.filter(sh => sh.date === searchDate && sh.soldiers.includes(s.id));
+        // Check active leave
+        const activeLeave = state.leaves.find(l => l.soldierId === s.id && l.startDate <= searchDate && l.endDate >= searchDate);
+        // Training status
+        const trainingTypes = settings.trainingTypes || [
+            { id: 'squad_open', name: 'תרגיל כיתה שטח פתוח', type: 'boolean' },
+            { id: 'squad_urban', name: 'תרגיל כיתה שטח בנוי', type: 'boolean' },
+            { id: 'advanced_shooting', name: 'אימון ירי מתקדם', type: 'boolean' },
+            { id: 'weapon_zero', name: 'בקרת איפוס נשק', type: 'date' },
+            { id: 'grenade', name: 'אימון זריקת רימון', type: 'boolean' }
+        ];
+        const trainDone = trainingTypes.filter(tt => {
+            const rec = (state.training || []).find(r => r.soldierId === s.id && r.typeId === tt.id);
+            return rec && (tt.type === 'date' ? rec.date : rec.done);
+        }).length;
+
+        const compLabel = compNames[s.company] || s.company;
+
+        // Soldier row
+        html += `<div class="dash-search-result">
+            <div class="soldier-info" style="cursor:pointer;" onclick="openSoldierProfile('${s.id}')">
+                <div>
+                    <div class="soldier-name">${esc(s.name)}</div>
+                    <div class="soldier-company">${esc(compLabel)} | ${esc(s.role || s.rank || '-')} | אימונים: ${trainDone}/${trainingTypes.length}</div>
+                </div>
+            </div>
+            <div class="task-info">`;
+
+        if (activeLeave) {
+            html += `<span class="task-badge" style="background:#e65100;">בחופשה</span>`;
+        }
+
+        if (dayShifts.length > 0) {
+            dayShifts.forEach(sh => {
+                html += `<span class="task-badge">${esc(sh.task || 'משימה')}</span>`;
+                if (sh.startTime) html += `<span class="time-badge">${sh.startTime}–${sh.endTime || ''}</span>`;
+            });
+        } else if (!activeLeave) {
+            html += `<span class="time-badge">לא משובץ ביום זה</span>`;
+        }
+
+        html += `<button class="btn btn-sm btn-outline" onclick="openSoldierProfile('${s.id}')">פרופיל</button>`;
+
+        if (dayShifts.length > 0) {
+            const sh = dayShifts[0];
+            html += `<button class="btn btn-sm btn-primary" onclick="switchTab('${s.company}')">עבור לפלוגה</button>`;
+        }
+
+        html += `</div></div>`;
+    });
+
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = html;
 }
 
 // ==================== OPERATIONAL MODE ====================
@@ -3026,6 +3127,41 @@ function openSoldierProfile(id) {
         });
         html += `</div></details>`;
     }
+
+    // Training status
+    const trainingTypes = settings.trainingTypes || [
+        { id: 'squad_open', name: 'תרגיל כיתה שטח פתוח', type: 'boolean' },
+        { id: 'squad_urban', name: 'תרגיל כיתה שטח בנוי', type: 'boolean' },
+        { id: 'advanced_shooting', name: 'אימון ירי מתקדם', type: 'boolean' },
+        { id: 'weapon_zero', name: 'בקרת איפוס נשק', type: 'date' },
+        { id: 'grenade', name: 'אימון זריקת רימון', type: 'boolean' }
+    ];
+    if (trainingTypes.length > 0) {
+        const trainDone = trainingTypes.filter(tt => {
+            const rec = (state.training || []).find(r => r.soldierId === id && r.typeId === tt.id);
+            return rec && (tt.type === 'date' ? rec.date : rec.done);
+        }).length;
+        html += `<div class="sp-section"><h4>אימונים (${trainDone}/${trainingTypes.length})</h4><div class="sp-list">`;
+        trainingTypes.forEach(tt => {
+            const rec = (state.training || []).find(r => r.soldierId === id && r.typeId === tt.id);
+            const done = rec && (tt.type === 'date' ? rec.date : rec.done);
+            const statusHtml = done
+                ? `<span style="color:#27ae60;font-weight:600;">${tt.type === 'date' && rec.date ? formatDate(rec.date) : 'בוצע'}</span>`
+                : `<span style="color:#e65100;font-weight:600;">טרם בוצע</span>`;
+            html += `<div class="sp-list-item"><span>${esc(tt.name)}</span>${statusHtml}</div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    // Weapons & EasyDo status
+    const easyDoStatus = typeof getEasyDoStatus === 'function' ? getEasyDoStatus(sol) : null;
+    const weaponsStatus = typeof getWeaponsStatus === 'function' ? getWeaponsStatus(id) : 'none';
+    html += `<div class="sp-section"><h4>סטטוס טפסי נשקים</h4><div class="sp-list">
+        <div class="sp-list-item"><span>טופס EasyDo</span>${easyDoStatus
+            ? `<span style="color:#27ae60;font-weight:600;">נחתם (${esc(easyDoStatus.completedAt || '')})</span>`
+            : `<span style="color:#e65100;font-weight:600;">טרם נחתם</span>`}</div>
+        <div class="sp-list-item"><span>טופס מערכת</span><span style="color:${weaponsStatus === 'complete' ? '#27ae60' : weaponsStatus === 'partial' ? '#f39c12' : '#e65100'};font-weight:600;">${weaponsStatus === 'complete' ? 'הושלם' : weaponsStatus === 'partial' ? 'בתהליך' : 'לא התחיל'}</span></div>
+    </div></div>`;
 
     html += `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="closeModal('soldierProfileModal');openEditSoldier('${id}')">&#9998; ערוך</button>
@@ -8973,6 +9109,7 @@ function openWeaponsWhatsAppModal() {
     if (searchEl) searchEl.value = '';
     document.getElementById('waSendProgress').textContent = '';
     updateWaSoldierList();
+    renderWaSendHistory();
     openModal('weaponsWhatsAppModal');
 }
 
@@ -8996,14 +9133,19 @@ function updateWaSoldierList() {
         updateWaPreview();
         return;
     }
-    container.innerHTML = soldiers.map(s => `
-        <label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;" class="wa-soldier-row" data-name="${esc(s.name)}">
-            <input type="checkbox" checked data-soldier-id="${s.id}" onchange="updateWaSelectedCount();updateWaPreview()">
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    container.innerHTML = soldiers.map(s => {
+        const lastSent = getWaLastSent(s.id);
+        const recentlySent = lastSent && lastSent.sentAt > sevenDaysAgo;
+        const sentBadge = recentlySent ? `<span style="background:#fff3e0;color:#e65100;font-size:11px;padding:1px 6px;border-radius:4px;">נשלח ${new Date(lastSent.sentAt).toLocaleDateString('he-IL')}</span>` : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;" class="wa-soldier-row" data-name="${esc(s.name)}">
+            <input type="checkbox" ${recentlySent ? '' : 'checked'} data-soldier-id="${s.id}" onchange="updateWaSelectedCount();updateWaPreview()">
             <span style="font-weight:500;">${esc(s.name)}</span>
             <span style="color:var(--text-light);font-size:12px;">${esc(compNames[s.company] || s.company)}</span>
             <span style="color:var(--text-light);font-size:12px;">${esc(s.phone)}</span>
-        </label>
-    `).join('');
+            ${sentBadge}
+        </label>`;
+    }).join('');
     updateWaSelectedCount();
     updateWaPreview();
 }
@@ -9101,9 +9243,17 @@ async function sendWeaponsWhatsApp() {
                 body: JSON.stringify({ chatId, message: msg })
             });
             const data = await resp.json();
-            if (data.idMessage) { sent++; } else { failed++; console.warn('WA fail:', s.name, data); }
+            if (data.idMessage) {
+                sent++;
+                state.waSendLog.push({ id: 'wa_' + Date.now() + '_' + i, soldierId: s.id, soldierName: s.name, phone: s.phone, message: msg.substring(0, 200), sentAt: new Date().toISOString(), status: 'sent', context: 'weapons' });
+            } else {
+                failed++;
+                state.waSendLog.push({ id: 'wa_' + Date.now() + '_' + i, soldierId: s.id, soldierName: s.name, phone: s.phone, message: msg.substring(0, 200), sentAt: new Date().toISOString(), status: 'failed', context: 'weapons' });
+                console.warn('WA fail:', s.name, data);
+            }
         } catch (err) {
             failed++;
+            state.waSendLog.push({ id: 'wa_' + Date.now() + '_' + i, soldierId: s.id, soldierName: s.name, phone: s.phone, message: '', sentAt: new Date().toISOString(), status: 'error', context: 'weapons' });
             console.warn('WA send error for', s.name, err);
         }
 
@@ -9113,10 +9263,39 @@ async function sendWeaponsWhatsApp() {
         }
     }
 
+    saveState();
     progressEl.textContent = `הושלם: ${sent} נשלחו${failed ? `, ${failed} נכשלו` : ''}`;
     showToast(`נשלחו ${sent} הודעות${failed ? ` (${failed} נכשלו)` : ''}`, failed ? 'warning' : 'success');
     _waSending = false;
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg> שלח עכשיו'; }
+    renderWaSendHistory();
+}
+
+function getWaLastSent(soldierId) {
+    const logs = (state.waSendLog || []).filter(l => l.soldierId === soldierId && l.status === 'sent');
+    if (!logs.length) return null;
+    return logs.sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
+}
+
+function renderWaSendHistory() {
+    const el = document.getElementById('waSendHistory');
+    if (!el) return;
+    const logs = (state.waSendLog || []).sort((a, b) => b.sentAt.localeCompare(a.sentAt)).slice(0, 50);
+    if (!logs.length) {
+        el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">אין היסטוריית שליחות</div>';
+        return;
+    }
+    el.innerHTML = logs.map(l => {
+        const statusIcon = l.status === 'sent' ? '<span style="color:#27ae60;">&#10003;</span>' : '<span style="color:#e65100;">&#10007;</span>';
+        const dt = new Date(l.sentAt);
+        const dateStr = `${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);font-size:13px;">
+            ${statusIcon}
+            <span style="font-weight:500;min-width:100px;">${esc(l.soldierName)}</span>
+            <span style="color:var(--text-light);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(l.message || '')}</span>
+            <span style="color:var(--text-light);font-size:11px;white-space:nowrap;">${dateStr}</span>
+        </div>`;
+    }).join('');
 }
 
 // --- Google Sheets Sync ---

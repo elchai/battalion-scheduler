@@ -323,6 +323,19 @@
 <div class="tab-content active" id="tab-all">
     <div class="main-content">
         <div class="dash-hero-stats" id="dashboardHeroStats"></div>
+
+        <!-- Dashboard Soldier Search -->
+        <div class="dash-search-box">
+            <div class="dash-search-row">
+                <div class="search-bar" style="flex:1;margin-bottom:0;">
+                    <span class="search-icon"><i data-lucide="search"></i></span>
+                    <input type="text" id="dashSoldierSearch" placeholder="חיפוש חייל - איפה הוא משובץ?" oninput="dashboardSoldierSearch()">
+                </div>
+                <input type="date" id="dashSearchDate" class="form-control" style="width:auto;" onchange="dashboardSoldierSearch()">
+            </div>
+            <div id="dashSearchResults" style="display:none;"></div>
+        </div>
+
         <div class="dashboard-grid" id="dashboardGrid"></div>
 
         <!-- Operational Mode Toggle + Alerts -->
@@ -1710,6 +1723,10 @@
                     שניות
                 </label>
             </div>
+            <details style="margin-top:14px;">
+                <summary style="font-weight:600;font-size:14px;cursor:pointer;">היסטוריית שליחות</summary>
+                <div id="waSendHistory" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px;"></div>
+            </details>
         </div>
         <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;">
             <div id="waSendProgress" style="font-size:13px;color:var(--text-light);"></div>

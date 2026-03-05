@@ -2436,6 +2436,59 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 }
 .toggle-switch.active .toggle-knob { right: 2px; }
 
+/* Dashboard Soldier Search */
+.dash-search-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+}
+.dash-search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.dash-search-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin-top: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.dash-search-result:hover { border-color: var(--primary-light); }
+.dash-search-result .soldier-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
+.dash-search-result .soldier-name { font-weight: 600; font-size: 14px; }
+.dash-search-result .soldier-company { color: var(--text-light); font-size: 12px; }
+.dash-search-result .task-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dash-search-result .task-badge {
+    background: var(--primary);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.dash-search-result .time-badge {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+.dash-search-no-result {
+    text-align: center;
+    color: var(--text-light);
+    padding: 16px;
+    font-size: 13px;
+}
+
 /* ==================== TASKS PAGE ==================== */
 .tasks-page { max-width: 1200px; margin: 0 auto; }
 .tasks-header { margin-bottom: 24px; }

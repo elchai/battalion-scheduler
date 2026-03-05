@@ -56,6 +56,7 @@ async function firebaseLoadState() {
             state.shiftHistory = remoteState.shiftHistory || state.shiftHistory;
             state.initiativeTeams = remoteState.initiativeTeams || state.initiativeTeams;
             state.training = remoteState.training || state.training;
+            state.waSendLog = remoteState.waSendLog || state.waSendLog;
             localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
             firestoreReady = true;
             return true;
@@ -177,6 +178,7 @@ function setupRealtimeListeners() {
                 state.shiftHistory = remoteState.shiftHistory || [];
                 state.initiativeTeams = remoteState.initiativeTeams || [];
                 state.training = remoteState.training || [];
+                state.waSendLog = remoteState.waSendLog || [];
                 localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');
