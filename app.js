@@ -1286,8 +1286,10 @@ function renderDashboard() {
     });
 
     const mainCompanies = ALL_COMPANIES.filter(k => compStats[k].regCount > 0);
-    const chartCompanies = ['a', 'b', 'c', 'd', 'agam'].filter(k => compStats[k]);
-    const activeCompCount = chartCompanies.length;
+    const chartMainCompanies = ['a', 'b', 'c', 'd', 'palsam'].filter(k => compStats[k]);
+    const chartGrayCompanies = ['hq', 'agam'].filter(k => compStats[k] && compStats[k].regCount > 0);
+    const chartCompanies = [...chartMainCompanies, ...chartGrayCompanies];
+    const activeCompCount = chartMainCompanies.length;
 
     // === HERO STATS ===
     if (heroEl) {
@@ -1350,17 +1352,19 @@ function renderDashboard() {
         return `${d.color} ${start}deg ${start + size}deg`;
     }).join(', ');
 
-    // === BAR CHART (5 companies: a,b,c,d,agam) ===
+    // === BAR CHART (5 main + gray support) ===
     const maxVal = Math.max(...chartCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
     const barsHtml = chartCompanies.map(k => {
         const cs = compStats[k];
+        const isGray = chartGrayCompanies.includes(k);
+        const barColor = isGray ? '#90a4ae' : (cs.color || 'var(--primary)');
         const forecast = companyData[k].forecast || 0;
         const pct = (cs.regCount / maxVal) * 100;
         const forecastPct = forecast > 0 ? (forecast / maxVal) * 100 : 0;
-        return `<div class="bar-row">
+        return `<div class="bar-row"${isGray ? ' style="opacity:0.7;"' : ''}>
             <div class="bar-label">${cs.name}</div>
             <div class="bar-track">
-                <div class="bar-fill" style="width:${pct}%;background:${cs.color || 'var(--primary)'};">${cs.regCount}</div>
+                <div class="bar-fill" style="width:${pct}%;background:${barColor};">${cs.regCount}</div>
                 ${forecast > 0 ? `<div class="bar-forecast-line" style="right:${100-forecastPct}%;" title="צפי: ${forecast}"></div>` : ''}
             </div>
             ${forecast > 0 ? `<div class="bar-forecast-tag">${forecast}</div>` : '<div style="width:28px;"></div>'}
