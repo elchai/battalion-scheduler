@@ -585,10 +585,6 @@ function applyUnitFilter() {
     // Settings - only FULL_ACCESS (level 7)
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.FULL_ACCESS ? '' : 'none');
 
-    // Commander dashboard - officers (level 4+) and palsam officers
-    const showCommander = level >= PERM.OFFICER || isPalsamOfficer();
-    document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = showCommander ? '' : 'none');
-
     // Rotation management - only FULL_ACCESS
     const addRotBtn = document.getElementById('addRotGroupBtn');
     if (addRotBtn) addRotBtn.style.display = level >= PERM.FULL_ACCESS ? '' : 'none';
@@ -943,15 +939,14 @@ function renderAll() {
     renderOverview();
     renderDashboard();
     if (allCompanyKeys().includes(activeTab)) {
-        renderCompanyTab(activeTab);
+        if (companyViewMode[activeTab] === 'commander') renderCommanderDashboard(activeTab);
+        else renderCompanyTab(activeTab);
     } else if (activeTab === 'rotation') {
         renderRotationTab();
     } else if (activeTab === 'equipment') {
         renderEquipmentTab();
     } else if (activeTab === 'weapons') {
         renderWeaponsTab();
-    } else if (activeTab === 'commander') {
-        renderCommanderDashboard();
     } else if (activeTab === 'morningreport') {
         generateMorningReport();
     } else if (activeTab === 'rollcall') {
@@ -1758,6 +1753,7 @@ function renderCompanyTab(compKey) {
             <button class="btn" style="background:#7c4dff;color:white;" onclick="openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
             ${editConstraints ? `<button class="btn" style="background:#e53935;color:white;" onclick="openConstraints('${compKey}')">אילוצים</button>` : ''}
             <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
+            <button class="btn" style="background:#7B1FA2;color:white;" onclick="toggleCompanyView('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> תצוגת מ"פ</button>
         </div>
 
         <!-- Force Table -->
@@ -2330,13 +2326,22 @@ function exportCalendarToPDF() {
 }
 
 // ==================== COMMANDER DASHBOARD ====================
-function renderCommanderDashboard() {
-    const container = document.getElementById('content-commander');
+let companyViewMode = {};
+
+function toggleCompanyView(compKey) {
+    companyViewMode[compKey] = companyViewMode[compKey] === 'commander' ? 'manage' : 'commander';
+    if (companyViewMode[compKey] === 'commander') {
+        renderCommanderDashboard(compKey);
+    } else {
+        renderCompanyTab(compKey);
+    }
+}
+
+function renderCommanderDashboard(targetCompKey) {
+    const compKey = targetCompKey || (currentUser && currentUser.unit) || 'a';
+    const container = document.getElementById('content-' + compKey);
     if (!container) return;
 
-    // Determine which company to show
-    let compKey = commanderViewCompany || (currentUser && currentUser.unit) || 'a';
-    if (compKey === 'gdudi' || compKey === 'hq') compKey = 'a';
     const comp = companyData[compKey];
     if (!comp) return;
 
@@ -2379,16 +2384,11 @@ function renderCommanderDashboard() {
     });
 
     // Company selector for gdudi users
-    const compSelector = (currentUser && getUserPermissionLevel() >= PERM.COMPANY_CMD) ? `
-        <select id="cmdCompanySelect" onchange="switchCommanderCompany(this.value)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
-            ${allCompanyKeys().map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
-        </select>` : '';
-
     container.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-            <h2 style="margin:0;font-size:1.3em;">לוח מ"פ - ${comp.name}</h2>
+            <h2 style="margin:0;font-size:1.3em;">תצוגת מ"פ - ${comp.name}</h2>
             <div style="display:flex;align-items:center;gap:10px;">
-                ${compSelector}
+                <button class="btn btn-sm" onclick="toggleCompanyView('${compKey}')" style="background:var(--primary);color:white;">חזרה לניהול</button>
                 <span style="font-size:0.85em;color:var(--text-light);">${getReportDateStr()}</span>
             </div>
         </div>
@@ -2510,14 +2510,6 @@ function cmdSoldierCard(s, status) {
         </div>
     </div>`;
 }
-
-let commanderViewCompany = null;
-
-function switchCommanderCompany(compKey) {
-    commanderViewCompany = compKey;
-    renderCommanderDashboard();
-}
-
 
 // ==================== WHATSAPP NOTIFICATION CENTER ====================
 let whatsappFilterType = 'all';
@@ -2715,7 +2707,10 @@ function switchTab(tab) {
     });
     const tabContent = document.getElementById(`tab-${tab}`);
     if (tabContent) tabContent.classList.add('active');
-    if (allCompanyKeys().includes(tab)) renderCompanyTab(tab);
+    if (allCompanyKeys().includes(tab)) {
+        companyViewMode[tab] = 'manage';
+        renderCompanyTab(tab);
+    }
     if (tab === 'calendar') renderCalendar();
     if (tab === 'reports') { /* Static tab, no render needed */ }
     if (tab === 'morningreport') generateMorningReport();
@@ -2726,7 +2721,6 @@ function switchTab(tab) {
     if (tab === 'weapons') renderWeaponsTab();
     if (tab === 'training') renderTrainingTab();
     if (tab === 'settings') renderSettingsTab();
-    if (tab === 'commander') renderCommanderDashboard();
     if (tab === 'whatsapp') renderWhatsAppCenter();
 
 
