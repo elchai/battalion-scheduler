@@ -3985,7 +3985,7 @@ function renderTrainingTab() {
     let html = `
         <div class="section-header">
             <div class="section-title" style="display:flex;align-items:center;gap:10px;">
-                <img src="training-icon.png" width="22" height="22" style="opacity:0.85;" alt="">
+                <img src="training-icon.png" width="18" height="18" style="opacity:0.85;" alt="">
                 מעקב אימונים
             </div>
         </div>
@@ -5311,21 +5311,54 @@ function copyRollCallText() {
 }
 
 // ==================== REPORT 1 - ATTENDANCE ====================
-let report1WeekOffset = 0;
+let report1Offset = 0;
 
 function report1Nav(dir) {
-    if (dir === 0) report1WeekOffset = 0;
-    else report1WeekOffset += dir;
+    if (dir === 0) report1Offset = 0;
+    else report1Offset += dir;
     renderReport1();
 }
 
-function getReport1WeekDays() {
+function getReport1Days() {
+    const rangeEl = document.getElementById('report1Range');
+    const range = rangeEl ? rangeEl.value : 'week';
     const today = new Date();
     today.setHours(0,0,0,0);
-    // Find Sunday of current offset week
+
+    if (range === 'operation') {
+        // Full operation period - ignore offset
+        const start = settings.operationStartDate ? new Date(settings.operationStartDate + 'T00:00:00') : new Date(today);
+        const end = settings.operationEndDate ? new Date(settings.operationEndDate + 'T00:00:00') : new Date(today);
+        const days = [];
+        const d = new Date(start);
+        while (d <= end) {
+            days.push(new Date(d));
+            d.setDate(d.getDate() + 1);
+        }
+        return days.length > 0 ? days : [new Date(today)];
+    }
+
+    if (range === 'day') {
+        const d = new Date(today);
+        d.setDate(d.getDate() + report1Offset);
+        return [d];
+    }
+
+    if (range === 'month') {
+        const base = new Date(today.getFullYear(), today.getMonth() + report1Offset, 1);
+        const days = [];
+        const d = new Date(base);
+        while (d.getMonth() === base.getMonth()) {
+            days.push(new Date(d));
+            d.setDate(d.getDate() + 1);
+        }
+        return days;
+    }
+
+    // week (default)
     const dayOfWeek = today.getDay(); // 0=Sun
     const sunday = new Date(today);
-    sunday.setDate(sunday.getDate() - dayOfWeek + (report1WeekOffset * 7));
+    sunday.setDate(sunday.getDate() - dayOfWeek + (report1Offset * 7));
     const days = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(sunday);
@@ -5386,9 +5419,14 @@ function renderReport1() {
     const soldiers = isNispachim
         ? state.soldiers.filter(s => s.nispach)
         : state.soldiers.filter(s => s.company === compKey && !s.nispach);
-    const days = getReport1WeekDays();
+    const days = getReport1Days();
     const todayStr = localToday();
     const hebDays = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+
+    // Hide nav buttons when showing full operation period
+    const rangeEl = document.getElementById('report1Range');
+    const navBtns = document.getElementById('report1NavBtns');
+    if (navBtns) navBtns.style.display = rangeEl && rangeEl.value === 'operation' ? 'none' : '';
 
     if (soldiers.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>אין חיילים בפלוגה זו</p></div>';
@@ -5403,11 +5441,19 @@ function renderReport1() {
         opInfo = `<div style="font-size:0.82em;color:var(--text-light);margin-bottom:12px;">תעסוקה: ${s} – ${e}</div>`;
     }
 
-    // Week header
-    const weekRange = `${formatDate(days[0].toISOString().split('T')[0])} – ${formatDate(days[6].toISOString().split('T')[0])}`;
+    // Date range header
+    const rangeLabel = days.length === 1
+        ? formatDate(days[0].toISOString().split('T')[0])
+        : `${formatDate(days[0].toISOString().split('T')[0])} – ${formatDate(days[days.length - 1].toISOString().split('T')[0])}`;
 
     // SVG icons for statuses
-    const ICONS = {
+    const isCompact = days.length > 14;
+    const ICONS = isCompact ? {
+        active: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1565c0;"></span>',
+        home: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e65100;"></span>',
+        base: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2e7d32;"></span>',
+        notserving: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#999;"></span>'
+    } : {
         active: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 2 4 5 4 9c0 1 .2 2 .5 3h15c.3-1 .5-2 .5-3 0-4-4-7-8-7z"/><path d="M4.5 12C3 12 2 13 2 14h20c0-1-1-2-2.5-2"/><path d="M8 14v2"/><path d="M16 14v2"/></svg>',
         home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
         base: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
@@ -5433,7 +5479,7 @@ function renderReport1() {
     // Table
     container.innerHTML = `
         ${opInfo}
-        <div style="font-weight:600;margin-bottom:8px;">${isNispachim ? 'נספחים' : compNames[compKey]} | ${weekRange}</div>
+        <div style="font-weight:600;margin-bottom:8px;">${isNispachim ? 'נספחים' : compNames[compKey]} | ${rangeLabel}</div>
         <div class="table-scroll">
         <table class="r1-table">
             <thead>
@@ -5444,10 +5490,11 @@ function renderReport1() {
                         const isToday = ds === todayStr;
                         const isClosed = (settings.closedDays || []).includes(ds);
                         const inOp = isDateInOperation(ds);
-                        return `<th class="r1-day-header ${isToday ? 'r1-today' : ''} ${!inOp ? 'r1-out-of-op' : ''}" style="text-align:center;min-width:60px;">
-                            <div>${hebDays[i]}</div>
+                        const compact = days.length > 14;
+                        return `<th class="r1-day-header ${isToday ? 'r1-today' : ''} ${!inOp ? 'r1-out-of-op' : ''}" style="text-align:center;min-width:${compact ? '36' : '60'}px;${compact ? 'font-size:0.7em;padding:4px 2px;' : ''}">
+                            <div>${hebDays[d.getDay()]}</div>
                             <div style="font-size:0.75em;font-weight:400;">${d.getDate()}/${d.getMonth()+1}</div>
-                            ${inOp ? `<button class="r1-closed-btn ${isClosed ? 'active' : ''}" onclick="toggleClosedDay('${ds}')" title="${isClosed ? 'פתח שמ\"פ' : 'סגור שמ\"פ'}">${isClosed ? '🔒' : '🔓'}</button>` : ''}
+                            ${!compact && inOp ? `<button class="r1-closed-btn ${isClosed ? 'active' : ''}" onclick="toggleClosedDay('${ds}')" title="${isClosed ? 'פתח שמ\"פ' : 'סגור שמ\"פ'}">${isClosed ? '🔒' : '🔓'}</button>` : ''}
                         </th>`;
                     }).join('')}
                 </tr>
@@ -5513,7 +5560,7 @@ function copyReport1Text() {
     const soldiers = isNispachim
         ? state.soldiers.filter(s => s.nispach)
         : state.soldiers.filter(s => s.company === compKey && !s.nispach);
-    const days = getReport1WeekDays();
+    const days = getReport1Days();
     const hebDays = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
     const todayStr = localToday();
 

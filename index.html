@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v114';
+    var _cb = 'v115';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -455,10 +455,16 @@
                 <option value="palsam">פלס"ם</option>
                 <option value="nispachim">נספחים</option>
             </select>
-            <div style="display:flex;align-items:center;gap:4px;">
-                <button class="btn btn-sm" onclick="report1Nav(-1)" title="שבוע קודם">&rarr;</button>
-                <button class="btn btn-sm btn-primary" onclick="report1Nav(0)" title="שבוע נוכחי">היום</button>
-                <button class="btn btn-sm" onclick="report1Nav(1)" title="שבוע הבא">&larr;</button>
+            <select id="report1Range" onchange="report1Offset=0;renderReport1()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
+                <option value="day">יום</option>
+                <option value="week" selected>שבוע</option>
+                <option value="month">חודש</option>
+                <option value="operation">כל התקופה</option>
+            </select>
+            <div id="report1NavBtns" style="display:flex;align-items:center;gap:4px;">
+                <button class="btn btn-sm" onclick="report1Nav(-1)" title="הקודם">&rarr;</button>
+                <button class="btn btn-sm btn-primary" onclick="report1Nav(0)" title="היום">היום</button>
+                <button class="btn btn-sm" onclick="report1Nav(1)" title="הבא">&larr;</button>
             </div>
             <button class="btn btn-secondary" onclick="copyReport1Text()">העתק לוואטסאפ</button>
             <button class="btn btn-excel btn-sm" onclick="exportShavtzak()">ייצוא שבצ"ק (Excel)</button>
