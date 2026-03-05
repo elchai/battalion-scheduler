@@ -5878,12 +5878,12 @@ function generateMorningReport() {
             <div class="mr-summary">
                 <div class="mr-stat"><span class="mr-stat-value">${totalAll}</span><span class="mr-stat-label">כוח סה"כ</span></div>
                 <div class="mr-stat present"><span class="mr-stat-value">${totalPresent}</span><span class="mr-stat-label">נוכחים</span></div>
-                <div class="mr-stat leave"><span class="mr-stat-value">${totalLeave}</span><span class="mr-stat-label">ביציאות</span></div>
+                <div class="mr-stat leave"><span class="mr-stat-value">${totalLeave}</span><span class="mr-stat-label">בבית</span></div>
                 <div class="mr-stat shift"><span class="mr-stat-value">${totalShift}</span><span class="mr-stat-label">במשמרות היום</span></div>
             </div>
             <div class="table-scroll">
                 <table class="mr-table">
-                    <thead><tr><th>מסגרת</th><th>סה"כ</th><th>נוכחים</th><th>ביציאה</th><th>במשמרת</th></tr></thead>
+                    <thead><tr><th>מסגרת</th><th>סה"כ</th><th>נוכחים</th><th>בבית</th><th>במשמרת</th></tr></thead>
                     <tbody>${rows}</tbody>
                     <tfoot><tr style="font-weight:700;background:var(--bg);">
                         <td>סה"כ גדוד</td><td>${totalAll}</td><td>${totalPresent}</td><td>${totalLeave}</td><td>${totalShift}</td>
