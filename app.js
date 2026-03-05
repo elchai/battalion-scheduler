@@ -1012,6 +1012,13 @@ function syncFromGoogleSheets(silent) {
             }
         });
 
+        // Dedup by personalId — later sheets (agam) override earlier (support/palsam)
+        const seenIds = new Map();
+        sheetSoldiers.forEach((s, i) => { if (s.personalId) seenIds.set(s.personalId, i); });
+        const beforeDedup = sheetSoldiers.length;
+        sheetSoldiers = sheetSoldiers.filter((s, i) => !s.personalId || seenIds.get(s.personalId) === i);
+        if (beforeDedup !== sheetSoldiers.length) console.log(`Dedup: removed ${beforeDedup - sheetSoldiers.length} duplicate soldiers by personalId`);
+
         state.soldiers = [...manualSoldiers, ...sheetSoldiers];
         // Log per-company counts
         const counts = {};
@@ -1289,8 +1296,8 @@ function renderDashboard() {
         return `${d.color} ${start}deg ${start + size}deg`;
     }).join(', ');
 
-    // === BAR CHART - Company manning ===
-    const mainCompanies = CONFIG.combatCompanies;
+    // === BAR CHART - Company manning (all companies with soldiers) ===
+    const mainCompanies = ALL_COMPANIES.filter(k => compStats[k].regCount > 0);
     const maxVal = Math.max(...mainCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
     const barsHtml = mainCompanies.map(k => {
         const cs = compStats[k];
@@ -1563,8 +1570,7 @@ function updateNotifications() {
     }
 
     // 3. Understaffed tasks (shifts needed today with low coverage)
-    const mainCompanies = CONFIG.combatCompanies;
-    mainCompanies.forEach(k => {
+    ALL_COMPANIES.forEach(k => {
         const comp = companyData[k];
         comp.tasks.forEach(task => {
             const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
