@@ -186,7 +186,11 @@ const CONFIG = {
     },
 
     // --- Green API (WhatsApp) ---
-    greenApi: null, // { idInstance: '...', apiTokenInstance: '...', apiUrl: 'https://api.green-api.com' }
+    greenApi: {
+        idInstance: '1101817056',
+        apiTokenInstance: 'faebc932e6514a8eb5695d9a57aad22821fb37d36145468098',
+        apiUrl: 'https://api.green-api.com'
+    },
 
     // --- קרדיט ---
     developerName: 'אלחי פיין',

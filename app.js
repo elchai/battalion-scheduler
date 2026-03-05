@@ -8936,15 +8936,15 @@ const WA_DEFAULT_TEMPLATE = `שלום {שם}, זאת הודעה אוטומטית
 let _waSending = false;
 
 function openWeaponsWhatsAppModal() {
+    if (!CONFIG.greenApi) { showToast('Green API לא מוגדר ב-config.js', 'error'); return; }
     const tpl = document.getElementById('waMessageTemplate');
     if (tpl && !tpl.value) tpl.value = WA_DEFAULT_TEMPLATE;
     // Set company filter from main weapons filter
     const mainComp = document.getElementById('weaponsSendCompany');
     const waComp = document.getElementById('waCompanyFilter');
     if (mainComp && waComp) waComp.value = mainComp.value;
-    // Auto-select Green API if configured, else wa.me
-    const methodEl = document.getElementById('waSendMethod');
-    if (methodEl) methodEl.value = CONFIG.greenApi ? 'greenapi' : 'wame';
+    const searchEl = document.getElementById('waSoldierSearch');
+    if (searchEl) searchEl.value = '';
     document.getElementById('waSendProgress').textContent = '';
     updateWaSoldierList();
     openModal('weaponsWhatsAppModal');
@@ -8956,6 +8956,7 @@ function getWaSoldiers() {
     let soldiers = [...state.soldiers].filter(s => s.phone);
     if (comp !== 'all') soldiers = soldiers.filter(s => s.company === comp);
     if (onlyUnsigned) soldiers = soldiers.filter(s => !getEasyDoStatus(s));
+    soldiers.sort((a, b) => a.name.localeCompare(b.name, 'he'));
     return soldiers;
 }
 
@@ -8970,7 +8971,7 @@ function updateWaSoldierList() {
         return;
     }
     container.innerHTML = soldiers.map(s => `
-        <label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;" class="wa-soldier-row">
+        <label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;" class="wa-soldier-row" data-name="${esc(s.name)}">
             <input type="checkbox" checked data-soldier-id="${s.id}" onchange="updateWaSelectedCount();updateWaPreview()">
             <span style="font-weight:500;">${esc(s.name)}</span>
             <span style="color:var(--text-light);font-size:12px;">${esc(compNames[s.company] || s.company)}</span>
@@ -8979,6 +8980,14 @@ function updateWaSoldierList() {
     `).join('');
     updateWaSelectedCount();
     updateWaPreview();
+}
+
+function filterWaSoldierList() {
+    const query = (document.getElementById('waSoldierSearch').value || '').trim().toLowerCase();
+    document.querySelectorAll('#waSoldierList .wa-soldier-row').forEach(row => {
+        const name = (row.dataset.name || '').toLowerCase();
+        row.style.display = !query || name.includes(query) ? '' : 'none';
+    });
 }
 
 function waSelectAll(checked) {
@@ -9034,11 +9043,10 @@ async function sendWeaponsWhatsApp() {
 
     if (!soldiers.length) { showToast('לא נבחרו חיילים', 'error'); return; }
 
-    const method = document.getElementById('waSendMethod').value;
     const delay = parseInt(document.getElementById('waSendDelay').value) || 3;
 
-    if (method === 'greenapi' && !CONFIG.greenApi) {
-        showToast('Green API לא מוגדר בהגדרות. השתמש בשיטת wa.me או הגדר greenApi ב-config.js', 'error');
+    if (!CONFIG.greenApi) {
+        showToast('Green API לא מוגדר ב-config.js', 'error');
         return;
     }
 
@@ -9058,23 +9066,16 @@ async function sendWeaponsWhatsApp() {
         progressEl.textContent = `שולח ${i + 1} / ${soldiers.length} — ${s.name}...`;
 
         try {
-            if (method === 'greenapi') {
-                const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
-                const chatId = phone + '@c.us';
-                const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
-                const resp = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatId, message: msg })
-                });
-                const data = await resp.json();
-                if (data.idMessage) { sent++; } else { failed++; console.warn('WA fail:', s.name, data); }
-            } else {
-                // wa.me fallback
-                const intl = phone.startsWith('972') ? phone : '972' + phone;
-                window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
-                sent++;
-            }
+            const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
+            const chatId = phone + '@c.us';
+            const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatId, message: msg })
+            });
+            const data = await resp.json();
+            if (data.idMessage) { sent++; } else { failed++; console.warn('WA fail:', s.name, data); }
         } catch (err) {
             failed++;
             console.warn('WA send error for', s.name, err);

@@ -1664,30 +1664,30 @@
             </div>
             <div style="margin-bottom:14px;">
                 <label style="font-weight:600;display:block;margin-bottom:6px;">בחר חיילים לשליחה:</label>
-                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
                     <button class="btn btn-sm btn-outline" onclick="waSelectAll(true)">סמן הכל</button>
                     <button class="btn btn-sm btn-outline" onclick="waSelectAll(false)">נקה הכל</button>
-                    <span id="waSelectedCount" style="align-self:center;color:var(--text-light);font-size:13px;"></span>
+                    <span id="waSelectedCount" style="color:var(--text-light);font-size:13px;"></span>
+                    <input type="text" id="waSoldierSearch" class="form-control" placeholder="חיפוש חייל..." oninput="filterWaSoldierList()" style="width:180px;margin-right:auto;">
                 </div>
                 <div id="waSoldierList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
             </div>
-            <div style="margin-bottom:14px;">
-                <label style="font-weight:600;display:block;margin-bottom:6px;">תוכן ההודעה:</label>
-                <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">השתמש ב-<code>{שם}</code> לשם החייל, <code>{קישור_רופא}</code> לטופס הרופא, <code>{קישור_easydo}</code> לקישור EasyDo</div>
-                <textarea id="waMessageTemplate" class="form-control" rows="8" style="font-size:14px;line-height:1.6;direction:rtl;" oninput="updateWaPreview()"></textarea>
+            <div style="margin-bottom:18px;">
+                <label style="font-weight:600;display:block;margin-bottom:8px;font-size:15px;">תוכן ההודעה:</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:help;" title="יוחלף בשם הפרטי של החייל">{שם}</span>
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:help;" title="קישור לטופס הרופא">{קישור_רופא}</span>
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:help;" title="קישור ל-EasyDo לפי פלוגה">{קישור_easydo}</span>
+                </div>
+                <textarea id="waMessageTemplate" class="form-control" rows="10" style="font-size:14px;line-height:1.8;direction:rtl;padding:14px;border-radius:10px;" oninput="updateWaPreview()"></textarea>
             </div>
             <div style="margin-bottom:14px;">
-                <label style="font-weight:600;display:block;margin-bottom:6px;">תצוגה מקדימה (חייל ראשון):</label>
-                <div id="waPreview" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;white-space:pre-wrap;font-size:13px;direction:rtl;max-height:150px;overflow-y:auto;"></div>
+                <label style="font-weight:600;display:block;margin-bottom:8px;font-size:15px;">תצוגה מקדימה:</label>
+                <div id="waPreview" style="background:#dcf8c6;border:1px solid #b5d9a0;border-radius:12px;padding:14px 16px;white-space:pre-wrap;font-size:14px;line-height:1.7;direction:rtl;max-height:180px;overflow-y:auto;color:#111;font-family:inherit;"></div>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <label style="font-weight:600;">שיטת שליחה:</label>
-                <select id="waSendMethod" class="form-select" style="width:auto;">
-                    <option value="greenapi">Green API (אוטומטי)</option>
-                    <option value="wame">wa.me (פתיחת לשוניות)</option>
-                </select>
                 <label style="display:flex;align-items:center;gap:5px;">
-                    השהיה:
+                    <span style="font-weight:600;">השהיה בין הודעות:</span>
                     <input type="number" id="waSendDelay" class="form-control" style="width:70px;" value="3" min="1" max="30">
                     שניות
                 </label>
