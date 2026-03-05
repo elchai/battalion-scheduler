@@ -1286,7 +1286,8 @@ function renderDashboard() {
     });
 
     const mainCompanies = ALL_COMPANIES.filter(k => compStats[k].regCount > 0);
-    const activeCompCount = mainCompanies.length;
+    const chartCompanies = ['a', 'b', 'c', 'd', 'agam'].filter(k => compStats[k]);
+    const activeCompCount = chartCompanies.length;
 
     // === HERO STATS ===
     if (heroEl) {
@@ -1298,7 +1299,7 @@ function renderDashboard() {
                 <div class="dash-hero-info">
                     <div class="dash-hero-num">${totalPersonnel}</div>
                     <div class="dash-hero-label">סה"כ כוח אדם</div>
-                    <div class="dash-hero-sub">${activeCompCount} יחידות פעילות</div>
+                    <div class="dash-hero-sub">${activeCompCount} פלוגות</div>
                 </div>
             </div>
             <div class="dash-hero-card hero-assigned">
@@ -1349,9 +1350,9 @@ function renderDashboard() {
         return `${d.color} ${start}deg ${start + size}deg`;
     }).join(', ');
 
-    // === BAR CHART ===
-    const maxVal = Math.max(...mainCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
-    const barsHtml = mainCompanies.map(k => {
+    // === BAR CHART (5 companies: a,b,c,d,agam) ===
+    const maxVal = Math.max(...chartCompanies.map(k => Math.max(compStats[k].regCount, companyData[k].forecast || 0)), 1);
+    const barsHtml = chartCompanies.map(k => {
         const cs = compStats[k];
         const forecast = companyData[k].forecast || 0;
         const pct = (cs.regCount / maxVal) * 100;
