@@ -342,45 +342,6 @@ function doLoginByPersonalId() {
     activateApp();
 }
 
-function showManualLogin() {
-    document.getElementById('loginStep2').classList.add('hidden');
-    document.getElementById('loginStep3').classList.remove('hidden');
-    document.getElementById('loginName').focus();
-}
-
-function showPersonalIdLogin() {
-    document.getElementById('loginStep3').classList.add('hidden');
-    document.getElementById('loginStep2').classList.remove('hidden');
-    document.getElementById('loginPersonalId').focus();
-}
-
-function doManualLogin() {
-    const name = document.getElementById('loginName').value.trim();
-    const unit = document.getElementById('loginUnit').value;
-    if (!name) {
-        const err = document.getElementById('loginStep3Error');
-        err.textContent = 'יש להזין שם';
-        err.classList.add('show');
-        return;
-    }
-    if (!unit) {
-        const err = document.getElementById('loginStep3Error');
-        err.textContent = 'יש לבחור מסגרת';
-        err.classList.add('show');
-        return;
-    }
-
-    document.getElementById('loginStep3Error').classList.remove('show');
-
-    let effectiveUnit = unit;
-    if (name === settings.adminName || unit === 'gdudi' || unit === 'hq') effectiveUnit = 'gdudi';
-    if (FULL_ACCESS_NAMES.some(n => name.includes(n))) effectiveUnit = 'gdudi';
-
-    currentUser = { name, unit: effectiveUnit, personalId: '', company: unit, role: '' };
-    sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
-    detectUserRole();
-    activateApp();
-}
 
 function doDemoLogin() {
     const name = (document.getElementById('loginDemoName')?.value || '').trim();
@@ -460,16 +421,10 @@ function doLogout() {
     // Reset login steps
     document.getElementById('loginStep1')?.classList.remove('hidden');
     document.getElementById('loginStep2')?.classList.add('hidden');
-    document.getElementById('loginStep3')?.classList.add('hidden');
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginPersonalId').value = '';
     const preview = document.getElementById('loginSoldierPreview');
     if (preview) preview.classList.add('hidden');
-    // Reset manual login fields
-    const nameField = document.getElementById('loginName');
-    if (nameField) nameField.value = '';
-    const unitField = document.getElementById('loginUnit');
-    if (unitField) unitField.value = '';
 }
 
 let _refreshIconsTimer = null;

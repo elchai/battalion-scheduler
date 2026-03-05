@@ -69,42 +69,6 @@
             <div id="loginSoldierPreview" class="hidden" style="background:var(--card-bg,#f5f5f5);border-radius:10px;padding:12px;margin:8px 0;text-align:center;"></div>
             <button class="login-btn" onclick="doLoginByPersonalId()">המשך</button>
             <div class="login-error" id="loginStep2Error"></div>
-            <div style="text-align:center;margin-top:12px;">
-                <a href="#" onclick="showManualLogin();return false;" style="color:var(--primary,#4a90d9);font-size:0.85em;">כניסה ידנית (ללא מ.א)</a>
-            </div>
-        </div>
-
-        <!-- Step 3: Manual fallback -->
-        <div id="loginStep3" class="hidden">
-            <div class="login-field">
-                <label>שם מלא</label>
-                <input type="text" id="loginName" placeholder="הכנס את שמך" autocomplete="off">
-            </div>
-            <div class="login-field">
-                <label>מסגרת</label>
-                <select id="loginUnit">
-                    <option value="">-- בחר מסגרת --</option>
-                </select>
-                <script>
-                (function(){
-                    var sel = document.getElementById('loginUnit');
-                    Object.entries(CONFIG.companies).forEach(function(e){
-                        var o = document.createElement('option');
-                        o.value = e[0];
-                        o.textContent = e[1].name + (e[1].location ? ' (' + e[1].location + ')' : '');
-                        sel.appendChild(o);
-                    });
-                    var gd = document.createElement('option');
-                    gd.value = 'gdudi'; gd.textContent = 'גדודי / לשכה';
-                    sel.appendChild(gd);
-                })();
-                </script>
-            </div>
-            <button class="login-btn" onclick="doManualLogin()">כניסה למערכת</button>
-            <div class="login-error" id="loginStep3Error"></div>
-            <div style="text-align:center;margin-top:12px;">
-                <a href="#" onclick="showPersonalIdLogin();return false;" style="color:var(--primary,#4a90d9);font-size:0.85em;">חזרה לזיהוי לפי מ.א</a>
-            </div>
         </div>
 
         <!-- Demo mode fields (shown only when CONFIG.skipPassword) -->
