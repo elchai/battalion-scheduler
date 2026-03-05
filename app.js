@@ -4702,6 +4702,16 @@ function renderSettingsTab() {
     <!-- Google Sheets -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> קישור גוגל שיטס</h3>
+        ${CONFIG.isDemo ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#27ae60;"></div>
+            <span style="font-size:0.85em;">מחובר — 7 גיליונות מסונכרנים</span>
+        </div>
+        <p style="font-size:0.78em;color:var(--text-light);">פלוגות א׳-ד׳, חפ"ק, אגם, פלח"ם מסונכרנים מהגיליונות.</p>
+        <div class="settings-actions">
+            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
+        </div>
+        ` : `
         <div class="settings-field">
             <label>מזהה הגיליון (Sheet ID)</label>
             <input type="text" value="${esc(settings.sheetId)}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
@@ -4709,17 +4719,18 @@ function renderSettingsTab() {
         <div class="settings-actions">
             <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
         </div>
+        `}
     </div>
 
     <!-- Firebase Sync -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> סנכרון Firebase</h3>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <div style="width:10px;height:10px;border-radius:50%;background:${typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && typeof firestoreReady !== 'undefined' && firestoreReady ? '#27ae60' : '#e74c3c'};"></div>
-            <span style="font-size:0.85em;">${typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED ? (typeof firestoreReady !== 'undefined' && firestoreReady ? 'מחובר ומסנכרן' : 'מנסה להתחבר...') : 'לא מוגדר'}</span>
+            <div style="width:10px;height:10px;border-radius:50%;background:${CONFIG.isDemo || (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && typeof firestoreReady !== 'undefined' && firestoreReady) ? '#27ae60' : '#e74c3c'};"></div>
+            <span style="font-size:0.85em;">${CONFIG.isDemo ? 'מחובר ומסנכרן' : (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED ? (typeof firestoreReady !== 'undefined' && firestoreReady ? 'מחובר ומסנכרן' : 'מנסה להתחבר...') : 'לא מוגדר')}</span>
         </div>
         <p style="font-size:0.78em;color:var(--text-light);">
-            ${typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED ? 'הנתונים מסונכרנים בזמן אמת בין כל המשתמשים.' : 'להפעלה: ערוך את firebase-config.js והגדר FIREBASE_ENABLED = true עם פרטי הפרויקט שלך.'}
+            ${CONFIG.isDemo ? 'הנתונים מסונכרנים בזמן אמת בין כל המשתמשים.' : (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED ? 'הנתונים מסונכרנים בזמן אמת בין כל המשתמשים.' : 'להפעלה: ערוך את firebase-config.js והגדר FIREBASE_ENABLED = true עם פרטי הפרויקט שלך.')}
         </p>
     </div>
 
@@ -5371,7 +5382,10 @@ function renderReport1() {
     const compSelect = document.getElementById('report1Company');
     const compKey = compSelect ? compSelect.value : 'a';
     const compNames = getCompNames();
-    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const isNispachim = compKey === 'nispachim';
+    const soldiers = isNispachim
+        ? state.soldiers.filter(s => s.nispach)
+        : state.soldiers.filter(s => s.company === compKey && !s.nispach);
     const days = getReport1WeekDays();
     const todayStr = localToday();
     const hebDays = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
@@ -5419,7 +5433,7 @@ function renderReport1() {
     // Table
     container.innerHTML = `
         ${opInfo}
-        <div style="font-weight:600;margin-bottom:8px;">${compNames[compKey]} | ${weekRange}</div>
+        <div style="font-weight:600;margin-bottom:8px;">${isNispachim ? 'נספחים' : compNames[compKey]} | ${weekRange}</div>
         <div class="table-scroll">
         <table class="r1-table">
             <thead>
@@ -5495,12 +5509,15 @@ function copyReport1Text() {
     const compSelect = document.getElementById('report1Company');
     const compKey = compSelect ? compSelect.value : 'a';
     const compNames = getCompNames();
-    const soldiers = state.soldiers.filter(s => s.company === compKey);
+    const isNispachim = compKey === 'nispachim';
+    const soldiers = isNispachim
+        ? state.soldiers.filter(s => s.nispach)
+        : state.soldiers.filter(s => s.company === compKey && !s.nispach);
     const days = getReport1WeekDays();
     const hebDays = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
     const todayStr = localToday();
 
-    let text = `*דו"ח 1 - ${compNames[compKey]}*\n`;
+    let text = `*דו"ח 1 - ${isNispachim ? 'נספחים' : compNames[compKey]}*\n`;
 
     if (settings.operationStartDate || settings.operationEndDate) {
         const s = settings.operationStartDate ? formatDate(settings.operationStartDate) : '?';
