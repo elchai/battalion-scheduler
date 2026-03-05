@@ -67,11 +67,16 @@ let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 function loadSettings() {
     const saved = localStorage.getItem(CONFIG.storagePrefix + 'Settings');
     if (saved) {
-        const parsed = JSON.parse(saved);
-        const defaults = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-        settings = { ...defaults, ...parsed };
-        if (parsed.shiftPresets) settings.shiftPresets = { ...defaults.shiftPresets, ...parsed.shiftPresets };
-        // equipmentSets migration moved to migrateEquipmentSets() - runs AFTER Firebase sync
+        try {
+            const parsed = JSON.parse(saved);
+            const defaults = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+            settings = { ...defaults, ...parsed };
+            if (parsed.shiftPresets) settings.shiftPresets = { ...defaults.shiftPresets, ...parsed.shiftPresets };
+            // equipmentSets migration moved to migrateEquipmentSets() - runs AFTER Firebase sync
+        } catch (e) {
+            console.warn('loadSettings: corrupt localStorage, using defaults', e);
+            settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+        }
     }
 }
 
@@ -120,33 +125,105 @@ function saveSettings() {
     if (typeof firebaseSaveSettings === 'function') firebaseSaveSettings();
 }
 
+// ==================== PERMISSION LEVELS ====================
+const PERM = {
+    SOLDIER: 1,      // חייל רגיל
+    MASHAK: 2,       // מ"כ ומעלה - squad commander
+    SAMAL: 3,        // סמל ומעלה - sergeant
+    OFFICER: 4,      // קצין/מפקד מחלקה
+    COMPANY_CMD: 5,  // מ"פ/סמ"פ - company commander
+    PALSAM: 6,       // פלסם (6a=soldier, 6b=officer)
+    FULL_ACCESS: 7   // לשכה + ניסים סוויסה
+};
+
+const ROLE_LEVEL_MAP = [
+    { level: PERM.COMPANY_CMD, roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'] },
+    { level: PERM.OFFICER,     roles: ['קצין', 'סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ'] },
+    { level: PERM.SAMAL,       roles: ['סמל', 'סמ"ח', 'רס"מ', 'רס"ר'] },
+    { level: PERM.MASHAK,      roles: ['מ"כ', 'מ"מ', 'מפקד'] },
+];
+
+const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
+
+function getUserPermissionLevel() {
+    if (!currentUser) return 0;
+    if (isAdmin()) return PERM.FULL_ACCESS;
+    if (FULL_ACCESS_NAMES.some(n => currentUser.name.includes(n))) return PERM.FULL_ACCESS;
+    if (currentUser.unit === 'gdudi' || currentUser.unit === 'hq') return PERM.FULL_ACCESS;
+    if (currentUser.unit === 'palsam') return PERM.PALSAM;
+    const role = currentUser.role || '';
+    if (!role) return PERM.SOLDIER;
+    for (const mapping of ROLE_LEVEL_MAP) {
+        if (mapping.roles.some(r => role.includes(r))) return mapping.level;
+    }
+    return PERM.SOLDIER;
+}
+
+function isPalsamOfficer() {
+    if (currentUser?.unit !== 'palsam') return false;
+    const role = currentUser.role || '';
+    return ROLE_LEVEL_MAP[0].roles.concat(ROLE_LEVEL_MAP[1].roles)
+        .some(r => role.includes(r));
+}
+
 function isAdmin() {
     return currentUser && currentUser.name === settings.adminName;
 }
 
 function isGdudiAccess() {
-    return currentUser && (currentUser.unit === 'gdudi' || currentUser.unit === 'hq');
-}
-
-function canEdit(compKey) {
-    if (!currentUser) return false;
-    if (isAdmin()) return true;
-    if (isGdudiAccess()) return true;
-    return currentUser.unit === compKey;
+    return getUserPermissionLevel() >= PERM.FULL_ACCESS;
 }
 
 function canView(compKey) {
     if (!currentUser) return false;
-    if (isGdudiAccess()) return true;
+    const level = getUserPermissionLevel();
+    if (level >= PERM.COMPANY_CMD) return true;
+    if (level === PERM.PALSAM) return true;
     return currentUser.unit === compKey;
+}
+
+function canEdit(compKey) {
+    if (!currentUser) return false;
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (level === PERM.PALSAM) return false;
+    if (level >= PERM.OFFICER) return currentUser.unit === compKey;
+    return false;
 }
 
 function canEditShifts(compKey) {
     if (!currentUser) return false;
-    if (isAdmin() || isGdudiAccess()) return true;
-    if (currentUser.unit !== compKey) return false;
-    const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'קצין', 'מפקד'];
-    return cmdRoles.some(r => (currentUser.role || '').includes(r));
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (isPalsamOfficer() && compKey === 'palsam') return true;
+    if (level >= PERM.MASHAK) return currentUser.unit === compKey;
+    return false;
+}
+
+function canEditConstraints(compKey) {
+    if (!currentUser) return false;
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (level >= PERM.MASHAK) return currentUser.unit === compKey;
+    return false;
+}
+
+function canEditSoldierDetails(compKey) {
+    if (!currentUser) return false;
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (isPalsamOfficer() && compKey === 'palsam') return true;
+    if (level >= PERM.OFFICER) return currentUser.unit === compKey;
+    return false;
+}
+
+function canEditTasks(compKey) {
+    if (!currentUser) return false;
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (isPalsamOfficer() && compKey === 'palsam') return true;
+    if (level >= PERM.OFFICER) return currentUser.unit === compKey;
+    return false;
 }
 
 // --- Role detection & equipment signing permissions ---
@@ -165,7 +242,7 @@ function detectUserRole() {
     if (!currentUser) return null;
     const match = state.soldiers.find(s =>
         s.name === currentUser.name &&
-        (currentUser.unit === 'palsam' || isGdudiAccess() || s.company === currentUser.unit)
+        (currentUser.unit === 'palsam' || getUserPermissionLevel() >= PERM.COMPANY_CMD || s.company === currentUser.unit)
     );
     if (match) {
         currentUser.role = match.role || '';
@@ -177,20 +254,17 @@ function detectUserRole() {
     return currentUser.role;
 }
 
-function canSignEquipment() {
+function canSignEquipment(compKey) {
     if (!currentUser) return false;
-    if (currentUser.unit === 'palsam' || isGdudiAccess()) return true;
-    if (isAdmin()) return true;
-    if (!currentUser.role) return false;
-    return SIGNING_ROLES.some(r => currentUser.role.includes(r));
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (level === PERM.PALSAM) return true;
+    if (level >= PERM.SAMAL) return currentUser.unit === (compKey || currentUser.unit);
+    return false;
 }
 
 function isSoldierView() {
-    if (!currentUser) return false;
-    if (isAdmin()) return false;
-    if (['palsam', 'gdudi'].includes(currentUser.unit)) return false;
-    if (canSignEquipment()) return false;
-    return true;
+    return getUserPermissionLevel() === PERM.SOLDIER;
 }
 
 // ==================== GREEN API WHATSAPP ====================
@@ -218,57 +292,122 @@ function sendGreenApiWhatsApp(firstName, phone) {
 // ==================== LOGIN ====================
 let currentUser = null;
 
-function doLogin() {
+function checkPassword() {
+    const password = document.getElementById('loginPassword').value;
+    if (password !== CONFIG.password) {
+        const err = document.getElementById('loginError');
+        err.textContent = 'סיסמה שגויה';
+        err.classList.add('show');
+        return;
+    }
+    document.getElementById('loginError').classList.remove('show');
+    document.getElementById('loginStep1').classList.add('hidden');
+    document.getElementById('loginStep2').classList.remove('hidden');
+    document.getElementById('loginPersonalId').focus();
+}
+
+function doLoginByPersonalId() {
+    const pid = document.getElementById('loginPersonalId').value.trim();
+    if (!pid) {
+        const err = document.getElementById('loginStep2Error');
+        err.textContent = 'יש להזין מספר אישי';
+        err.classList.add('show');
+        return;
+    }
+
+    const soldier = state.soldiers.find(s => s.personalId === pid);
+    if (!soldier) {
+        const err = document.getElementById('loginStep2Error');
+        err.textContent = 'מספר אישי לא נמצא במערכת';
+        err.classList.add('show');
+        return;
+    }
+
+    document.getElementById('loginStep2Error').classList.remove('show');
+
+    let effectiveUnit = soldier.company;
+    if (FULL_ACCESS_NAMES.some(n => soldier.name.includes(n))) effectiveUnit = 'gdudi';
+    if (soldier.company === 'gdudi' || soldier.company === 'hq') effectiveUnit = 'gdudi';
+
+    currentUser = {
+        name: soldier.name,
+        unit: effectiveUnit,
+        personalId: pid,
+        company: soldier.company,
+        role: soldier.role || '',
+        soldierId: soldier.id
+    };
+
+    sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
+    activateApp();
+}
+
+function showManualLogin() {
+    document.getElementById('loginStep2').classList.add('hidden');
+    document.getElementById('loginStep3').classList.remove('hidden');
+    document.getElementById('loginName').focus();
+}
+
+function showPersonalIdLogin() {
+    document.getElementById('loginStep3').classList.add('hidden');
+    document.getElementById('loginStep2').classList.remove('hidden');
+    document.getElementById('loginPersonalId').focus();
+}
+
+function doManualLogin() {
     const name = document.getElementById('loginName').value.trim();
     const unit = document.getElementById('loginUnit').value;
-    const password = document.getElementById('loginPassword').value;
-    const personalId = (document.getElementById('loginPersonalId')?.value || '').trim();
-
     if (!name) {
-        document.getElementById('loginError').textContent = 'יש להזין שם';
-        document.getElementById('loginError').classList.add('show');
+        const err = document.getElementById('loginStep3Error');
+        err.textContent = 'יש להזין שם';
+        err.classList.add('show');
         return;
     }
-    if (!unit && !CONFIG.skipPassword) {
-        document.getElementById('loginError').textContent = 'יש לבחור מסגרת';
-        document.getElementById('loginError').classList.add('show');
+    if (!unit) {
+        const err = document.getElementById('loginStep3Error');
+        err.textContent = 'יש לבחור מסגרת';
+        err.classList.add('show');
         return;
-    }
-    // Demo mode: skip password, collect visitor data
-    if (CONFIG.skipPassword) {
-        const email = (document.getElementById('loginEmail')?.value || '').trim();
-        const phone = (document.getElementById('loginPhone')?.value || '').trim();
-        if (!email && !phone) {
-            document.getElementById('loginError').textContent = 'יש להזין אימייל או טלפון';
-            document.getElementById('loginError').classList.add('show');
-            return;
-        }
-        // Save visitor data to Firestore
-        if (CONFIG.collectVisitorData && db) {
-            const visitorData = { name, email, phone, unit, timestamp: new Date().toISOString(), userAgent: navigator.userAgent };
-            db.collection(CONFIG.visitorCollection || 'demo-visitors').add(visitorData)
-                .catch(err => console.warn('Failed to save visitor:', err));
-        }
-        // Send WhatsApp via Green API
-        if (CONFIG.greenApi && phone) {
-            sendGreenApiWhatsApp(name, phone);
-        }
-    } else {
-        if (password !== settings.password) {
-            document.getElementById('loginError').textContent = 'סיסמה שגויה, נסה שוב';
-            document.getElementById('loginError').classList.add('show');
-            return;
-        }
     }
 
-    // Admin + palsam get full (gdudi) access; demo always gdudi
+    document.getElementById('loginStep3Error').classList.remove('show');
+
     let effectiveUnit = unit;
-    if (CONFIG.skipPassword || name === settings.adminName || unit === 'palsam') effectiveUnit = 'gdudi';
+    if (name === settings.adminName || unit === 'gdudi' || unit === 'hq') effectiveUnit = 'gdudi';
+    if (FULL_ACCESS_NAMES.some(n => name.includes(n))) effectiveUnit = 'gdudi';
 
-    currentUser = { name, unit: effectiveUnit, personalId, company: unit };
+    currentUser = { name, unit: effectiveUnit, personalId: '', company: unit, role: '' };
     sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('loginPassword').value = '';
+    detectUserRole();
+    activateApp();
+}
+
+function doDemoLogin() {
+    const name = (document.getElementById('loginDemoName')?.value || '').trim();
+    const email = (document.getElementById('loginEmail')?.value || '').trim();
+    const phone = (document.getElementById('loginPhone')?.value || '').trim();
+    if (!name) {
+        const err = document.getElementById('loginDemoError');
+        err.textContent = 'יש להזין שם';
+        err.classList.add('show');
+        return;
+    }
+    if (!email && !phone) {
+        const err = document.getElementById('loginDemoError');
+        err.textContent = 'יש להזין אימייל או טלפון';
+        err.classList.add('show');
+        return;
+    }
+
+    if (CONFIG.collectVisitorData && typeof db !== 'undefined' && db) {
+        const visitorData = { name, email, phone, timestamp: new Date().toISOString(), userAgent: navigator.userAgent };
+        db.collection(CONFIG.visitorCollection || 'demo-visitors').add(visitorData)
+            .catch(err => console.warn('Failed to save visitor:', err));
+    }
+    if (CONFIG.greenApi && phone) sendGreenApiWhatsApp(name, phone);
+
+    currentUser = { name, unit: 'gdudi', personalId: '', company: 'gdudi', role: '' };
+    sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
     activateApp();
 }
 
@@ -289,21 +428,26 @@ function renderRoleHolders() {
 function selectRoleHolder(soldierId) {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!sol) return;
-    document.getElementById('loginName').value = sol.name;
     const pidField = document.getElementById('loginPersonalId');
-    if (pidField) pidField.value = sol.personalId || '';
-    if (sol.company) document.getElementById('loginUnit').value = sol.company;
-    document.getElementById('loginPassword').focus();
+    if (pidField) {
+        pidField.value = sol.personalId || '';
+        autoIdentifyByPersonalId();
+    }
 }
 
 function autoIdentifyByPersonalId() {
     const pid = (document.getElementById('loginPersonalId')?.value || '').trim();
-    if (pid.length < 5) return;
+    const preview = document.getElementById('loginSoldierPreview');
+    if (!pid || pid.length < 3) {
+        if (preview) preview.classList.add('hidden');
+        return;
+    }
     const sol = state.soldiers.find(s => s.personalId === pid);
-    if (sol) {
-        document.getElementById('loginName').value = sol.name;
-        if (sol.company) document.getElementById('loginUnit').value = sol.company;
-        document.getElementById('loginPassword').focus();
+    if (sol && preview) {
+        preview.innerHTML = '<strong>' + sol.name + '</strong><br><span style="font-size:0.85em;opacity:0.7;">' + (sol.role || 'חייל') + ' | ' + (companyData[sol.company]?.name || sol.company) + '</span>';
+        preview.classList.remove('hidden');
+    } else if (preview) {
+        preview.classList.add('hidden');
     }
 }
 
@@ -312,18 +456,38 @@ function doLogout() {
     currentUser = null;
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('mainApp').style.display = 'none';
-    document.getElementById('loginName').value = '';
+
+    // Reset login steps
+    document.getElementById('loginStep1')?.classList.remove('hidden');
+    document.getElementById('loginStep2')?.classList.add('hidden');
+    document.getElementById('loginStep3')?.classList.add('hidden');
     document.getElementById('loginPassword').value = '';
-    document.getElementById('loginUnit').value = '';
+    document.getElementById('loginPersonalId').value = '';
+    const preview = document.getElementById('loginSoldierPreview');
+    if (preview) preview.classList.add('hidden');
+    // Reset manual login fields
+    const nameField = document.getElementById('loginName');
+    if (nameField) nameField.value = '';
+    const unitField = document.getElementById('loginUnit');
+    if (unitField) unitField.value = '';
 }
 
+let _refreshIconsTimer = null;
 function refreshIcons() {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (_refreshIconsTimer) return;
+    _refreshIconsTimer = setTimeout(() => {
+        _refreshIconsTimer = null;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }, 60);
 }
 
 function activateApp() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').style.display = '';
+
+    // Restore sidebar visibility (may have been hidden by previous soldier view)
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = '';
 
     const unitMap = getCompNames();
     document.getElementById('userBadge').textContent = currentUser.name + ' | ' + unitMap[currentUser.unit];
@@ -341,17 +505,18 @@ function activateApp() {
 
     applyUnitFilter();
 
-    // Set calendar filter to user's company
+    // Set calendar filter to user's company (levels 2-4 see own company only)
     const calFilter = document.getElementById('calCompanyFilter');
-    if (calFilter && !isGdudiAccess()) {
+    const userLevel = getUserPermissionLevel();
+    if (calFilter && userLevel < PERM.COMPANY_CMD) {
         calFilter.value = currentUser.unit;
     }
 
     // Auto-switch to the relevant tab
-    if (!isGdudiAccess()) {
-        switchTab(currentUser.unit);
-    } else {
+    if (userLevel >= PERM.COMPANY_CMD) {
         switchTab('all');
+    } else {
+        switchTab(currentUser.unit);
     }
 
     // Close sidebar on mobile after login
@@ -418,48 +583,60 @@ function renderSoldierShifts() {
     const container = document.getElementById('myShiftsContent');
     if (!container) return;
     const soldierId = currentUser.soldierId;
-    if (!soldierId || !state.shifts || !state.shifts.length) {
-        container.innerHTML = '<div class="empty-state"><p>אין משמרות</p></div>';
+    const comp = currentUser.unit;
+    // Show all company shifts (spec: "משמרות הפלוגה שלו"), highlight soldier's own
+    const compShifts = (state.shifts || []).filter(sh => sh.company === comp);
+    if (!compShifts.length) {
+        container.innerHTML = '<div class="empty-state"><p>אין משמרות בפלוגה</p></div>';
         return;
     }
-    const myShifts = state.shifts.filter(sh => sh.soldiers && sh.soldiers.includes(soldierId));
-    if (!myShifts.length) {
-        container.innerHTML = '<div class="empty-state"><p>אין משמרות משובצות</p></div>';
-        return;
-    }
-    container.innerHTML = myShifts.slice(-10).reverse().map(sh => `
-        <div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;border-right:4px solid var(--info);">
-            <div style="font-weight:600;">${sh.name || sh.type || 'משמרת'}</div>
+    container.innerHTML = compShifts.slice(-15).reverse().map(sh => {
+        const isMine = soldierId && sh.soldiers && sh.soldiers.includes(soldierId);
+        const borderColor = isMine ? 'var(--primary)' : 'var(--border)';
+        const badge = isMine ? '<span style="background:var(--primary);color:white;font-size:0.72em;padding:2px 8px;border-radius:10px;margin-right:8px;">אני משובץ</span>' : '';
+        return `<div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;border-right:4px solid ${borderColor};">
+            <div style="font-weight:600;">${escapeHtml(sh.name || sh.type || 'משמרת')} ${badge}</div>
             <div style="font-size:0.82em;color:var(--text-light);">${sh.date || ''} ${sh.time || ''}</div>
-            ${sh.notes ? `<div style="font-size:0.82em;margin-top:4px;">${sh.notes}</div>` : ''}
-        </div>
-    `).join('');
+            ${sh.notes ? `<div style="font-size:0.82em;margin-top:4px;">${escapeHtml(sh.notes)}</div>` : ''}
+        </div>`;
+    }).join('');
 }
 
 function applyUnitFilter() {
-    const unit = currentUser.unit;
-    const isGdudi = unit === 'gdudi' || unit === 'hq';
+    const level = getUserPermissionLevel();
+    const seesAll = level >= PERM.COMPANY_CMD; // levels 5, 6, 7 see all companies
 
-    // Show/hide sidebar items based on access level
-    document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = '');
-    document.querySelectorAll('.sidebar-item.tab-a').forEach(el => el.style.display = (isGdudi || unit === 'a') ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-b').forEach(el => el.style.display = (isGdudi || unit === 'b') ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-c').forEach(el => el.style.display = (isGdudi || unit === 'c') ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-d').forEach(el => el.style.display = (isGdudi || unit === 'd') ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-hq').forEach(el => el.style.display = (isGdudi || unit === 'hq') ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-agam').forEach(el => el.style.display = (isGdudi || unit === 'agam') ? '' : 'none');
-    document.querySelectorAll('.sidebar-item.tab-palsam').forEach(el => el.style.display = (isGdudi || unit === 'palsam') ? '' : 'none');
+    // "All companies" overview tab - only for users who see all
+    document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = seesAll ? '' : 'none');
+
+    // Company tabs - show based on canView()
+    ['a', 'b', 'c', 'd', 'hq', 'agam', 'palsam'].forEach(comp => {
+        const show = canView(comp);
+        document.querySelectorAll(`.sidebar-item.tab-${comp}`).forEach(el => el.style.display = show ? '' : 'none');
+    });
+
+    // General tabs - visible to all (level 2+, since level 1 is redirected to soldier view)
     document.querySelectorAll('.sidebar-item.tab-calendar').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
-    document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = '');
+
+    // Training - hidden for palsam (excluded from combat training)
+    document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = level !== PERM.PALSAM ? '' : 'none');
+
+    // Weapons - hidden in demo, otherwise visible
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
-    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = isAdmin() ? '' : 'none');
-    const isCompanyCommander = CONFIG.combatCompanies.includes(unit);
-    document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = (isGdudi || isCompanyCommander) ? '' : 'none');
+
+    // Settings - only FULL_ACCESS (level 7)
+    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.FULL_ACCESS ? '' : 'none');
+
+    // Commander dashboard - officers (level 4+) and palsam officers
+    const showCommander = level >= PERM.OFFICER || isPalsamOfficer();
+    document.querySelectorAll('.sidebar-item.tab-commander').forEach(el => el.style.display = showCommander ? '' : 'none');
+
+    // Rotation management - only FULL_ACCESS
     const addRotBtn = document.getElementById('addRotGroupBtn');
-    if (addRotBtn) addRotBtn.style.display = (isGdudi || isAdmin()) ? '' : 'none';
+    if (addRotBtn) addRotBtn.style.display = level >= PERM.FULL_ACCESS ? '' : 'none';
 
     // Hide section labels if all items in section are hidden
     document.querySelectorAll('.sidebar-section-label').forEach(label => {
@@ -539,6 +716,10 @@ function checkSession() {
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
+            // Detect role if not already set (e.g. manual login sessions)
+            if (!currentUser.role && state.soldiers.length) {
+                detectUserRole();
+            }
             activateApp();
             return true;
         } catch {
@@ -548,13 +729,7 @@ function checkSession() {
     return false;
 }
 
-// Enter key support on login
-document.getElementById('loginPassword').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doLogin();
-});
-document.getElementById('loginName').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('loginUnit').focus();
-});
+// Enter key support on login - handled inline via onkeypress in HTML
 
 // ==================== DATA (built from CONFIG) ====================
 const companyData = {};
@@ -571,7 +746,7 @@ Object.entries(CONFIG.companies).forEach(([key, cfg]) => {
 });
 
 // State
-let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [] };
+let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], shiftHistory: [], constraints: [] };
 
 // Calendar state
 let calendarWeekOffset = 0;
@@ -605,6 +780,9 @@ function loadState() {
     if (!state.initiativeTeams) state.initiativeTeams = [];
     if (!state.training) state.training = [];
 
+    // Normalize shifts — ensure every shift has a soldiers array
+    if (state.shifts) state.shifts.forEach(sh => { if (!Array.isArray(sh.soldiers)) sh.soldiers = []; });
+
     // Migration v1 already completed — just ensure flag is set for new devices
     if (!localStorage.getItem(CONFIG.storagePrefix + '_migration_clear_v1')) {
         localStorage.setItem(CONFIG.storagePrefix + '_migration_clear_v1', '1');
@@ -624,7 +802,7 @@ function loadState() {
     const CAT_MIGRATION = { 'תצפית':'אופטיקה', 'מגן':'לוגיסטיקה', 'רפואי':'לוגיסטיקה', 'שטח':'לוגיסטיקה', 'תחמושת':'לוגיסטיקה', 'טנ"א':'לוגיסטיקה' };
     state.equipment.forEach(e => { if (CAT_MIGRATION[e.category]) e.category = CAT_MIGRATION[e.category]; });
 
-    if (!CONFIG.isDemo) seedTestSoldier();
+    // (test soldier removed)
 
     // Load demo seed data if available and state is empty or outdated
     if (CONFIG.demoSeedData) {
@@ -672,56 +850,6 @@ function detectCategoryFromType(type) {
     return 'לוגיסטיקה';
 }
 
-function seedTestSoldier() {
-    const TEST_ID = 'sol_test_israel';
-    if (state.soldiers.find(s => s.id === TEST_ID)) return;
-    // Add ישראל ישראלי as a test soldier in חפ"ק
-    state.soldiers.push({
-        id: TEST_ID,
-        name: 'ישראל ישראלי',
-        personalId: '1234567',
-        phone: '0501234567',
-        company: 'hq',
-        unit: 'חפ"ק מג"ד',
-        role: 'לוחם',
-        rank: 'טוראי'
-    });
-    // Pre-fill weapons form data with all details from the example form
-    state.weaponsData.push({
-        soldierId: TEST_ID,
-        firstName: 'ישראל',
-        lastName: 'ישראלי',
-        idNumber: '123456789',
-        personalNum: '1234567',
-        birthYear: '1975',
-        fatherName: 'יעקב',
-        phone: '0501234567',
-        phone2: '0521234567',
-        address: 'הרצל 10',
-        city: 'חיפה',
-        rank: 'טוראי',
-        role: 'לוחם',
-        healthAnswers: {
-            q1: 'no', q2: 'no', q3: 'no', q4: 'no', q5: 'no',
-            q6: 'no', q7: 'no', q8: 'no', q9: 'no', q10: 'no',
-            q11: 'no', q12: 'no', q13: 'no', q14: 'no', q15: 'no',
-            q16: 'no', q17: 'no', q18: 'no', q19: 'no', q20: 'no'
-        },
-        healthSig: null,
-        waiverSig: null,
-        requestSig: null,
-        cmdSig: null,
-        cmdName: '',
-        cmdRank: '',
-        cmdId: '',
-        cmdRole: '',
-        weaponType: CONFIG.defaultWeaponType,
-        weaponSerial: '',
-        idPhoto: null,
-        date: new Date().toISOString().split('T')[0]
-    });
-    saveState();
-}
 
 function saveState() {
     try {
@@ -830,7 +958,7 @@ async function init() {
     // Auto-cleanup: remove shifts/leaves older than 30 days
     cleanupOldData();
     renderAll();
-    const today = new Date().toISOString().split('T')[0];
+    const today = localToday();
     const _el = id => document.getElementById(id);
     if (_el('shiftDate')) _el('shiftDate').value = today;
     if (_el('leaveStart')) _el('leaveStart').value = today;
@@ -881,7 +1009,20 @@ function renderAll() {
 // ==================== GOOGLE SHEETS SYNC ====================
 let syncInProgress = false;
 function syncFromGoogleSheets(silent) {
-    if (CONFIG.isDemo) { if (!silent) showToast('סנכרון מגוגל שיטס לא זמין במצב דמו', 'info'); return; }
+    if (CONFIG.isDemo) {
+        if (!silent) {
+            // Simulate sync in demo mode
+            const syncBtns = document.querySelectorAll('[onclick*="syncFromGoogleSheets"]');
+            syncBtns.forEach(btn => { btn._origHTML = btn.innerHTML; btn.innerHTML = '<span class="sync-spinner"></span> מסנכרן...'; btn.disabled = true; });
+            showToast('מסנכרן מגוגל שיטס...', 'success');
+            setTimeout(() => {
+                const soldierCount = state.soldiers ? state.soldiers.length : 0;
+                showToast(`סונכרנו ${soldierCount} חיילים מגוגל שיטס בהצלחה ✓`, 'success');
+                syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = false; });
+            }, 1800);
+        }
+        return;
+    }
     if (syncInProgress) { if (!silent) showToast('סנכרון כבר פעיל, אנא המתן...', 'info'); return; }
     syncInProgress = true;
 
@@ -935,7 +1076,7 @@ function syncFromGoogleSheets(silent) {
         if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
     }).finally(() => {
         syncInProgress = false;
-        syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = true; });
+        syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = false; });
         // Cooldown: disable for 15 seconds
         setTimeout(() => syncBtns.forEach(btn => { btn.disabled = false; }), 15000);
     });
@@ -1086,8 +1227,8 @@ function updateCompanyTotals() {
         } else {
             const officerRoles = ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'];
             const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ'];
-            const officers = soldiers.filter(s => officerRoles.some(r => s.role.includes(r))).length;
-            const commanders = soldiers.filter(s => cmdRoles.some(r => s.role.includes(r))).length;
+            const officers = soldiers.filter(s => officerRoles.some(r => (s.role || '').includes(r))).length;
+            const commanders = soldiers.filter(s => cmdRoles.some(r => (s.role || '').includes(r))).length;
             companyData[key].totals = { soldiers: soldiers.length - officers - commanders, commanders, officers };
         }
     });
@@ -1533,11 +1674,15 @@ function updateNotifications() {
 }
 
 // ==================== SEARCH & FILTER ====================
+let _searchDebounce = {};
 function onSearchInput(compKey) {
-    const ss = getSearchState(compKey);
-    const input = document.getElementById(`search-${compKey}`);
-    if (input) ss.query = input.value.trim();
-    renderSoldiersGrid(compKey);
+    clearTimeout(_searchDebounce[compKey]);
+    _searchDebounce[compKey] = setTimeout(() => {
+        const ss = getSearchState(compKey);
+        const input = document.getElementById(`search-${compKey}`);
+        if (input) ss.query = input.value.trim();
+        renderSoldiersGrid(compKey);
+    }, 200);
 }
 
 function setFilter(compKey, filter, btn) {
@@ -1618,18 +1763,18 @@ function renderSoldiersGrid(compKey) {
         const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
         let rotInfo = '';
         if (rotGroup && rotStatus) {
-            rotInfo = `<div class="meta">רוטציה: ${rotGroup.name} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/' + rotGroup.daysIn + ' בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/' + rotGroup.daysOut + ' בבית'}</div>`;
+            rotInfo = `<div class="meta">רוטציה: ${esc(rotGroup.name)} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/' + rotGroup.daysIn + ' בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/' + rotGroup.daysOut + ' בבית'}</div>`;
         }
         return `<div class="person-card ${cls}" data-soldier-id="${s.id}">
             <div class="person-info">
                 <h4><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>${s.tempAssigned ? ' <span style="font-size:0.75em;color:var(--text-light);font-weight:400;">(מוצב זמנית)</span>' : ''}</h4>
-                <div class="meta">${esc(s.role)}${s.unit ? ' | '+esc(s.unit) : ''}${s.personalId ? ' | '+esc(s.personalId) : ''}</div>
-                ${s.phone ? `<div class="meta">${s.phone}</div>` : ''}
+                <div class="meta">${esc(s.role || '')}${s.unit ? ' | '+esc(s.unit) : ''}${s.personalId ? ' | '+esc(s.personalId) : ''}</div>
+                ${s.phone ? `<div class="meta">${esc(s.phone)}</div>` : ''}
                 ${rotInfo}
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
                 <span class="person-status ${badge}">${txt}</span>
-                ${canEdit(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
+                ${canEditSoldierDetails(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
                 <button class="btn btn-icon btn-sm" style="background:${s.notArrived ? '#e74c3c' : '#78909C'};color:white;" onclick="toggleNotArrived('${s.id}')" title="${s.notArrived ? 'סמן כמגיע' : 'סמן כלא מגיע'}">${s.notArrived ? '&#10007;' : '&#10003;'}</button>
                 ${!(CONFIG.skipPassword && s.id.startsWith('demo_')) ? `<button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}` : ''}
             </div>
@@ -1647,14 +1792,16 @@ function renderCompanyTab(compKey) {
 
     const ss = getSearchState(compKey);
 
-    const editable = canEdit(compKey);
+    const editShifts = canEditShifts(compKey);
+    const editSoldiers = canEditSoldierDetails(compKey);
+    const editConstraints = canEditConstraints(compKey);
     container.innerHTML = `
         <div class="action-bar">
-            ${editable ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
-            <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
+            ${editSoldiers ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>` : ''}
+            ${editShifts ? `<button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
             <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>
-            <button class="btn" style="background:#e53935;color:white;" onclick="openConstraints('${compKey}')">אילוצים</button>
             <button class="btn" style="background:#7c4dff;color:white;" onclick="openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
+            ${editConstraints ? `<button class="btn" style="background:#e53935;color:white;" onclick="openConstraints('${compKey}')">אילוצים</button>` : ''}
             <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
         </div>
 
@@ -1741,7 +1888,7 @@ function renderCompanyTab(compKey) {
                                 </div>
                                 ${needsCommander ? `<div class="task-commander-badge">${cmdSol ? '<strong>מפקד המשימה:</strong> <a href="#" onclick="event.preventDefault();openSoldierProfile(\'' + sh.taskCommander + '\')" class="soldier-link">' + esc(cmdSol.name) + '</a>' : '<span style="color:var(--danger)">לא נבחר מפקד משימה</span>'}</div>` : ''}
                                 ${names.length > 0 ? `<ul class="shift-soldiers">${names.map(n => `<li class="shift-soldier"><span>${n}</span></li>`).join('')}</ul>` : '<div style="text-align:center;padding:8px;color:var(--danger);font-size:0.83em;">לא שובצו חיילים</div>'}
-                                ${editable ? `<div style="margin-top:6px;text-align:left;display:flex;gap:4px;">
+                                ${editShifts ? `<div style="margin-top:6px;text-align:left;display:flex;gap:4px;">
                                     <button class="btn btn-edit btn-sm" onclick="openEditShift('${sh.id}')">&#9998; עריכה</button>
                                     <button class="btn btn-danger btn-sm" onclick="deleteShift('${sh.id}')">&#10005; מחק</button>
                                 </div>` : ''}
@@ -1779,7 +1926,7 @@ function renderCompanyTab(compKey) {
                                     <td><span class="person-status ${active?'status-on-leave':'status-on-duty'}">${active?'בבית':'חזר'}</span></td>
                                     <td style="font-size:0.83em">${esc(l.notes)||'-'}</td>
                                     <td style="display:flex;gap:4px;">
-                                        ${editable ? `<button class="btn btn-edit btn-sm" onclick="openEditLeave('${l.id}')">&#9998;</button>
+                                        ${editShifts ? `<button class="btn btn-edit btn-sm" onclick="openEditLeave('${l.id}')">&#9998;</button>
                                         <button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')">&#10005;</button>` : '-'}
                                     </td>
                                 </tr>`;
@@ -1821,7 +1968,7 @@ function renderRotationTab() {
 }
 
 function getVisibleRotGroups() {
-    if (!currentUser || isGdudiAccess() || isAdmin()) return state.rotationGroups;
+    if (!currentUser || getUserPermissionLevel() >= PERM.COMPANY_CMD) return state.rotationGroups;
     return state.rotationGroups.filter(g =>
         g.soldiers.some(sid => {
             const sol = state.soldiers.find(s => s.id === sid);
@@ -1867,7 +2014,7 @@ function renderRotationCalendar() {
     // One row per rotation group
     visibleGroups.forEach(group => {
         html += '<div class="rotation-row">';
-        html += `<div class="rotation-label">${group.name}<br><small style="color:var(--text-light)">${group.soldiers.length} חיילים</small></div>`;
+        html += `<div class="rotation-label">${esc(group.name)}<br><small style="color:var(--text-light)">${group.soldiers.length} חיילים</small></div>`;
         html += '<div class="rotation-days">';
         days.forEach((d, i) => {
             const status = getRotationStatus(group, d);
@@ -1887,7 +2034,7 @@ function renderRotationCalendar() {
 function renderRotationGroups() {
     const container = document.getElementById('rotationGroupsContainer');
     const visibleGroups = getVisibleRotGroups();
-    const canManage = !currentUser || isGdudiAccess() || isAdmin();
+    const canManage = !currentUser || getUserPermissionLevel() >= PERM.FULL_ACCESS;
     if (visibleGroups.length === 0) {
         container.innerHTML = `<div class="empty-state">
             <div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
@@ -1941,10 +2088,12 @@ function getRotationStatus(group, date) {
     start.setHours(0,0,0,0);
     const check = new Date(date);
     check.setHours(0,0,0,0);
+    if (isNaN(start) || isNaN(check)) return { inBase: true, dayInCycle: 1 };
     const diffDays = Math.floor((check - start) / (1000*60*60*24));
-    const cycleLength = group.daysIn + group.daysOut;
+    const cycleLength = (group.daysIn || 0) + (group.daysOut || 0);
+    if (cycleLength <= 0) return { inBase: true, dayInCycle: 1 };
     let dayInCycle = ((diffDays % cycleLength) + cycleLength) % cycleLength + 1;
-    const inBase = dayInCycle <= group.daysIn;
+    const inBase = dayInCycle <= (group.daysIn || 0);
     return { inBase, dayInCycle };
 }
 
@@ -1977,7 +2126,8 @@ function renderCalendar() {
     const titleEl = document.getElementById('calTitle');
     if (!grid || !titleEl) return;
 
-    const filterCompany = document.getElementById('calCompanyFilter').value;
+    const calFilterEl = document.getElementById('calCompanyFilter');
+    const filterCompany = calFilterEl ? calFilterEl.value : 'all';
 
     // Calculate the week's start (Sunday) based on offset
     const today = new Date();
@@ -2044,9 +2194,9 @@ function renderCalendar() {
         dayShifts.forEach(sh => {
             const compName = companyData[sh.company] ? companyData[sh.company].name : sh.company;
             const label = filterCompany === 'all' ? `${compName} - ${sh.task}` : sh.task;
-            eventsHtml += `<div class="cal-event cal-event-shift" title="${label} (${sh.startTime}-${sh.endTime}) - ${sh.soldiers.length} חיילים">
+            eventsHtml += `<div class="cal-event cal-event-shift" title="${esc(label)} (${sh.startTime}-${sh.endTime}) - ${sh.soldiers.length} חיילים">
                 <span class="cal-event-time">${sh.startTime}</span>
-                <span class="cal-event-label">${label}</span>
+                <span class="cal-event-label">${esc(label)}</span>
                 <span class="cal-event-count">${sh.soldiers.length}</span>
             </div>`;
         });
@@ -2067,8 +2217,8 @@ function renderCalendar() {
                 });
                 Object.entries(leavesByComp).forEach(([comp, count]) => {
                     const compName = companyData[comp] ? companyData[comp].name : comp;
-                    eventsHtml += `<div class="cal-event cal-event-leave" title="${compName} - ${count} ביציאה">
-                        <span class="cal-event-label">${compName}</span>
+                    eventsHtml += `<div class="cal-event cal-event-leave" title="${esc(compName)} - ${count} ביציאה">
+                        <span class="cal-event-label">${esc(compName)}</span>
                         <span class="cal-event-count">${count}</span>
                     </div>`;
                 });
@@ -2077,8 +2227,8 @@ function renderCalendar() {
 
         // Rotation out
         rotationEvents.forEach(r => {
-            eventsHtml += `<div class="cal-event cal-event-rotation" title="${r.name} - ${r.count} בבית (יום ${r.dayInCycle} במחזור)">
-                <span class="cal-event-label">${r.name}</span>
+            eventsHtml += `<div class="cal-event cal-event-rotation" title="${esc(r.name)} - ${r.count} בבית (יום ${r.dayInCycle} במחזור)">
+                <span class="cal-event-label">${esc(r.name)}</span>
                 <span class="cal-event-count">${r.count}</span>
             </div>`;
         });
@@ -2096,7 +2246,8 @@ function renderCalendar() {
 
 function exportCalendarToPDF() {
     const titleEl = document.getElementById('calTitle');
-    const filterCompany = document.getElementById('calCompanyFilter').value;
+    const calFilterEl2 = document.getElementById('calCompanyFilter');
+    const filterCompany = calFilterEl2 ? calFilterEl2.value : 'all';
     const grid = document.getElementById('calGrid');
 
     if (!titleEl || !grid) {
@@ -2235,7 +2386,7 @@ function renderCommanderDashboard() {
     if (!comp) return;
 
     const soldiers = state.soldiers.filter(s => s.company === compKey);
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     const shifts = state.shifts.filter(sh => sh.company === compKey);
     const todayShifts = shifts.filter(sh => sh.date === todayStr);
     const leaves = state.leaves.filter(l => l.company === compKey);
@@ -2249,7 +2400,7 @@ function renderCommanderDashboard() {
         const onLeave = leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l));
         const rotGroup = getRotationGroupForSoldier(s.id);
         const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
-        const isHome = onLeave || (rotStatus && !rotStatus.inBase);
+        const isHome = onLeave || (rotStatus && !rotStatus.inBase) || s.notArrived;
         const returning = leaves.some(l => l.soldierId === s.id && l.endDate === todayStr);
         const leaving = leaves.some(l => l.soldierId === s.id && l.startDate === todayStr);
 
@@ -2273,7 +2424,7 @@ function renderCommanderDashboard() {
     });
 
     // Company selector for gdudi users
-    const compSelector = (currentUser && (currentUser.unit === 'gdudi' || currentUser.unit === 'hq')) ? `
+    const compSelector = (currentUser && getUserPermissionLevel() >= PERM.COMPANY_CMD) ? `
         <select id="cmdCompanySelect" onchange="switchCommanderCompany(this.value)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
             ${allCompanyKeys().map(k => `<option value="${k}" ${k===compKey?'selected':''}>${companyData[k].name}</option>`).join('')}
         </select>` : '';
@@ -2394,7 +2545,7 @@ function cmdSoldierCard(s, status) {
     return `<div class="person-card ${cls}">
         <div class="person-info">
             <h4>${esc(s.name)}</h4>
-            <div class="meta">${esc(s.role) || ''}${s.rank ? ' | '+esc(s.rank) : ''}${s.phone ? ' | '+esc(s.phone) : ''}</div>
+            <div class="meta">${esc(s.role || '')}${s.rank ? ' | '+esc(s.rank) : ''}${s.phone ? ' | '+esc(s.phone) : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
             <span class="person-status ${badge}">${txt}</span>
@@ -2454,7 +2605,7 @@ function renderWhatsAppCenter() {
                 <select id="waComposeSoldier" style="flex:1;min-width:180px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:0.85em;" onchange="waFillPhone()" dir="rtl">
                     <option value="">בחר חייל...</option>
                     ${state.soldiers.filter(s => canView(s.company) && s.phone).map(s =>
-                        `<option value="${s.phone}">${s.name} | ${s.phone}</option>`
+                        `<option value="${esc(s.phone)}">${esc(s.name)} | ${esc(s.phone)}</option>`
                     ).join('')}
                 </select>
                 <input type="tel" id="waComposePhone" placeholder="מספר טלפון" dir="ltr"
@@ -2718,7 +2869,7 @@ function openSoldierProfile(id) {
     document.getElementById('profileTitle').textContent = `כרטיס חייל - ${sol.name}`;
 
     const compNames = getCompNames();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
 
     // Shifts (recent + upcoming)
     const solShifts = state.shifts.filter(sh => sh.soldiers.includes(id)).sort((a,b) => b.date.localeCompare(a.date));
@@ -2855,7 +3006,7 @@ function saveSoldier() {
 
     const editId = document.getElementById('soldierEditId').value;
     const company = document.getElementById('soldierCompany').value;
-    if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
+    if (!canEditSoldierDetails(company)) { showToast('אין הרשאה לערוך חיילים בפלוגה זו', 'error'); return; }
 
     const unit = document.getElementById('soldierUnit').value;
 
@@ -2934,7 +3085,7 @@ function saveSoldier() {
 async function toggleNotArrived(soldierId) {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!sol) return;
-    if (!canEdit(sol.company) && !isAdmin()) { showToast('אין הרשאה', 'error'); return; }
+    if (!canEditSoldierDetails(sol.company)) { showToast('אין הרשאה', 'error'); return; }
 
     if (!sol.notArrived) {
         if (!await customConfirm(`לסמן את ${sol.name} כלא מגיע למילואים?`)) return;
@@ -2955,7 +3106,7 @@ async function toggleNotArrived(soldierId) {
 
 async function deleteSoldier(id) {
     const sol = state.soldiers.find(s => s.id === id);
-    if (sol && !canEdit(sol.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (sol && !canEditSoldierDetails(sol.company)) { showToast('אין הרשאה', 'error'); return; }
     if (CONFIG.skipPassword && id.startsWith('demo_')) { showToast('לא ניתן למחוק נתוני דמו', 'error'); return; }
     if (!await customConfirm('למחוק חייל זה?')) return;
     state.soldiers = state.soldiers.filter(s => s.id !== id);
@@ -2972,16 +3123,17 @@ async function deleteSoldier(id) {
 // ==================== SOLDIER TRANSFER ====================
 function canTransfer(fromComp, toComp) {
     if (!currentUser) return false;
-    if (isAdmin()) return true;
-    if (isGdudiAccess()) return true;
-    return currentUser.unit === fromComp || currentUser.unit === toComp;
+    const level = getUserPermissionLevel();
+    if (level >= PERM.FULL_ACCESS) return true;
+    if (level >= PERM.OFFICER) return currentUser.unit === fromComp || currentUser.unit === toComp;
+    return false;
 }
 
 function openTransferSoldier(soldierId) {
     const sol = state.soldiers.find(s => s.id === soldierId);
     if (!sol) return;
 
-    if (!canEdit(sol.company) && !isAdmin()) {
+    if (!canEditSoldierDetails(sol.company)) {
         showToast('אין הרשאה להעביר חייל זה', 'error');
         return;
     }
@@ -3009,7 +3161,7 @@ function updateTransferWarnings(soldierId) {
     const affectedLeaves = state.leaves.filter(l => l.soldierId === soldierId);
     if (affectedLeaves.length > 0) warnings.push(`${affectedLeaves.length} יציאות יועברו לפלוגה החדשה`);
     const rotGroup = getRotationGroupForSoldier(soldierId);
-    if (rotGroup) warnings.push(`החייל יוסר מקבוצת רוטציה "${rotGroup.name}"`);
+    if (rotGroup) warnings.push(`החייל יוסר מקבוצת רוטציה "${esc(rotGroup.name)}"`);
 
     if (warnings.length > 0) {
         el.style.display = '';
@@ -3128,7 +3280,7 @@ function updateShiftOptions() {
     const taskSel = document.getElementById('shiftTask');
     taskSel.innerHTML = '';
     taskSel.onchange = updateTaskCommanderSelect;
-    const tasks = companyData[company].tasks;
+    const tasks = (companyData[company] && companyData[company].tasks) || [];
     if (tasks.length === 0) {
         const opt = document.createElement('option');
         opt.value = 'כללי'; opt.textContent = 'כללי';
@@ -3174,14 +3326,14 @@ function updateShiftOptions() {
             soldiers.forEach(s => {
                 const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
                 const checked = prevSelected.includes(s.id);
-                let label = s.name;
+                let label = esc(s.name);
                 let badge = '';
                 if (status.onLeave) {
                     badge = '<span class="badge-sm" style="background:#fce4ec;color:#c62828;">בבית</span>';
                 } else if (status.assignedTo) {
-                    badge = `<span class="badge-sm" style="background:#fff3e0;color:#e65100;">${status.assignedTo}</span>`;
+                    badge = `<span class="badge-sm" style="background:#fff3e0;color:#e65100;">${esc(status.assignedTo)}</span>`;
                 } else {
-                    badge = `<span class="badge-sm">${s.role}</span>`;
+                    badge = `<span class="badge-sm">${esc(s.role || '')}</span>`;
                 }
                 const item = document.createElement('div');
                 item.className = 'checkbox-list-item' + (checked ? ' checked' : '');
@@ -3268,10 +3420,13 @@ function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
 
 function isOnLeaveForDate(leave, date) {
     if (!date) return false;
-    const checkDate = new Date(date + 'T12:00:00');
-    const start = new Date(`${leave.startDate}T${leave.startTime || '00:00'}`);
-    const end = new Date(`${leave.endDate}T${leave.endTime || '23:59'}`);
-    return checkDate >= start && checkDate <= end;
+    // Check if the date falls within the leave period (day-level comparison)
+    const dayStart = new Date(date + 'T00:00:00');
+    const dayEnd = new Date(date + 'T23:59:59');
+    const leaveStart = new Date(`${leave.startDate}T${leave.startTime || '00:00'}`);
+    const leaveEnd = new Date(`${leave.endDate}T${leave.endTime || '23:59'}`);
+    // Overlap: leave started before day ends AND leave ends after day starts
+    return leaveStart <= dayEnd && leaveEnd >= dayStart;
 }
 
 // ==================== CONSTRAINTS (אילוצים) ====================
@@ -3308,14 +3463,30 @@ function addConstraint() {
     };
     state.constraints.push(constraint);
 
+    // Auto-log to announcements when constraint added by מ"כ/סמל (levels 2-3)
+    const level = getUserPermissionLevel();
+    if (level === PERM.MASHAK || level === PERM.SAMAL) {
+        const soldierName = state.soldiers.find(s => s.id === soldierId)?.name || soldierId;
+        if (!state.announcements) state.announcements = [];
+        state.announcements.push({
+            id: 'ann_' + Date.now(),
+            title: `אילוץ חדש — ${soldierName}`,
+            body: `${currentUser.name} הוסיף/ה אילוץ ל${soldierName}: ${reason || 'ללא סיבה'} (${startDate} עד ${endDate})`,
+            priority: 'normal',
+            author: currentUser.name,
+            timestamp: Date.now(),
+            autoGenerated: true
+        });
+    }
+
     // Check if soldier is assigned to shifts in this period
     const affectedShifts = state.shifts.filter(sh =>
         sh.soldiers.includes(soldierId) && sh.date >= startDate && sh.date <= endDate
     );
 
     if (affectedShifts.length > 0) {
-        const soldierName = state.soldiers.find(s => s.id === soldierId)?.name || '';
-        showReplacementSuggestions(affectedShifts, soldierId, soldierName, compKey);
+        const soldierName2 = state.soldiers.find(s => s.id === soldierId)?.name || '';
+        showReplacementSuggestions(affectedShifts, soldierId, soldierName2, compKey);
     }
 
     saveState();
@@ -3417,6 +3588,7 @@ function removeFromShift(shiftId, soldierId) {
 function replaceInShift(shiftId, oldSoldierId, newSoldierId) {
     const sh = state.shifts.find(s => s.id === shiftId);
     if (!sh) return;
+    if (!Array.isArray(sh.soldiers)) sh.soldiers = [];
     const idx = sh.soldiers.indexOf(oldSoldierId);
     if (idx >= 0) sh.soldiers[idx] = newSoldierId;
     else sh.soldiers.push(newSoldierId);
@@ -3781,6 +3953,7 @@ function approveScheduleProposal() {
                 state.shifts.push(shiftObj);
 
                 // Record history
+                if (!state.shiftHistory) state.shiftHistory = [];
                 shift.soldiers.forEach(solId => {
                     state.shiftHistory.push({
                         soldierId: solId,
@@ -3805,7 +3978,7 @@ function approveScheduleProposal() {
 // ==================== INITIATIVE TEAMS (צוות יזומות) ====================
 function getActiveInitiativeTeam(compKey) {
     if (!state.initiativeTeams) return null;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localToday();
     return state.initiativeTeams.find(t => t.company === compKey && t.startDate <= today && t.endDate >= today);
 }
 
@@ -3827,12 +4000,18 @@ let trainingCompanyFilter = 'all';
 function renderTrainingTab() {
     const container = document.getElementById('content-training');
     if (!container) return;
-    const canManage = currentUser && (isGdudiAccess() || isAdmin());
-    const types = getTrainingTypes();
+    const canManage = currentUser && getUserPermissionLevel() >= PERM.FULL_ACCESS;
+    const allTypes = getTrainingTypes();
+    const isPalsamFilter = trainingCompanyFilter === 'palsam';
 
-    // Filter soldiers
+    // When palsam is selected, only show weapon_zero column; otherwise show all types
+    const types = isPalsamFilter ? allTypes.filter(t => t.id === 'weapon_zero') : allTypes;
+
+    // Filter soldiers — exclude palsam unless specifically filtering for palsam
     let soldiers = [...state.soldiers];
-    if (trainingCompanyFilter !== 'all') {
+    if (trainingCompanyFilter === 'all') {
+        soldiers = soldiers.filter(s => s.company !== 'palsam');
+    } else {
         soldiers = soldiers.filter(s => s.company === trainingCompanyFilter);
     }
     soldiers.sort((a, b) => a.name.localeCompare(b.name, 'he'));
@@ -3860,6 +4039,7 @@ function renderTrainingTab() {
                 <option value="all" ${trainingCompanyFilter === 'all' ? 'selected' : ''}>כל הגדוד</option>
                 ${allCompanyKeys().map(k => `<option value="${k}" ${trainingCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
             </select>
+            ${isPalsamFilter ? '<span style="font-size:0.82em;color:var(--text-light);align-self:center;">פלח"ם — מוצג רק איפוס נשק</span>' : ''}
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px;">
             ${statsPerType.map(t => `
@@ -3957,16 +4137,26 @@ function updateTrainingTypeType(idx, type) {
 }
 
 function hasTimeOverlap(soldierId, date, startTime, endTime, excludeShiftId) {
-    return state.shifts.find(sh =>
-        sh.id !== excludeShiftId &&
-        sh.date === date && sh.soldiers.includes(soldierId) &&
-        sh.startTime < endTime && sh.endTime > startTime
-    );
+    function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); }
+    function crossMidnightOverlap(s1, e1, s2, e2) {
+        // Split cross-midnight ranges into two segments
+        const r1 = e1 > s1 ? [[s1, e1]] : [[s1, 1440], [0, e1]];
+        const r2 = e2 > s2 ? [[s2, e2]] : [[s2, 1440], [0, e2]];
+        for (const [a, b] of r1)
+            for (const [c, d] of r2)
+                if (a < d && b > c) return true;
+        return false;
+    }
+    const newS = toMin(startTime), newE = toMin(endTime);
+    return state.shifts.find(sh => {
+        if (sh.id === excludeShiftId || !sh.soldiers.includes(soldierId) || sh.date !== date) return false;
+        return crossMidnightOverlap(toMin(sh.startTime), toMin(sh.endTime), newS, newE);
+    });
 }
 
 async function saveShift() {
     const company = document.getElementById('shiftCompany').value;
-    if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
+    if (!canEditShifts(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
     const taskRaw = document.getElementById('shiftTask').value;
     const task = taskRaw.replace(/\s*\(\d+\/\d+\)$/, ''); // strip capacity indicator
     const date = document.getElementById('shiftDate').value;
@@ -3995,14 +4185,18 @@ async function saveShift() {
     }
 
     // Validate: warn if task commander not selected for 4+ soldiers tasks
-    const taskData = companyData[company].tasks.find(t => t.name === task);
+    const taskData = companyData[company] && companyData[company].tasks.find(t => t.name === task);
     if (taskData) {
         const needed = taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers;
-        const alreadyAssigned = state.shifts.filter(sh =>
-            sh.id !== editId &&
-            sh.company === company && sh.task === task && sh.date === date &&
-            sh.startTime < endTime && sh.endTime > startTime
-        ).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+        const alreadyAssigned = state.shifts.filter(sh => {
+            if (sh.id === editId || sh.company !== company || sh.task !== task || sh.date !== date) return false;
+            // Handle cross-midnight overlap (same as hasTimeOverlap)
+            function _toM(t) { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); }
+            const s1 = _toM(sh.startTime), e1 = _toM(sh.endTime), s2 = _toM(startTime), e2 = _toM(endTime);
+            const r1 = e1 > s1 ? [[s1, e1]] : [[s1, 1440], [0, e1]];
+            const r2 = e2 > s2 ? [[s2, e2]] : [[s2, 1440], [0, e2]];
+            return r1.some(([a, b]) => r2.some(([c, d]) => a < d && b > c));
+        }).reduce((sum, sh) => sum + sh.soldiers.length, 0);
         if (needed > 0 && alreadyAssigned + soldiers.length > needed) {
             showToast(`המשמרת מלאה! (${alreadyAssigned}/${needed} משובצים, ניסיון להוסיף ${soldiers.length})`, 'error');
             return;
@@ -4059,7 +4253,7 @@ async function saveShift() {
 
 async function deleteShift(id) {
     const sh = state.shifts.find(s => s.id === id);
-    if (sh && !canEdit(sh.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (sh && !canEditShifts(sh.company)) { showToast('אין הרשאה', 'error'); return; }
     if (!await customConfirm('למחוק משמרת?')) return;
     state.shifts = state.shifts.filter(s => s.id !== id);
     saveState();
@@ -4074,7 +4268,7 @@ function openAddLeave(company) {
     document.getElementById('leaveEditId').value = '';
     document.getElementById('leaveCompany').value = company || 'a';
     document.getElementById('leaveNotes').value = '';
-    const today = new Date().toISOString().split('T')[0];
+    const today = localToday();
     document.getElementById('leaveStart').value = today;
     document.getElementById('leaveStartTime').value = '17:00';
     const d4 = new Date(); d4.setDate(d4.getDate() + 4);
@@ -4123,7 +4317,7 @@ function updateLeaveSoldiers() {
 function saveLeave() {
     const editId = document.getElementById('leaveEditId').value;
     const company = document.getElementById('leaveCompany').value;
-    if (!canEdit(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
+    if (!canEditShifts(company)) { showToast('אין הרשאה לערוך פלוגה זו', 'error'); return; }
     const startDate = document.getElementById('leaveStart').value;
     const startTime = document.getElementById('leaveStartTime').value;
     const endDate = document.getElementById('leaveEnd').value;
@@ -4170,7 +4364,7 @@ function saveLeave() {
 
 async function deleteLeave(id) {
     const l = state.leaves.find(x => x.id === id);
-    if (l && !canEdit(l.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (l && !canEditShifts(l.company)) { showToast('אין הרשאה', 'error'); return; }
     if (!await customConfirm('למחוק יציאה?')) return;
     state.leaves = state.leaves.filter(x => x.id !== id);
     saveState();
@@ -4273,6 +4467,12 @@ function formatDate(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
     if (isNaN(d)) return dateStr;
     return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// Return today's date as YYYY-MM-DD in local timezone (avoids UTC midnight off-by-one in Israel)
+function localToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function openModal(id) {
@@ -4379,11 +4579,10 @@ function esc(text) {
 }
 
 function updateGlobalStats() {
-    const unit = currentUser ? currentUser.unit : 'gdudi';
-    const isGdudi = unit === 'gdudi' || unit === 'hq';
+    const level = currentUser ? getUserPermissionLevel() : PERM.FULL_ACCESS;
 
-    // Filter data by user's unit
-    const filterCompanies = isGdudi ? ALL_COMPANIES : [unit];
+    // Filter data by user's permission level
+    const filterCompanies = level >= PERM.COMPANY_CMD ? ALL_COMPANIES : [currentUser?.unit || 'a'];
 
     let totalSol = 0, totalCmd = 0, totalOff = 0;
     filterCompanies.forEach(k => {
@@ -4399,7 +4598,7 @@ function updateGlobalStats() {
     const totalEl = document.getElementById('statTotalPersonnel');
     if (totalEl) totalEl.textContent = totalSol + totalCmd + totalOff;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     const relevantShifts = state.shifts.filter(sh => filterCompanies.includes(sh.company) && sh.date === todayStr);
     const assignedIds = new Set();
     relevantShifts.forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
@@ -4537,11 +4736,11 @@ function renderSettingsTab() {
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> אבטחה</h3>
         <div class="settings-field">
             <label>סיסמת כניסה</label>
-            <input type="password" value="${settings.password}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
+            <input type="password" value="${esc(settings.password)}" onchange="settings.password=this.value.trim();saveSettings();showToast('סיסמה עודכנה');">
         </div>
         <div class="settings-field">
             <label>שם מנהל מערכת (אדמין)</label>
-            <input type="text" value="${settings.adminName}" onchange="settings.adminName=this.value.trim();saveSettings();showToast('שם אדמין עודכן');">
+            <input type="text" value="${esc(settings.adminName)}" onchange="settings.adminName=this.value.trim();saveSettings();showToast('שם אדמין עודכן');">
         </div>
     </div>
 
@@ -4550,7 +4749,7 @@ function renderSettingsTab() {
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> קישור גוגל שיטס</h3>
         <div class="settings-field">
             <label>מזהה הגיליון (Sheet ID)</label>
-            <input type="text" value="${settings.sheetId}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
+            <input type="text" value="${esc(settings.sheetId)}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
         </div>
         <div class="settings-actions">
             <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
@@ -4605,7 +4804,8 @@ function renderTaskEditor() {
     const compKey = document.getElementById('settingsTaskCompany')?.value || 'a';
     const container = document.getElementById('taskEditorContainer');
     if (!container) return;
-    const tasks = companyData[compKey].tasks;
+    const tasks = companyData[compKey] ? companyData[compKey].tasks : [];
+    if (!tasks) return;
 
     container.innerHTML = `
         <div class="task-edit-row task-edit-header">
@@ -4670,9 +4870,10 @@ function saveTasksToStorage() {
 function loadTasksFromStorage() {
     const saved = localStorage.getItem(CONFIG.storagePrefix + 'Tasks');
     if (saved) {
-        const tasksData = JSON.parse(saved);
-        ALL_COMPANIES.forEach(k => {
-            if (tasksData[k]) companyData[k].tasks = tasksData[k];
+        let tasksData;
+        try { tasksData = JSON.parse(saved); } catch { tasksData = null; }
+        if (tasksData) ALL_COMPANIES.forEach(k => {
+            if (tasksData[k] && companyData[k]) companyData[k].tasks = tasksData[k];
         });
     }
     // Add מפל"ג to combat companies only if no saved tasks exist yet (skip in demo)
@@ -4781,7 +4982,6 @@ function importAllData(input) {
                 if (!state.personalEquipment) state.personalEquipment = [];
                 if (!state.rollCalls) state.rollCalls = [];
                 if (!state.announcements) state.announcements = [];
-                seedTestSoldier();
                 saveState();
             }
             if (data.settings) { settings = { ...settings, ...data.settings }; saveSettings(); }
@@ -4804,7 +5004,7 @@ function importAllData(input) {
 async function resetAllData() {
     if (!isAdmin()) { showToast('פעולה זו מותרת למנהל מערכת בלבד', 'error'); return; }
     if (!await customDeleteConfirm()) return;
-    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [] };
+    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [], shiftHistory: [], constraints: [], initiativeTeams: [], training: [] };
     saveState();
     localStorage.removeItem(CONFIG.storagePrefix + 'Tasks');
     localStorage.removeItem(CONFIG.storagePrefix + 'DataVersion');
@@ -4821,7 +5021,7 @@ function exportCompanyData(compKey) {
     const leaves = state.leaves.filter(l => l.company === compKey);
     let csv = '\uFEFF' + `${comp.name} (${comp.location})\n\n`;
     csv += 'שם,דרגה,תפקיד,מספר אישי,טלפון\n';
-    soldiers.forEach(s => csv += `${s.name},${s.rank},${s.role},${s.personalId},${s.phone}\n`);
+    soldiers.forEach(s => csv += `${s.name},${s.rank || ''},${s.role || ''},${s.personalId || ''},${s.phone || ''}\n`);
     csv += '\nמשמרות\nמשימה,תאריך,התחלה,סיום,חיילים\n';
     shifts.forEach(sh => {
         const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : ''; }).join(' | ');
@@ -4998,7 +5198,7 @@ function renderRollCall() {
                 return `<div class="rc-soldier rc-${st}" data-id="${s.id}">
                     <div class="rc-soldier-info">
                         <strong><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a></strong>
-                        <span class="rc-role">${esc(s.role)}</span>
+                        <span class="rc-role">${esc(s.role || '')}</span>
                     </div>
                     <div class="rc-buttons">
                         <button class="rc-btn ${st==='present'?'active':''}" data-status="present" onclick="setRollCallStatus('${s.id}','present')" title="נוכח">&#10003;</button>
@@ -5218,7 +5418,7 @@ function renderReport1() {
     const compNames = getCompNames();
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const days = getReport1WeekDays();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     const hebDays = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
 
     if (soldiers.length === 0) {
@@ -5343,7 +5543,7 @@ function copyReport1Text() {
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const days = getReport1WeekDays();
     const hebDays = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
 
     let text = `*דו"ח 1 - ${compNames[compKey]}*\n`;
 
@@ -5388,7 +5588,7 @@ function copyReport1Text() {
 function exportShavtzak() {
     if (typeof XLSX === 'undefined') { showToast('ספריית Excel לא נטענה', 'error'); return; }
     const wb = XLSX.utils.book_new();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     const dateFormatted = new Date().toLocaleDateString('he-IL');
     const compNames = getCompNames();
     const baseNames = {}; allCompanyKeys().forEach(k => { baseNames[k] = CONFIG.companies[k]?.baseName || ''; });
@@ -5683,7 +5883,7 @@ function reportHeader(title) {
 }
 
 function generateDailyReport() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     let html = reportHeader('דו"ח מצב יומי');
     html += '<div class="report-body">';
 
@@ -5754,7 +5954,7 @@ function generateCompanyReport() {
         if (soldiers.length > 0) {
             html += '<table><tr><th>שם</th><th>דרגה</th><th>תפקיד</th><th>מ.א.</th><th>טלפון</th></tr>';
             soldiers.forEach(s => {
-                html += `<tr><td>${esc(s.name)}</td><td>${esc(s.rank)}</td><td>${esc(s.role)}</td><td>${esc(s.personalId) || '-'}</td><td>${esc(s.phone) || '-'}</td></tr>`;
+                html += `<tr><td>${esc(s.name)}</td><td>${esc(s.rank || '')}</td><td>${esc(s.role || '')}</td><td>${esc(s.personalId) || '-'}</td><td>${esc(s.phone) || '-'}</td></tr>`;
             });
             html += '</table>';
         } else {
@@ -5768,7 +5968,7 @@ function generateCompanyReport() {
 }
 
 function generateShiftsReport() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     let html = reportHeader('דו"ח שיבוצים');
     html += '<div class="report-body">';
 
@@ -5797,7 +5997,7 @@ function generateShiftsReport() {
 }
 
 function generateLeavesReport() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     let html = reportHeader('דו"ח יציאות');
     html += '<div class="report-body">';
 
@@ -5831,7 +6031,7 @@ function generateLeavesReport() {
 
 // ==================== PDF / EXCEL EXPORT ====================
 function exportReportPDF(type) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     let html = buildReportHTML(type);
     if (!html) return;
 
@@ -5879,7 +6079,7 @@ function exportReportPDF(type) {
 
 
 function buildReportHTML(type) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     const dateStr = getReportDateStr();
     let html = '';
 
@@ -5913,7 +6113,7 @@ function buildReportHTML(type) {
             if (soldiers.length > 0) {
                 html += `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:10px;">
                 <tr style="background:#1a3a5c;color:white;"><th>שם</th><th>דרגה</th><th>תפקיד</th><th>מ.א.</th><th>טלפון</th></tr>`;
-                soldiers.forEach(s => html += `<tr><td>${esc(s.name)}</td><td>${esc(s.rank)}</td><td>${esc(s.role)}</td><td>${esc(s.personalId)||'-'}</td><td>${esc(s.phone)||'-'}</td></tr>`);
+                soldiers.forEach(s => html += `<tr><td>${esc(s.name)}</td><td>${esc(s.rank || '')}</td><td>${esc(s.role || '')}</td><td>${esc(s.personalId)||'-'}</td><td>${esc(s.phone)||'-'}</td></tr>`);
                 html += '</table>';
             }
         });
@@ -5952,7 +6152,7 @@ function buildReportHTML(type) {
 
 function exportReportExcel(type) {
     if (typeof XLSX === 'undefined') { showToast('ספריית Excel לא נטענה', 'error'); return; }
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localToday();
     const wb = XLSX.utils.book_new();
     const titles = { daily: 'דוח_יומי', company: 'דוח_פלוגות', shifts: 'דוח_שיבוצים', leaves: 'דוח_יציאות' };
 
@@ -6347,7 +6547,7 @@ function openSignEquipment() {
     // Company filtering
     const signCompDd = document.getElementById('signCompany');
     const signCompGroup = document.getElementById('signCompanyGroup');
-    if (currentUser.unit !== 'palsam' && !isGdudiAccess()) {
+    if (getUserPermissionLevel() < PERM.COMPANY_CMD && currentUser.unit !== 'palsam') {
         signCompDd.value = currentUser.unit;
         if (signCompGroup) signCompGroup.style.display = 'none';
     } else {
@@ -6845,7 +7045,7 @@ function confirmSignEquipment() {
 function openReturnEquipment() {
     const compDd = document.getElementById('returnCompany');
     const compGroup = document.getElementById('returnCompanyGroup');
-    if (currentUser.unit !== 'palsam' && !isGdudiAccess()) {
+    if (getUserPermissionLevel() < PERM.COMPANY_CMD && currentUser.unit !== 'palsam') {
         compDd.value = currentUser.unit;
         if (compGroup) compGroup.style.display = 'none';
     } else {
@@ -7083,15 +7283,15 @@ function renderEquipmentTab() {
                             const statusText = e.condition === 'תקול' ? 'תקול' : e.condition === 'אובדן' ? 'אובדן' : e.condition === 'מת"ש' ? 'מת"ש' : e.holderId ? 'מוחזק' : 'פנוי';
                             return `<tr>
                                 <td style="text-align:center;"><input type="checkbox" class="equip-select-cb" value="${e.id}" onchange="updateEquipBulkBar()"></td>
-                                <td style="font-weight:600;">${e.type}</td>
-                                <td style="direction:ltr;font-family:monospace;">${e.serial}</td>
+                                <td style="font-weight:600;">${esc(e.type)}</td>
+                                <td style="direction:ltr;font-family:monospace;">${esc(e.serial)}</td>
                                 <td>${e.defaultQty || 1}</td>
-                                <td style="font-size:0.82em;">${e.warehouse || CONFIG.defaultWarehouse}</td>
-                                <td>${companyNames[e.company] || e.company || 'מלאי מחסן'}</td>
-                                <td>${e.condition}</td>
+                                <td style="font-size:0.82em;">${esc(e.warehouse || CONFIG.defaultWarehouse)}</td>
+                                <td>${esc(companyNames[e.company] || e.company || 'מלאי מחסן')}</td>
+                                <td>${esc(e.condition || '')}</td>
                                 <td><span class="equip-status ${statusClass}">${statusText}</span></td>
-                                <td class="equip-holder-name">${e.holderName || '-'}</td>
-                                <td style="direction:ltr;">${e.holderPhone || '-'}</td>
+                                <td class="equip-holder-name">${esc(e.holderName || '-')}</td>
+                                <td style="direction:ltr;">${esc(e.holderPhone || '-')}</td>
                                 <td>${e.assignedDate ? formatDate(e.assignedDate.split('T')[0]) : '-'}</td>
                                 <td style="display:flex;gap:4px;justify-content:center;">
                                     <button class="btn btn-edit btn-sm" onclick="openEditEquipment('${e.id}')" title="עריכה">&#9998;</button>
@@ -7172,9 +7372,9 @@ function renderSignatureHistory() {
         // Handle batch display
         let equipDisplay;
         if (log.equipItems && log.equipItems.length > 1) {
-            equipDisplay = `${log.equipItems.length} פריטים: ${log.equipItems.map(i => i.equipType).join(', ')}`;
+            equipDisplay = `${log.equipItems.length} פריטים: ${log.equipItems.map(i => esc(i.equipType)).join(', ')}`;
         } else {
-            equipDisplay = `${log.equipType}${log.equipSerial ? ' (' + log.equipSerial + ')' : ''}`;
+            equipDisplay = `${esc(log.equipType || '')}${log.equipSerial ? ' (' + esc(log.equipSerial) + ')' : ''}`;
         }
 
         const typeLabel = isDelete ? 'מחיקה' : isReturn ? 'זיכוי' : 'חתימה';
@@ -7183,8 +7383,8 @@ function renderSignatureHistory() {
         return `<div class="sig-history-card ${cardClass}" ${isDelete ? 'style="border-right:3px solid #9C27B0;opacity:0.85;"' : ''}>
             <div class="sig-info">
                 <h4>${typeLabel} — ${equipDisplay}</h4>
-                <div class="meta">${log.soldierName || '-'} | ${log.soldierPersonalId || ''} | ${log.soldierPhone || ''}</div>
-                <div class="meta">${dateFormatted}${log.issuedBy ? ' | ' + (isDelete ? 'מחק: ' : 'מחתים: ') + log.issuedBy : ''}${log.notes ? ' | ' + log.notes : ''}</div>
+                <div class="meta">${esc(log.soldierName || '-')} | ${esc(log.soldierPersonalId || '')} | ${esc(log.soldierPhone || '')}</div>
+                <div class="meta">${dateFormatted}${log.issuedBy ? ' | ' + (isDelete ? 'מחק: ' : 'מחתים: ') + esc(log.issuedBy) : ''}${log.notes ? ' | ' + esc(log.notes) : ''}</div>
             </div>
             <div class="sig-actions">
                 ${log.signatureImg ? `<img class="sig-preview" src="${log.signatureImg}" alt="חתימה">` : ''}
@@ -7542,10 +7742,10 @@ function renderTransferHistory() {
         const itemCount = (ret?.equipItems || []).length;
         return `<div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;border-right:4px solid #9C27B0;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><strong>${ret?.soldierName || '?'}</strong> ← <strong>${asgn?.soldierName || '?'}</strong> | ${itemCount} פריטים</div>
+                <div><strong>${esc(ret?.soldierName || '?')}</strong> ← <strong>${esc(asgn?.soldierName || '?')}</strong> | ${itemCount} פריטים</div>
                 <span style="font-size:0.82em;color:var(--text-light);">${d.toLocaleDateString('he-IL')} ${d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</span>
             </div>
-            <div style="font-size:0.82em;color:var(--text-light);margin-top:4px;">${(ret?.equipItems || []).map(i => i.equipType).join(', ')}</div>
+            <div style="font-size:0.82em;color:var(--text-light);margin-top:4px;">${(ret?.equipItems || []).map(i => esc(i.equipType)).join(', ')}</div>
         </div>`;
     }).join('');
     refreshIcons();
@@ -7602,8 +7802,8 @@ function _renderSoldierPicker(containerId, searchId, selectedId, excludeId) {
         const isSelected = s.id === selectedId;
         return `<div class="transfer-soldier-item ${isSelected ? 'selected' : ''}" onclick="selectTransferSoldier('${containerId}','${s.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;${isSelected ? 'background:#E3F2FD;' : ''}">
             <div style="flex:1;">
-                <div style="font-weight:600;">${s.name}</div>
-                <div style="font-size:0.8em;color:var(--text-light);">${s.company || ''} ${s.role ? '| ' + s.role : ''} ${s.personalId ? '| ' + s.personalId : ''}</div>
+                <div style="font-weight:600;">${esc(s.name)}</div>
+                <div style="font-size:0.8em;color:var(--text-light);">${esc(s.company || '')} ${s.role ? '| ' + esc(s.role) : ''} ${s.personalId ? '| ' + esc(s.personalId) : ''}</div>
             </div>
             ${count ? `<span style="background:var(--success);color:white;padding:2px 8px;border-radius:10px;font-size:0.78em;">${count} פריטים</span>` : ''}
         </div>`;
@@ -7700,14 +7900,14 @@ function renderTransferStep5(c) {
     const items = transferState.selectedItems.map(id => state.equipment.find(e => e.id === id)).filter(Boolean);
     c.innerHTML = `<div style="margin-top:12px;">
         <div style="background:var(--bg);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
-            <p style="margin:0 0 8px;"><strong>מוסר:</strong> ${source?.name || '?'} (${source?.company || ''})</p>
-            <p style="margin:0 0 8px;"><strong>מקבל:</strong> ${target?.name || '?'} (${target?.company || ''})</p>
+            <p style="margin:0 0 8px;"><strong>מוסר:</strong> ${esc(source?.name || '?')} (${esc(source?.company || '')})</p>
+            <p style="margin:0 0 8px;"><strong>מקבל:</strong> ${esc(target?.name || '?')} (${esc(target?.company || '')})</p>
             <p style="margin:0 0 4px;"><strong>פריטים (${items.length}):</strong></p>
-            <ul style="margin:0;padding-right:20px;">${items.map(e => `<li>${e.type} — ${e.serial}</li>`).join('')}</ul>
+            <ul style="margin:0;padding-right:20px;">${items.map(e => `<li>${esc(e.type)} — ${esc(e.serial)}</li>`).join('')}</ul>
         </div>
         <div class="form-group">
             <label>הערות (אופציונלי)</label>
-            <input type="text" id="transferNotes" placeholder="הערות להעברה" value="${transferState.notes || ''}">
+            <input type="text" id="transferNotes" placeholder="הערות להעברה" value="${esc(transferState.notes || '')}">
         </div>
     </div>`;
 }
@@ -7899,13 +8099,13 @@ function doFilteredExportPDF() {
                 <th style="padding:6px;border:1px solid #ddd;">מחזיק</th>
             </tr></thead>
             <tbody>${items.map(e => `<tr>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${e.type}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;direction:ltr;font-family:monospace;">${e.serial}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${e.category || '-'}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${e.warehouse || CONFIG.defaultWarehouse}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${companyNames[e.company] || e.company || 'מלאי מחסן'}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${e.condition}</td>
-                <td style="padding:4px 6px;border:1px solid #ddd;">${e.holderName || '-'}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${esc(e.type)}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;direction:ltr;font-family:monospace;">${esc(e.serial)}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${esc(e.category || '-')}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${esc(e.warehouse || CONFIG.defaultWarehouse)}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${esc(companyNames[e.company] || e.company || 'מלאי מחסן')}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${esc(e.condition)}</td>
+                <td style="padding:4px 6px;border:1px solid #ddd;">${esc(e.holderName || '-')}</td>
             </tr>`).join('')}</tbody>
         </table>
     </div>`;
@@ -8016,11 +8216,11 @@ function renderImportPreview(rows) {
         <thead><tr><th></th><th>סוג ציוד</th><th>מס' צ'</th><th>קטגוריה</th><th>מצב</th><th>הערות</th></tr></thead>
         <tbody>${rows.map((r, i) => `<tr style="background:${r._isDuplicate ? '#FFF9C4' : '#E8F5E9'};">
             <td style="text-align:center;">${r._isDuplicate ? '<span style="color:#F57F17;" title="כפילות - ידולג">&#9888;</span>' : '<span style="color:#2E7D32;">&#10003;</span>'}</td>
-            <td>${r.type}</td>
-            <td style="direction:ltr;font-family:monospace;">${r.serial}</td>
-            <td>${r.category || '-'}</td>
-            <td>${r.condition}</td>
-            <td>${r.notes || ''}</td>
+            <td>${esc(r.type)}</td>
+            <td style="direction:ltr;font-family:monospace;">${esc(r.serial)}</td>
+            <td>${esc(r.category || '-')}</td>
+            <td>${esc(r.condition)}</td>
+            <td>${esc(r.notes || '')}</td>
         </tr>`).join('')}</tbody>
     </table>`;
 
@@ -8135,7 +8335,7 @@ function openRangeResetSummary() {
                 <thead><tr style="background:var(--bg);"><th style="text-align:right;padding:4px 8px;">שם</th><th>תפקיד</th><th>מחלקה</th><th>תאריך איפוס אחרון</th></tr></thead>
                 <tbody>${soldiers.map(s => `<tr>
                     <td style="padding:4px 8px;font-weight:600;">${esc(s.name)}</td>
-                    <td>${esc(s.role)}</td>
+                    <td>${esc(s.role || '')}</td>
                     <td>${esc(s.unit)}</td>
                     <td style="color:${s.rangeDate ? 'var(--danger)' : 'var(--text-light)'};">${s.rangeDate ? formatDate(s.rangeDate) : 'לא בוצע'}</td>
                 </tr>`).join('')}</tbody>
@@ -8668,8 +8868,8 @@ function renderEquipmentSetsSettings() {
     if (es.roleSets && es.roleSets.length > 0) {
         es.roleSets.forEach((rs, ri) => {
             html += `<div class="sub-section" style="margin-top:16px;">
-                <h4 style="margin:0 0 6px;">${rs.name} (${rs.items.length} פריטים)</h4>
-                <p style="font-size:0.78em;color:var(--text-light);margin:0 0 8px;">תפקידים: ${rs.roles.join(', ')}</p>
+                <h4 style="margin:0 0 6px;">${esc(rs.name)} (${rs.items.length} פריטים)</h4>
+                <p style="font-size:0.78em;color:var(--text-light);margin:0 0 8px;">תפקידים: ${esc(rs.roles.join(', '))}</p>
                 <div class="table-scroll"><table style="width:100%;font-size:0.85em;border-collapse:collapse;">
                     <thead><tr style="background:#546E7A;color:white;">
                         <th style="padding:6px 8px;text-align:right;">שם פריט</th>
@@ -8678,10 +8878,10 @@ function renderEquipmentSetsSettings() {
                         <th style="padding:6px 8px;text-align:center;width:90px;">מס' צ'</th>
                     </tr></thead>
                     <tbody>${rs.items.map(item => `<tr style="border-bottom:1px solid var(--border);">
-                        <td style="padding:5px 8px;">${item.name}</td>
+                        <td style="padding:5px 8px;">${esc(item.name)}</td>
                         <td style="padding:5px 8px;text-align:center;">${item.quantity}</td>
-                        <td style="padding:5px 8px;text-align:center;">${item.category}</td>
-                        <td style="padding:5px 8px;text-align:center;font-family:monospace;direction:ltr;">${item.requiresSerial && item.serialNumber ? item.serialNumber : '—'}</td>
+                        <td style="padding:5px 8px;text-align:center;">${esc(item.category || '')}</td>
+                        <td style="padding:5px 8px;text-align:center;font-family:monospace;direction:ltr;">${item.requiresSerial && item.serialNumber ? esc(item.serialNumber) : '—'}</td>
                     </tr>`).join('')}</tbody>
                 </table></div>
             </div>`;
@@ -8800,10 +9000,10 @@ function renderEquipmentReports() {
         let opts = '<option value="all">הכל</option>';
         if (reportType === 'byCategory') {
             const cats = [...new Set(equip.map(e => e.category || 'כללי'))].sort();
-            cats.forEach(c => opts += `<option value="${c}">${c}</option>`);
+            cats.forEach(c => opts += `<option value="${esc(c)}">${esc(c)}</option>`);
         } else if (reportType === 'byType') {
             const types = [...new Set(equip.map(e => e.type))].sort();
-            types.forEach(t => opts += `<option value="${t}">${t}</option>`);
+            types.forEach(t => opts += `<option value="${esc(t)}">${esc(t)}</option>`);
         } else if (reportType === 'byCompany') {
             const companies = [...new Set(state.soldiers.map(s => s.company).filter(Boolean))].sort();
             companies.forEach(c => opts += `<option value="${c}">${c}</option>`);
@@ -8849,12 +9049,12 @@ function _reportByCategory(equip, filterVal) {
         const items = grouped[cat];
         const assigned = items.filter(i => i.holderId).length;
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;"><i data-lucide="box"></i></div>${cat} (${items.length} פריטים, ${assigned} מוחזקים)</div>
+            <div class="section-title"><div class="icon" style="background:#E3F2FD;color:#1565C0;"><i data-lucide="box"></i></div>${esc(cat)} (${items.length} פריטים, ${assigned} מוחזקים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>מחזיק</th><th>סטטוס</th></tr></thead>
                 <tbody>${items.map(i => `<tr>
-                    <td>${i.type}</td><td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                    <td>${i.holderName || '-'}</td>
+                    <td>${esc(i.type)}</td><td style="direction:ltr;font-family:monospace;">${esc(i.serial)}</td>
+                    <td>${esc(i.holderName || '-')}</td>
                     <td>${i.holderId ? '<span style="color:#27ae60;">מוחזק</span>' : i.status === 'faulty' ? '<span style="color:#e74c3c;">תקול</span>' : '<span style="color:#7f8c8d;">פנוי</span>'}</td>
                 </tr>`).join('')}</tbody>
             </table>
@@ -8874,17 +9074,17 @@ function _reportByType(equip, filterVal) {
         const items = grouped[type];
         const assigned = items.filter(i => i.holderId).length;
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;"><i data-lucide="wrench"></i></div>${type} (${items.length} יחידות, ${assigned} מוחזקים)</div>
+            <div class="section-title"><div class="icon" style="background:#FBE9E7;color:#FF5722;"><i data-lucide="wrench"></i></div>${esc(type)} (${items.length} יחידות, ${assigned} מוחזקים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>מס' צ'</th><th>קטגוריה</th><th>מחזיק</th><th>מ.א</th><th>פלוגה</th></tr></thead>
                 <tbody>${items.map(i => {
                     const sol = i.holderId ? state.soldiers.find(s => s.id === i.holderId) : null;
                     return `<tr>
-                        <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                        <td>${i.category || '-'}</td>
-                        <td>${i.holderName || '-'}</td>
-                        <td>${sol?.personalId || '-'}</td>
-                        <td>${sol?.company || '-'}</td>
+                        <td style="direction:ltr;font-family:monospace;">${esc(i.serial)}</td>
+                        <td>${esc(i.category || '-')}</td>
+                        <td>${esc(i.holderName || '-')}</td>
+                        <td>${esc(sol?.personalId || '-')}</td>
+                        <td>${esc(sol?.company || '-')}</td>
                     </tr>`;
                 }).join('')}</tbody>
             </table>
@@ -8902,12 +9102,12 @@ function _reportByHolder(equip) {
     return Object.entries(holders).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
         const sol = state.soldiers.find(s => s.id === id);
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;"><i data-lucide="user"></i></div>${h.name} ${sol ? '(' + (sol.personalId || '') + ' | ' + (sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
+            <div class="section-title"><div class="icon" style="background:#E8F5E9;color:#2E7D32;"><i data-lucide="user"></i></div>${esc(h.name)} ${sol ? '(' + esc(sol.personalId || '') + ' | ' + esc(sol.company || '') + ')' : ''} — ${h.items.length} פריטים</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>תאריך קבלה</th></tr></thead>
                 <tbody>${h.items.map(i => `<tr>
-                    <td>${i.type}</td><td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                    <td>${i.category || '-'}</td>
+                    <td>${esc(i.type)}</td><td style="direction:ltr;font-family:monospace;">${esc(i.serial)}</td>
+                    <td>${esc(i.category || '-')}</td>
                     <td>${i.assignedDate ? new Date(i.assignedDate).toLocaleDateString('he-IL') : '-'}</td>
                 </tr>`).join('')}</tbody>
             </table>
@@ -8930,16 +9130,16 @@ function _reportByCompany(equip, filterVal) {
         const soldiers = companies[comp];
         const totalItems = Object.values(soldiers).reduce((s, h) => s + h.items.length, 0);
         return `<div class="sub-section" style="margin-bottom:18px;">
-            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;"><i data-lucide="building"></i></div>${comp} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
+            <div class="section-title"><div class="icon" style="background:#F3E5F5;color:#7B1FA2;"><i data-lucide="building"></i></div>${esc(comp)} (${Object.keys(soldiers).length} חיילים, ${totalItems} פריטים)</div>
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>חייל</th><th>מ.א</th><th>מספר פריטים</th><th>פריטים</th></tr></thead>
                 <tbody>${Object.entries(soldiers).sort((a, b) => a[1].name.localeCompare(b[1].name, 'he')).map(([id, h]) => {
                     const sol = state.soldiers.find(s => s.id === id);
                     return `<tr>
-                        <td>${h.name}</td>
-                        <td>${sol?.personalId || '-'}</td>
+                        <td>${esc(h.name)}</td>
+                        <td>${esc(sol?.personalId || '-')}</td>
                         <td>${h.items.length}</td>
-                        <td style="font-size:0.85em;">${h.items.map(i => i.type).join(', ')}</td>
+                        <td style="font-size:0.85em;">${esc(h.items.map(i => i.type).join(', '))}</td>
                     </tr>`;
                 }).join('')}</tbody>
             </table>
@@ -8955,8 +9155,8 @@ function _reportUnsigned(equip) {
         <table class="data-table" style="width:100%;font-size:0.88em;">
             <thead><tr><th>פריט</th><th>מס' צ'</th><th>קטגוריה</th><th>הערות</th></tr></thead>
             <tbody>${unsigned.map(i => `<tr>
-                <td>${i.type}</td><td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                <td>${i.category || '-'}</td><td>${i.notes || '-'}</td>
+                <td>${esc(i.type)}</td><td style="direction:ltr;font-family:monospace;">${esc(i.serial)}</td>
+                <td>${esc(i.category || '-')}</td><td>${esc(i.notes || '-')}</td>
             </tr>`).join('')}</tbody>
         </table>
     </div>`;
@@ -8987,12 +9187,12 @@ function _reportByLoss(equip) {
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>מצב</th><th>תאריך</th><th>מדווח</th><th>תיאור</th></tr></thead>
                 <tbody>${items.map(i => `<tr>
-                    <td>${i.type}</td>
-                    <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                    <td><span style="color:#C62828;font-weight:600;">${i.condition}</span></td>
+                    <td>${esc(i.type)}</td>
+                    <td style="direction:ltr;font-family:monospace;">${esc(i.serial)}</td>
+                    <td><span style="color:#C62828;font-weight:600;">${esc(i.condition)}</span></td>
                     <td>${i.lossDate || '-'}</td>
-                    <td>${i.lossReportingSoldier || '-'}</td>
-                    <td style="font-size:0.85em;">${i.lossDescription || '-'}</td>
+                    <td>${esc(i.lossReportingSoldier || '-')}</td>
+                    <td style="font-size:0.85em;">${esc(i.lossDescription || '-')}</td>
                 </tr>`).join('')}</tbody>
             </table>
         </div>`;
@@ -9017,11 +9217,11 @@ function _reportByFaulty(equip) {
             <table class="data-table" style="width:100%;font-size:0.88em;">
                 <thead><tr><th>פריט</th><th>מס' צ'</th><th>מחסן</th><th>מסגרת</th><th>הערות</th></tr></thead>
                 <tbody>${items.map(i => `<tr>
-                    <td>${i.type}</td>
-                    <td style="direction:ltr;font-family:monospace;">${i.serial}</td>
-                    <td>${i.warehouse || CONFIG.defaultWarehouse}</td>
-                    <td>${i.company || '-'}</td>
-                    <td style="font-size:0.85em;">${i.notes || '-'}</td>
+                    <td>${esc(i.type)}</td>
+                    <td style="direction:ltr;font-family:monospace;">${esc(i.serial)}</td>
+                    <td>${esc(i.warehouse || CONFIG.defaultWarehouse)}</td>
+                    <td>${esc(i.company || '-')}</td>
+                    <td style="font-size:0.85em;">${esc(i.notes || '-')}</td>
                 </tr>`).join('')}</tbody>
             </table>
         </div>`;
@@ -9120,8 +9320,8 @@ function openGeneratePakalModal() {
     openModal('generatePakalModal');
     const compDropdown = document.getElementById('pakalGenCompany');
     const userUnit = currentUser?.unit;
-    // Non-palsam/gdudi users → lock to their company
-    if (userUnit && !isGdudiAccess() && userUnit !== 'palsam') {
+    // Non-palsam/high-level users → lock to their company
+    if (userUnit && getUserPermissionLevel() < PERM.COMPANY_CMD && userUnit !== 'palsam') {
         compDropdown.value = userUnit;
         compDropdown.disabled = true;
     } else {
@@ -9140,7 +9340,7 @@ function updatePakalGenSoldiers() {
     const existingIds = new Set(state.personalEquipment.map(pe => pe.soldierId));
     soldiers = soldiers.filter(s => !existingIds.has(s.id));
     select.innerHTML = '<option value="">-- בחר חייל --</option>' +
-        soldiers.map(s => `<option value="${s.id}">${s.name} (${s.role || 'לוחם'} - ${companyData[s.company]?.name || s.company})</option>`).join('');
+        soldiers.map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.role || 'לוחם')} - ${esc(companyData[s.company]?.name || s.company)})</option>`).join('');
     document.getElementById('pakalGenItemsList').style.display = 'none';
 }
 
@@ -9311,7 +9511,7 @@ function generatePersonalEquipment(soldierId, selectedItems) {
 function openBulkGeneratePakalModal() {
     const compDropdown = document.getElementById('bulkPakalCompany');
     const userUnit = currentUser?.unit;
-    if (userUnit && !isGdudiAccess() && userUnit !== 'palsam') {
+    if (userUnit && getUserPermissionLevel() < PERM.COMPANY_CMD && userUnit !== 'palsam') {
         compDropdown.value = userUnit;
         compDropdown.disabled = true;
     } else {
@@ -9356,9 +9556,9 @@ function renderPakalSubTab() {
         return { ...pe, soldier: sol };
     }).filter(pe => pe.soldier);
 
-    // Filter by current user's company (palsam + gdudi see all)
+    // Filter by current user's company (palsam + level 5+ see all)
     const userUnit = currentUser?.unit;
-    if (userUnit && !isGdudiAccess() && userUnit !== 'palsam') {
+    if (userUnit && getUserPermissionLevel() < PERM.COMPANY_CMD && userUnit !== 'palsam') {
         pelist = pelist.filter(pe => pe.soldier.company === userUnit);
     }
 
@@ -9391,7 +9591,7 @@ function renderPakalSubTab() {
         </div>
         <div class="search-bar">
             <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" id="pakalSearch" placeholder="חיפוש לפי שם חייל, פריט..." oninput="renderPakalSubTab()" value="${search}">
+            <input type="text" id="pakalSearch" placeholder="חיפוש לפי שם חייל, פריט..." oninput="renderPakalSubTab()" value="${esc(search)}">
         </div>
         <div class="filter-buttons" style="margin-bottom:14px;">
             <button class="filter-btn ${pakalFilter==='all'?'active':''}" onclick="setPakalFilter('all',this)">הכל (${stats.total})</button>
@@ -9436,10 +9636,10 @@ function renderPakalCard(pe) {
                 <thead><tr><th>פריט</th><th>מספר צ'</th><th>כמות</th><th>קטגוריה</th><th>מקור</th><th>סטטוס</th></tr></thead>
                 <tbody>
                     ${pe.items.map((item, idx) => `<tr>
-                        <td style="text-align:right;">${item.name}</td>
+                        <td style="text-align:right;">${esc(item.name)}</td>
                         <td><input type="text" class="serial-input" value="${esc(item.serialNumber || '')}" placeholder="-" onchange="updatePakalSerial('${pe.soldierId}',${idx},this.value)" style="width:70px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:0.85em;background:var(--bg);"></td>
                         <td>${item.quantity}</td>
-                        <td>${item.category}</td>
+                        <td>${esc(item.category || '')}</td>
                         <td>${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
                         <td><span class="pakal-status ${item.status}">${item.status === 'pending' ? 'ממתין' : item.status === 'issued' ? 'הונפק' : 'הוחזר'}</span></td>
                     </tr>`).join('')}
@@ -9481,7 +9681,7 @@ function openBulkSignModal(soldierId) {
     document.getElementById('bulkSignSoldierId').value = soldierId;
     document.getElementById('bulkSignSoldierInfo').innerHTML = `
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;">
-            <strong>${esc(sol.name)}</strong> | ${esc(sol.role) || 'לוחם'} | ${companyData[sol.company]?.name || ''} | מ.א: ${esc(sol.personalId) || '-'}
+            <strong>${esc(sol.name)}</strong> | ${esc(sol.role) || 'לוחם'} | ${esc(companyData[sol.company]?.name || '')} | מ.א: ${esc(sol.personalId) || '-'}
         </div>`;
 
     document.getElementById('bulkSignItemsList').innerHTML = `
@@ -9489,10 +9689,10 @@ function openBulkSignModal(soldierId) {
             <thead><tr><th>פריט</th><th>מספר צ'</th><th>כמות</th><th>קטגוריה</th></tr></thead>
             <tbody>
                 ${pe.items.map(item => `<tr>
-                    <td style="text-align:right;">${item.name}</td>
-                    <td>${item.serialNumber || '-'}</td>
+                    <td style="text-align:right;">${esc(item.name)}</td>
+                    <td>${esc(item.serialNumber || '-')}</td>
                     <td>${item.quantity}</td>
-                    <td>${item.category}</td>
+                    <td>${esc(item.category || '')}</td>
                 </tr>`).join('')}
             </tbody>
         </table></div>
@@ -9672,7 +9872,7 @@ function openReturnPakalModal(soldierId) {
     document.getElementById('returnPakalSoldierId').value = soldierId;
     document.getElementById('returnPakalSoldierInfo').innerHTML = `
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;">
-            <strong>${esc(sol.name)}</strong> | ${esc(sol.role) || 'לוחם'} | ${companyData[sol.company]?.name || ''}
+            <strong>${esc(sol.name)}</strong> | ${esc(sol.role) || 'לוחם'} | ${esc(companyData[sol.company]?.name || '')}
         </div>`;
 
     const issuedItems = pe.items.filter(i => i.status === 'issued');
@@ -9682,10 +9882,10 @@ function openReturnPakalModal(soldierId) {
             <thead><tr><th>החזר</th><th>פריט</th><th>כמות</th><th>קטגוריה</th></tr></thead>
             <tbody>
                 ${issuedItems.map(item => `<tr>
-                    <td><input type="checkbox" class="return-item-cb" data-item-id="${item.itemId}" checked></td>
-                    <td style="text-align:right;">${item.name}</td>
+                    <td><input type="checkbox" class="return-item-cb" data-item-id="${esc(item.itemId)}" checked></td>
+                    <td style="text-align:right;">${esc(item.name)}</td>
                     <td>${item.quantity}</td>
-                    <td>${item.category}</td>
+                    <td>${esc(item.category || '')}</td>
                 </tr>`).join('')}
             </tbody>
         </table></div>`;
@@ -9844,7 +10044,7 @@ function renderPalsamDashboard() {
                     ${unsignedSoldiers.slice(0, 50).map(s => `<tr>
                         <td style="text-align:right;font-weight:600;">${esc(s.name)}</td>
                         <td>${esc(s.role) || 'לוחם'}</td>
-                        <td>${companyNames[s.company] || s.company}</td>
+                        <td>${esc(companyNames[s.company] || s.company)}</td>
                         <td style="text-align:center;">${s.pe.items.length}</td>
                         <td style="display:flex;gap:4px;">
                             <button class="btn btn-success btn-sm" onclick="openBulkSignModal('${s.id}')">חתימה</button>
@@ -9886,9 +10086,9 @@ function generatePakalPDF(soldierId) {
     <div style="font-family:Arial,sans-serif;direction:rtl;padding:20px;max-width:700px;margin:0 auto;${ws}">
         <h1 style="text-align:center;color:#1a3a5c;border-bottom:3px solid #1a3a5c;padding-bottom:10px;margin:0 0 15px;${ws}">טופס חתימה על ציוד אישי</h1>
         <table style="margin:15px 0;">
-            <tr><td style="${infoTd}"><strong>שם:</strong></td><td style="${infoTd}">${sol.name}</td><td style="${infoTd}"><strong>מספר אישי:</strong></td><td style="${infoTd}">${sol.personalId || '-'}</td></tr>
-            <tr><td style="${infoTd}"><strong>תפקיד:</strong></td><td style="${infoTd}">${sol.role || 'לוחם'}</td><td style="${infoTd}"><strong>פלוגה:</strong></td><td style="${infoTd}">${compName}</td></tr>
-            <tr><td style="${infoTd}"><strong>טלפון:</strong></td><td style="${infoTd}">${sol.phone || '-'}</td><td style="${infoTd}"><strong>תאריך:</strong></td><td style="${infoTd}">${dateStr}</td></tr>
+            <tr><td style="${infoTd}"><strong>שם:</strong></td><td style="${infoTd}">${esc(sol.name)}</td><td style="${infoTd}"><strong>מספר אישי:</strong></td><td style="${infoTd}">${esc(sol.personalId || '-')}</td></tr>
+            <tr><td style="${infoTd}"><strong>תפקיד:</strong></td><td style="${infoTd}">${esc(sol.role || 'לוחם')}</td><td style="${infoTd}"><strong>פלוגה:</strong></td><td style="${infoTd}">${esc(compName)}</td></tr>
+            <tr><td style="${infoTd}"><strong>טלפון:</strong></td><td style="${infoTd}">${esc(sol.phone || '-')}</td><td style="${infoTd}"><strong>תאריך:</strong></td><td style="${infoTd}">${dateStr}</td></tr>
         </table>
         <p style="font-size:13px;${ws}">אני מאשר בחתימתי שקיבלתי את הציוד המפורט להלן במצב תקין, ואני מתחייב להחזירו במצב תקין בסיום השירות.</p>
         <table style="width:100%;border-collapse:collapse;margin:15px 0;">
@@ -9896,10 +10096,10 @@ function generatePakalPDF(soldierId) {
             <tbody>
                 ${pe.items.map((item, i) => `<tr style="${i % 2 === 1 ? 'background:#f9f9f9;' : ''}">
                     <td style="${tdStyle}">${i + 1}</td>
-                    <td style="${tdStyle}text-align:right;">${item.name}</td>
-                    <td style="${tdStyle}">${item.serialNumber || '-'}</td>
+                    <td style="${tdStyle}text-align:right;">${esc(item.name)}</td>
+                    <td style="${tdStyle}">${esc(item.serialNumber || '-')}</td>
                     <td style="${tdStyle}">${item.quantity}</td>
-                    <td style="${tdStyle}">${item.category}</td>
+                    <td style="${tdStyle}">${esc(item.category || '')}</td>
                     <td style="${tdStyle}">${item.source === 'base' ? 'בסיס' : item.source === 'role' ? 'תפקיד' : 'ידני'}</td>
                     <td style="${tdStyle}">${item.status === 'issued' ? 'הונפק' : item.status === 'returned' ? 'הוחזר' : 'ממתין'}</td>
                 </tr>`).join('')}
@@ -9910,13 +10110,13 @@ function generatePakalPDF(soldierId) {
             <div style="width:45%;text-align:center;">
                 ${pe.bulkSignature.signatureImg ? `<img src="${pe.bulkSignature.signatureImg}" style="max-width:200px;max-height:80px;border-bottom:1px solid #333;">` : ''}
                 <div style="font-size:12px;margin-top:4px;color:#666;${ws}">חתימת חייל מקבל</div>
-                <div style="font-size:12px;${ws}">${sol.name}</div>
+                <div style="font-size:12px;${ws}">${esc(sol.name)}</div>
             </div>
             <div style="width:45%;text-align:center;">
                 ${pe.bulkSignature.issuerSignatureImg ? `<img src="${pe.bulkSignature.issuerSignatureImg}" style="max-width:200px;max-height:80px;border-bottom:1px solid #333;">` : ''}
                 <div style="font-size:12px;margin-top:4px;color:#666;${ws}">חתימת מנפיק</div>
-                <div style="font-size:12px;${ws}">${pe.bulkSignature.issuedBy || ''}</div>
-                ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;${ws}">${pe.bulkSignature.signingUnit}</div>` : ''}
+                <div style="font-size:12px;${ws}">${esc(pe.bulkSignature.issuedBy || '')}</div>
+                ${pe.bulkSignature.signingUnit ? `<div style="font-size:10px;color:#666;${ws}">${esc(pe.bulkSignature.signingUnit)}</div>` : ''}
             </div>
         </div>` : '<p style="text-align:center;color:#e74c3c;font-weight:bold;">טרם נחתם</p>'}
         <div style="text-align:center;font-size:11px;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;${ws}">${CONFIG.systemTitle} - ${CONFIG.battalionName} ${CONFIG.battalionId} | הופק אוטומטית ${new Date().toLocaleString('he-IL')}</div>

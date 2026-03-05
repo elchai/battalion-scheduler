@@ -473,33 +473,68 @@ function _generateDemoLeaves(soldiers) {
 
 function _generateDemoTraining(soldiers) {
     const training = [];
-    const types = ['squad_open','squad_urban','advanced_shooting','weapon_zero','grenade'];
-    // Non-zero types (exclude weapon_zero for separate handling)
-    const regularTypes = ['squad_open','squad_urban','advanced_shooting','grenade'];
 
-    soldiers.forEach((s, idx) => {
-        // 82% completed ALL training, 18% have gaps
-        const completedAll = (idx % 100) < 82;
+    // --- Base completion rates per training type (realistic for reserve battalion) ---
+    const baseRates = {
+        squad_open: 0.73,        // תרגיל כיתה שטח פתוח - harder to organize
+        squad_urban: 0.64,       // תרגיל כיתה שטח בנוי - requires special facilities
+        advanced_shooting: 0.81, // אימון ירי מתקדם - high priority, done early
+        grenade: 0.45,           // אימון זריקת רימון - limited availability, dangerous
+        weapon_zero: 0.92        // בקרת איפוס נשק - basic requirement, almost everyone
+    };
 
-        regularTypes.forEach((typeId, ti) => {
-            if (completedAll) {
-                // Completed all
+    // --- Per-company variance (makes each company look different) ---
+    // Offsets added to base rate per company (clamped 0-1)
+    const companyOffsets = {
+        a:     { squad_open: +0.05, squad_urban: -0.04, advanced_shooting: +0.08, grenade: +0.03, weapon_zero: +0.03 },
+        b:     { squad_open: -0.03, squad_urban: +0.07, advanced_shooting: -0.02, grenade: +0.08, weapon_zero: +0.02 },
+        c:     { squad_open: +0.02, squad_urban: +0.03, advanced_shooting: -0.06, grenade: -0.05, weapon_zero: -0.01 },
+        d:     { squad_open: -0.06, squad_urban: -0.03, advanced_shooting: +0.04, grenade: +0.10, weapon_zero: +0.01 },
+        hq:    { squad_open: +0.10, squad_urban: +0.10, advanced_shooting: +0.05, grenade: -0.08, weapon_zero: +0.05 },
+        agam:  { squad_open: -0.08, squad_urban: -0.10, advanced_shooting: -0.04, grenade: -0.12, weapon_zero: +0.02 }
+    };
+
+    // Palsam weapon_zero rate
+    const palsamWeaponZeroRate = 0.88;
+
+    // Combat training types (everything except weapon_zero)
+    const combatTypes = ['squad_open', 'squad_urban', 'advanced_shooting', 'grenade'];
+
+    // Simple deterministic hash for consistent per-soldier results
+    function soldierHash(id, salt) {
+        let h = salt || 0;
+        for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+        return (Math.abs(h) % 1000) / 1000;
+    }
+
+    soldiers.forEach(s => {
+        const isPalsam = s.company === 'palsam';
+
+        if (isPalsam) {
+            // Palsam soldiers ONLY get weapon_zero, nothing else
+            if (soldierHash(s.id, 7) < palsamWeaponZeroRate) {
+                training.push({ soldierId: s.id, typeId: 'weapon_zero', done: true, date: '2026-02-17' });
+            }
+            return; // Skip all combat training for palsam
+        }
+
+        // --- Combat soldiers (a, b, c, d, hq, agam) ---
+        const offsets = companyOffsets[s.company] || {};
+
+        combatTypes.forEach(typeId => {
+            const rate = Math.min(1, Math.max(0, baseRates[typeId] + (offsets[typeId] || 0)));
+            if (soldierHash(s.id, typeId.length * 13) < rate) {
                 training.push({ soldierId: s.id, typeId, done: true });
-            } else {
-                // Logical gaps: each soldier missing 1-2 specific types
-                const missIdx = idx % regularTypes.length;
-                const missIdx2 = (idx + 2) % regularTypes.length;
-                if (ti !== missIdx && ti !== missIdx2) {
-                    training.push({ soldierId: s.id, typeId, done: true });
-                }
             }
         });
 
-        // weapon_zero: 98% completed, date 17.02.26
-        if ((idx % 100) < 98) {
+        // weapon_zero: date-based, high completion
+        const wzRate = Math.min(1, Math.max(0, baseRates.weapon_zero + (offsets.weapon_zero || 0)));
+        if (soldierHash(s.id, 99) < wzRate) {
             training.push({ soldierId: s.id, typeId: 'weapon_zero', done: true, date: '2026-02-17' });
         }
     });
+
     return training;
 }
 
@@ -526,6 +561,59 @@ function _generateDemoConstraints(soldiers) {
         });
     }
     return constraints;
+}
+
+// --- Generate realistic scribble signature on offscreen canvas ---
+function _generateDemoSignature(seed) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#2563eb';
+
+    // Simple seeded random
+    let _s = seed || 1;
+    function rng() { _s = (_s * 16807 + 0) % 2147483647; return (_s & 0x7fffffff) / 2147483647; }
+
+    // Draw 2-4 connected stroke segments like a real signature
+    const strokes = 2 + Math.floor(rng() * 3);
+    let x = 20 + rng() * 40;
+    let y = 30 + rng() * 30;
+
+    for (let s = 0; s < strokes; s++) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        const points = 3 + Math.floor(rng() * 5);
+        for (let p = 0; p < points; p++) {
+            const cpx1 = x + (rng() * 60 - 10);
+            const cpy1 = y + (rng() * 50 - 25);
+            x = Math.min(280, x + 15 + rng() * 40);
+            y = 20 + rng() * 60;
+            const cpx2 = x - (rng() * 30);
+            const cpy2 = y + (rng() * 40 - 20);
+            ctx.bezierCurveTo(cpx1, cpy1, cpx2, cpy2, x, y);
+        }
+        ctx.stroke();
+        // Small gap between strokes
+        if (s < strokes - 1) {
+            x += rng() * 10;
+            y = 30 + rng() * 40;
+        }
+    }
+
+    // Add a small underline flourish
+    if (rng() > 0.4) {
+        ctx.beginPath();
+        ctx.moveTo(20 + rng() * 30, 75 + rng() * 10);
+        ctx.lineTo(80 + rng() * 120, 78 + rng() * 8);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    return canvas.toDataURL('image/png');
 }
 
 function _generateDemoEquipment(soldiers) {
@@ -589,6 +677,9 @@ function _generateDemoEquipment(soldiers) {
         const issuer = sigIssuers[idx % sigIssuers.length];
         // 80% signed, 20% unsigned
         const isSigned = (idx % 5 !== 0);
+        // Generate unique scribble signatures per soldier
+        const soldierSigImg = isSigned ? _generateDemoSignature(idx * 7 + 3) : null;
+        const issuerSigImg = isSigned ? _generateDemoSignature(idx * 13 + 97) : null;
 
         const items = itemTemplates.map((item, ii) => {
             // For unsigned soldiers: items stay 'pending'
@@ -630,13 +721,13 @@ function _generateDemoEquipment(soldiers) {
             items,
             bulkSignature: isSigned ? {
                 signed: true,
-                signatureImg: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+                signatureImg: soldierSigImg,
                 signedDate: '2026-02-19T10:00:00.000Z',
                 issuedBy: issuer.first + ' ' + issuer.last,
                 issuerFirstName: issuer.first,
                 issuerLastName: issuer.last,
                 signingUnit: 'פלוגת פלס"ם',
-                issuerSignatureImg: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg'
+                issuerSignatureImg: issuerSigImg
             } : { signed: false },
             history
         });
@@ -669,7 +760,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: fromSoldier.phone || '',
             soldierPersonalId: fromSoldier.personalId || '',
             date: dateStr,
-            signatureImg: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            signatureImg: _generateDemoSignature(i * 11 + 41),
             issuedBy: 'רס"פ',
             issuerUnit: fromSoldier.company,
             issuerRole: 'רס"פ',
@@ -689,7 +780,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: toSoldier.phone || '',
             soldierPersonalId: toSoldier.personalId || '',
             date: dateStr,
-            signatureImg: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            signatureImg: _generateDemoSignature(i * 19 + 73),
             issuedBy: 'רס"פ',
             issuerUnit: toSoldier.company,
             issuerRole: 'רס"פ',
@@ -736,13 +827,13 @@ function _generateDemoWeaponsData(soldiers) {
             medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
             rank: s.rank || '',
             combatCertified: idx % 8 !== 0,
-            idPhoto: idx % 3 === 0 ? null : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
-            doctorApproval: idx % 4 === 0 ? null : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            idPhoto: idx % 3 === 0 ? null : _generateDemoSignature(idx * 23 + 151),
+            doctorApproval: idx % 4 === 0 ? null : _generateDemoSignature(idx * 29 + 199),
             cmdName: cmdNames[s.company] || 'מפקד',
             cmdRank: cmdRanks[s.company] || 'סרן',
             cmdId: String(100000 + idx),
             cmdRole: 'מ"פ ' + (s.company === 'hq' ? 'חפ"ק' : s.company === 'agam' ? 'אג"מ' : s.company + '\''),
-            cmdSig: idx % 5 === 0 ? null : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg',
+            cmdSig: idx % 5 === 0 ? null : _generateDemoSignature(idx * 31 + 257),
             cmdDate: '2026-02-19',
             lastUpdated: '2026-02-19T10:00:00',
             source: 'app'
