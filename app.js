@@ -1677,7 +1677,7 @@ function updateNotifications() {
     });
 
     // 4. Many soldiers on leave from a single company
-    mainCompanies.forEach(k => {
+    ALL_COMPANIES.forEach(k => {
         const comp = companyData[k];
         const regCount = state.soldiers.filter(s => s.company === k).length;
         const onLeave = state.leaves.filter(l => l.company === k && l.startDate <= todayStr && l.endDate >= todayStr).length;
