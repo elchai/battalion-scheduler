@@ -59,7 +59,8 @@ const DEFAULT_SETTINGS = {
         }],
         defaultSigningUnit: CONFIG.defaultSigningUnit,
         savedSignatures: {} // לחתימות קבועות של מחתימים
-    }
+    },
+    operationalMode: false // מצב פעילות - מציג התראות משימות בדשבורד
 };
 
 let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -579,6 +580,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-reports').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-rotation').forEach(el => el.style.display = '');
     document.querySelectorAll('.sidebar-item.tab-equipment').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sidebar-item.tab-tasks').forEach(el => el.style.display = '');
 
     // Training - hidden for palsam (excluded from combat training)
     document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = level !== PERM.PALSAM ? '' : 'none');
@@ -957,6 +959,8 @@ function renderAll() {
         renderReport1();
     } else if (activeTab === 'announcements') {
         renderAnnouncements();
+    } else if (activeTab === 'tasks') {
+        renderTasksPage();
     }
 }
 
@@ -1462,7 +1466,7 @@ function renderDashboard() {
 
     // === Alerts ===
     let alertsHtml = '';
-    if (taskAlerts.length > 0) {
+    if (taskAlerts.length > 0 && settings.operationalMode) {
         taskAlerts.sort((a, b) => a.pct - b.pct);
         const seen = new Set();
         const prioritized = [];
@@ -1530,6 +1534,21 @@ function renderDashboard() {
     }
 
     if (alertsEl) alertsEl.innerHTML = alertsHtml;
+}
+
+// ==================== OPERATIONAL MODE ====================
+function toggleOperationalMode() {
+    settings.operationalMode = !settings.operationalMode;
+    saveSettings();
+    updateOpModeUI();
+    renderDashboard();
+}
+
+function updateOpModeUI() {
+    const toggle = document.getElementById('opModeToggle');
+    const label = document.getElementById('opModeLabel');
+    if (toggle) toggle.classList.toggle('active', settings.operationalMode);
+    if (label) label.textContent = settings.operationalMode ? 'התראות משימות פעילות' : 'התראות משימות כבויות';
 }
 
 // ==================== DARK MODE ====================
@@ -2813,6 +2832,7 @@ function switchTab(tab) {
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') { syncWeaponsEasyDoStatus(true).then(() => renderWeaponsTab()); renderWeaponsTab(); }
+    if (tab === 'tasks') renderTasksPage();
     if (tab === 'training') renderTrainingTab();
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'whatsapp') renderWhatsAppCenter();
@@ -5567,7 +5587,11 @@ function renderReport1() {
     // Table
     container.innerHTML = `
         ${opInfo}
-        <div style="font-weight:600;margin-bottom:8px;">${isNispachim ? 'נספחים' : compNames[compKey]} | ${rangeLabel}</div>
+        <div class="r1-title-bar">
+            <span class="r1-title-company">${isNispachim ? 'נספחים' : compNames[compKey]}</span>
+            <span class="r1-title-range">${rangeLabel}</span>
+            <span class="r1-title-count">${soldiers.length} חיילים</span>
+        </div>
         <div class="table-scroll">
         <table class="r1-table">
             <thead>
@@ -5579,9 +5603,11 @@ function renderReport1() {
                         const isClosed = (settings.closedDays || []).includes(ds);
                         const inOp = isDateInOperation(ds);
                         const compact = days.length > 14;
-                        return `<th class="r1-day-header ${isToday ? 'r1-today' : ''} ${!inOp ? 'r1-out-of-op' : ''}" style="text-align:center;min-width:${compact ? '36' : '60'}px;${compact ? 'font-size:0.7em;padding:4px 2px;' : ''}">
-                            <div>${hebDays[d.getDay()]}</div>
-                            <div style="font-size:0.75em;font-weight:400;">${d.getDate()}/${d.getMonth()+1}</div>
+                        const isFriSat = d.getDay() === 5 || d.getDay() === 6;
+                        return `<th class="r1-day-header ${isToday ? 'r1-today' : ''} ${!inOp ? 'r1-out-of-op' : ''} ${isFriSat ? 'r1-weekend' : ''}" style="text-align:center;min-width:${compact ? '36' : '60'}px;${compact ? 'font-size:0.7em;padding:4px 2px;' : ''}">
+                            ${isToday ? '<div class="r1-today-label">היום</div>' : ''}
+                            <div class="r1-day-name">${hebDays[d.getDay()]}</div>
+                            <div class="r1-day-date">${d.getDate()}/${d.getMonth()+1}</div>
                             ${!compact && inOp ? `<button class="r1-closed-btn ${isClosed ? 'active' : ''}" onclick="toggleClosedDay('${ds}')" title="${isClosed ? 'פתח שמ\"פ' : 'סגור שמ\"פ'}">${isClosed ? '🔒' : '🔓'}</button>` : ''}
                         </th>`;
                     }).join('')}
@@ -10580,5 +10606,145 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); document.body.classList.remove('modal-open'); }
 });
+
+// ==================== TASKS PAGE (משימות) ====================
+let tasksFilterCompany = 'all';
+
+function renderTasksPage() {
+    const container = document.getElementById('content-tasks');
+    if (!container) return;
+
+    const todayStr = localToday();
+    const now = new Date();
+    const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const compNames = getCompNames();
+    const companies = allCompanyKeys();
+
+    // Build filter options
+    const filterOptions = companies.filter(k => companyData[k].tasks.length > 0)
+        .map(k => `<option value="${k}" ${tasksFilterCompany === k ? 'selected' : ''}>${compNames[k]}</option>`)
+        .join('');
+
+    // Aggregate all tasks across companies
+    let totalTasks = 0, totalAssigned = 0, totalNeeded = 0;
+    const companyTaskData = [];
+
+    companies.forEach(k => {
+        const tasks = companyData[k].tasks;
+        if (tasks.length === 0) return;
+        const taskCards = [];
+        tasks.forEach(t => {
+            const needed = (t.perShift?.soldiers || 0) + (t.perShift?.commanders || 0) + (t.perShift?.officers || 0);
+            const assignedShifts = state.shifts.filter(sh => sh.company === k && sh.task === t.name && sh.date === todayStr);
+            const assignedSoldiers = [];
+            const assignedIds = new Set();
+            assignedShifts.forEach(sh => {
+                sh.soldiers.forEach(sid => {
+                    if (!assignedIds.has(sid)) {
+                        assignedIds.add(sid);
+                        const sol = state.soldiers.find(s => s.id === sid);
+                        if (sol) assignedSoldiers.push(sol);
+                    }
+                });
+            });
+            const assigned = assignedSoldiers.length;
+            totalTasks++;
+            totalAssigned += assigned;
+            totalNeeded += needed;
+
+            let statusClass = 'tasks-status-empty';
+            let statusLabel = 'ריק';
+            if (needed > 0 && assigned >= needed) {
+                statusClass = 'tasks-status-full';
+                statusLabel = 'מאויש';
+            } else if (assigned > 0) {
+                statusClass = 'tasks-status-partial';
+                statusLabel = 'חלקי';
+            }
+
+            const commander = assignedSoldiers.find(s => s.role === 'commander' || s.role === 'officer');
+
+            taskCards.push({
+                name: t.name,
+                needed,
+                assigned,
+                statusClass,
+                statusLabel,
+                commander,
+                assignedSoldiers,
+                shifts: t.shifts || 1
+            });
+        });
+        companyTaskData.push({ key: k, name: compNames[k], tasks: taskCards });
+    });
+
+    const filteredData = tasksFilterCompany === 'all'
+        ? companyTaskData
+        : companyTaskData.filter(c => c.key === tasksFilterCompany);
+
+    let sectionsHtml = '';
+    filteredData.forEach(comp => {
+        const cardsHtml = comp.tasks.map(t => {
+            const pct = t.needed > 0 ? Math.min(100, Math.round((t.assigned / t.needed) * 100)) : (t.assigned > 0 ? 100 : 0);
+            const soldierList = t.assignedSoldiers.length > 0
+                ? t.assignedSoldiers.map(s => `<span class="tasks-soldier-chip">${esc(s.name)}</span>`).join('')
+                : '<span class="tasks-no-soldiers">לא שובצו לוחמים</span>';
+            return `
+                <div class="tasks-card ${t.statusClass}" onclick="switchTab('${comp.key}')">
+                    <div class="tasks-card-header">
+                        <div class="tasks-card-title">${esc(t.name)}</div>
+                        <span class="tasks-badge ${t.statusClass}">${t.statusLabel}</span>
+                    </div>
+                    <div class="tasks-card-bar-wrap">
+                        <div class="tasks-card-bar">
+                            <div class="tasks-card-bar-fill" style="width:${pct}%;background:${pct >= 100 ? 'var(--success)' : pct > 0 ? 'var(--warning)' : 'var(--danger)'}"></div>
+                        </div>
+                        <span class="tasks-card-count">${t.assigned}/${t.needed}</span>
+                    </div>
+                    ${t.commander ? `<div class="tasks-card-commander">מפקד: ${esc(t.commander.name)}</div>` : ''}
+                    <div class="tasks-card-soldiers">${soldierList}</div>
+                </div>`;
+        }).join('');
+
+        sectionsHtml += `
+            <div class="tasks-section">
+                <div class="tasks-section-header" style="border-right-color:${companyData[comp.key].color}">
+                    <span class="tasks-section-dot" style="background:${companyData[comp.key].color}"></span>
+                    <span class="tasks-section-name">${comp.name}</span>
+                    <span class="tasks-section-count">${comp.tasks.length} משימות</span>
+                </div>
+                <div class="tasks-cards-grid">${cardsHtml}</div>
+            </div>`;
+    });
+
+    const fullCount = companyTaskData.reduce((s, c) => s + c.tasks.filter(t => t.statusClass === 'tasks-status-full').length, 0);
+    const partialCount = companyTaskData.reduce((s, c) => s + c.tasks.filter(t => t.statusClass === 'tasks-status-partial').length, 0);
+    const emptyCount = companyTaskData.reduce((s, c) => s + c.tasks.filter(t => t.statusClass === 'tasks-status-empty').length, 0);
+
+    container.innerHTML = `
+        <div class="tasks-page">
+            <div class="tasks-header">
+                <div class="tasks-header-top">
+                    <h2>משימות הגדוד</h2>
+                    <div class="tasks-date">${dateDisplay}</div>
+                </div>
+                <div class="tasks-toolbar">
+                    <select class="tasks-filter" onchange="tasksFilterCompany=this.value;renderTasksPage()">
+                        <option value="all" ${tasksFilterCompany === 'all' ? 'selected' : ''}>כל הגדוד</option>
+                        ${filterOptions}
+                    </select>
+                    <div class="tasks-summary-chips">
+                        <span class="tasks-chip tasks-chip-total">${totalTasks} משימות</span>
+                        <span class="tasks-chip tasks-chip-full">${fullCount} מאוישות</span>
+                        <span class="tasks-chip tasks-chip-partial">${partialCount} חלקיות</span>
+                        <span class="tasks-chip tasks-chip-empty">${emptyCount} ריקות</span>
+                    </div>
+                </div>
+            </div>
+            <div class="tasks-body">
+                ${sectionsHtml || '<div class="empty-state">אין משימות מוגדרות</div>'}
+            </div>
+        </div>`;
+}
 
 init();
