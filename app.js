@@ -484,6 +484,7 @@ function activateApp() {
 
     // Auto-sync from Google Sheets on login
     syncFromGoogleSheets(true);
+    syncWeaponsEasyDoStatus(true);
 }
 
 function activateSoldierView() {
@@ -2727,7 +2728,7 @@ function switchTab(tab) {
     if (tab === 'announcements') renderAnnouncements();
     if (tab === 'rotation') renderRotationTab();
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
-    if (tab === 'weapons') renderWeaponsTab();
+    if (tab === 'weapons') { syncWeaponsEasyDoStatus(true).then(() => renderWeaponsTab()); renderWeaponsTab(); }
     if (tab === 'training') renderTrainingTab();
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'whatsapp') renderWhatsAppCenter();
@@ -8282,6 +8283,79 @@ function confirmImportEquipment() {
     showToast(`יובאו ${newItems.length} פריטי ציוד בהצלחה`);
 }
 
+// ==================== EASYDO WEAPONS STATUS SYNC ====================
+
+let easyDoCompletions = []; // [{name, company, completedAt}]
+
+async function syncWeaponsEasyDoStatus(silent) {
+    if (!CONFIG.weaponsSheetId) return;
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('סטטוס מילוי')}`;
+        const resp = await fetch(url);
+        if (!resp.ok) { if (!silent) console.warn('EasyDo status sheet not found'); return; }
+        const csv = await resp.text();
+        const rows = parseCSV(csv);
+        // Skip header row, columns: שם חותם, פלוגה, תאריך מילוי, נושא אימייל, מזהה אימייל
+        easyDoCompletions = [];
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row[0]) continue;
+            easyDoCompletions.push({
+                name: (row[0] || '').trim(),
+                company: (row[1] || '').trim(),
+                completedAt: (row[2] || '').trim(),
+            });
+        }
+        if (!silent) showToast(`נטענו ${easyDoCompletions.length} רשומות סטטוס מ-EasyDo`, 'success');
+        console.log(`EasyDo status: ${easyDoCompletions.length} completions loaded`);
+    } catch (err) {
+        console.warn('EasyDo status sync error:', err);
+    }
+}
+
+function getEasyDoStatus(soldier) {
+    if (!easyDoCompletions.length) return null;
+    const solName = soldier.name.trim().toLowerCase();
+    const solLastName = solName.split(' ').pop();
+    // Try exact match first
+    let match = easyDoCompletions.find(c => c.name.trim().toLowerCase() === solName);
+    // Then try last-name match
+    if (!match) match = easyDoCompletions.find(c => c.name.trim().toLowerCase() === solLastName);
+    // Then try partial match (last name contained in full name or vice versa)
+    if (!match) match = easyDoCompletions.find(c => {
+        const cName = c.name.trim().toLowerCase();
+        return solName.includes(cName) || cName.includes(solLastName);
+    });
+    return match || null;
+}
+
+function parseCSV(csv) {
+    // Simple CSV parser that handles quoted fields
+    const rows = [];
+    let current = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < csv.length; i++) {
+        const ch = csv[i];
+        if (inQuotes) {
+            if (ch === '"' && csv[i + 1] === '"') { field += '"'; i++; }
+            else if (ch === '"') inQuotes = false;
+            else field += ch;
+        } else {
+            if (ch === '"') inQuotes = true;
+            else if (ch === ',') { current.push(field); field = ''; }
+            else if (ch === '\n' || (ch === '\r' && csv[i + 1] === '\n')) {
+                current.push(field); field = '';
+                if (current.some(c => c.trim())) rows.push(current);
+                current = [];
+                if (ch === '\r') i++;
+            } else { field += ch; }
+        }
+    }
+    if (field || current.length) { current.push(field); if (current.some(c => c.trim())) rows.push(current); }
+    return rows;
+}
+
 // ==================== WEAPONS PROJECT ====================
 
 const ISRAELI_CITIES = ['אבו גוש','אבן יהודה','אופקים','אור יהודה','אור עקיבא','אילת','אלעד','אריאל','אשדוד','אשקלון','באר יעקב','באר שבע','בית שאן','בית שמש','בני ברק','בת ים','גבעת שמואל','גבעתיים','גדרה','גני תקווה','דימונה','הוד השרון','הרצליה','חדרה','חולון','חיפה','טבריה','טירת כרמל','יבנה','יהוד-מונוסון','ירוחם','ירושלים','כפר יונה','כפר סבא','כרמיאל','לוד','מגדל העמק','מודיעין-מכבים-רעות','מודיעין עילית','מעלה אדומים','מעלות-תרשיחא','מצפה רמון','נהריה','נס ציונה','נצרת','נתיבות','נתניה','עכו','עפולה','ערד','פתח תקווה','צפת','קדימה-צורן','קלנסווה','קרית אונו','קרית אתא','קרית ביאליק','קרית גת','קרית ים','קרית מוצקין','קרית מלאכי','קרית שמונה','ראש העין','ראשון לציון','רהט','רחובות','רכסים','רמלה','רמת גן','רמת השרון','רעננה','שדרות','שוהם','שלומי','תל אביב-יפו','דולב','בית אריה','אפרת','ביתר עילית','קרני שומרון','אלקנה','גבע בנימין','עמנואל','קדומים','גבעת זאב','ניצן','פרדסיה','זכרון יעקב','בנימינה-גבעת עדה','יקנעם','טירה','טמרה','סח\'נין','באקה אל-גרבייה','אום אל-פחם','רהט','ערערה','כפר קאסם','שפרעם','דלית אל-כרמל','יפיע','עין מאהל','כאבול','טורעאן'];
@@ -8389,9 +8463,11 @@ function renderWeaponsTab() {
         const complete = state.soldiers.filter(s => getWeaponsStatus(s.id) === 'complete').length;
         const partial = state.soldiers.filter(s => getWeaponsStatus(s.id) === 'partial').length;
         const none = total - complete - partial;
+        const easyDoSigned = state.soldiers.filter(s => getEasyDoStatus(s)).length;
         statsEl.innerHTML = `
             <div class="quick-stat"><div class="value">${total}</div><div class="label">סה"כ חיילים</div></div>
-            <div class="quick-stat" style="border-top:3px solid var(--success);"><div class="value">${complete}</div><div class="label">הושלם</div></div>
+            <div class="quick-stat" style="border-top:3px solid #2563eb;"><div class="value">${easyDoSigned}</div><div class="label">חתמו ב-EasyDo</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--success);"><div class="value">${complete}</div><div class="label">הושלם במערכת</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--warning);"><div class="value">${partial}</div><div class="label">בתהליך</div></div>
             <div class="quick-stat" style="border-top:3px solid var(--danger);"><div class="value">${none}</div><div class="label">לא התחיל</div></div>
         `;
@@ -8410,14 +8486,19 @@ function renderWeaponsTab() {
     const statusLabel = { complete: 'הושלם', partial: 'בתהליך', none: 'לא התחיל' };
     const statusClass = { complete: 'wp-status-complete', partial: 'wp-status-partial', none: 'wp-status-none' };
 
-    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>';
+    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס מערכת</th><th>טופס EasyDo</th><th>פעולות</th></tr></thead><tbody>';
     soldiers.forEach(s => {
         const status = getWeaponsStatus(s.id);
+        const easyDo = getEasyDoStatus(s);
+        const easyDoHtml = easyDo
+            ? `<span class="wp-status-badge wp-status-complete" title="מולא ב-${esc(easyDo.completedAt)}">נחתם</span>`
+            : `<span class="wp-status-badge wp-status-none">טרם נחתם</span>`;
         html += `<tr>
             <td style="font-weight:600;">${esc(s.name)}</td>
             <td>${esc(companyNames[s.company] || s.company)}</td>
             <td>${esc(s.personalId) || '-'}</td>
             <td><span class="wp-status-badge ${statusClass[status]}">${statusLabel[status]}</span></td>
+            <td>${easyDoHtml}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="openWeaponsForm('${s.id}')">מלא טופס</button>
             </td>

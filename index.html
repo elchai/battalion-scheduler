@@ -711,6 +711,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 שלח שאלון נשקים
             </button>
+            <button class="btn btn-outline" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
+                סנכרן EasyDo
+            </button>
         </div>
         <div class="search-bar">
             <span class="search-icon"><i data-lucide="search"></i></span>
