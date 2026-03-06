@@ -188,7 +188,7 @@ function canEdit(compKey) {
     const level = getUserPermissionLevel();
     if (level >= PERM.FULL_ACCESS) return true;
     if (level === PERM.PALSAM) return false;
-    if (level >= PERM.OFFICER) return currentUser.unit === compKey;
+    if (level >= PERM.SAMAL) return currentUser.unit === compKey;
     return false;
 }
 
@@ -589,8 +589,8 @@ function applyUnitFilter() {
     // Weapons - hidden in demo, otherwise visible
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
 
-    // Settings - OFFICER+ (מ"מ, מפקד מחלקה, מפק"צ, מ"פ ומעלה)
-    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.OFFICER ? '' : 'none');
+    // Settings - SAMAL+ (סמלים, קצינים, מ"פים ומעלה)
+    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.SAMAL ? '' : 'none');
 
     // Rotation management - only FULL_ACCESS
     const addRotBtn = document.getElementById('addRotGroupBtn');
@@ -4891,7 +4891,7 @@ function renderSettingsTab() {
     const companyNames = getCompNames();
     const level = getUserPermissionLevel();
     const isFull = level >= PERM.FULL_ACCESS;
-    const isOfficer = level >= PERM.OFFICER;
+    const isOfficer = level >= PERM.SAMAL;
     const userUnit = currentUser ? currentUser.unit : '';
 
     // All officers see all settings; task management filtered to own company
