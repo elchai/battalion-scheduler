@@ -991,6 +991,23 @@ function _generateDemoInventory(soldiers) {
     return equipment;
 }
 
+function _generateDemoEasyDoCompletions(soldiers) {
+    // ~55% of combat soldiers completed EasyDo forms
+    const completions = [];
+    const combatSoldiers = soldiers.filter(s => ['a','b','c','d','hq','agam'].includes(s.company));
+    combatSoldiers.forEach((s, idx) => {
+        if (idx % 9 >= 5) return; // ~55%
+        const day = 1 + (idx % 28);
+        const month = idx % 3 === 0 ? '01' : '02';
+        completions.push({
+            name: s.name,
+            company: s.company,
+            completedAt: `2026-${month}-${String(day).padStart(2,'0')} ${String(8 + (idx % 10)).padStart(2,'0')}:${String(idx % 60).padStart(2,'0')}`
+        });
+    });
+    return completions;
+}
+
 // Build seed data
 const _demoSoldiers = _generateDemoSoldiers();
 const _demoShifts = _generateDemoShifts(_demoSoldiers);
@@ -1004,6 +1021,7 @@ const _demoWeaponsData = _generateDemoWeaponsData(_demoSoldiers);
 const _demoInventory = _generateDemoInventory(_demoSoldiers);
 const _demoRotationGroups = _generateDemoRotationGroups(_demoSoldiers);
 const _demoAnnouncements = _generateDemoAnnouncements();
+const _demoEasyDoCompletions = _generateDemoEasyDoCompletions(_demoSoldiers);
 
 const CONFIG = {
     // --- זהות ---
@@ -1195,7 +1213,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 15,
+    demoSeedVersion: 16,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
@@ -1208,7 +1226,8 @@ const CONFIG = {
         equipment: _demoInventory,
         tasks: _demoTasks,
         rotationGroups: _demoRotationGroups,
-        announcements: _demoAnnouncements
+        announcements: _demoAnnouncements,
+        easyDoCompletions: _demoEasyDoCompletions
     }
 };
 

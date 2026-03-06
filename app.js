@@ -798,6 +798,10 @@ function loadState() {
         Object.assign(settings, CONFIG.demoSettings);
         saveSettings();
     }
+    // Seed EasyDo completions for demo (always, since it's in-memory only)
+    if (CONFIG.demoSeedData && CONFIG.demoSeedData.easyDoCompletions) {
+        easyDoCompletions = CONFIG.demoSeedData.easyDoCompletions;
+    }
 }
 
 function detectCategoryFromType(type) {
