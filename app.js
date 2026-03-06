@@ -3173,12 +3173,10 @@ function openSoldierProfile(id) {
 
     // Weapons & EasyDo status
     const easyDoStatus = typeof getEasyDoStatus === 'function' ? getEasyDoStatus(sol) : null;
-    const weaponsStatus = typeof getWeaponsStatus === 'function' ? getWeaponsStatus(id) : 'none';
-    html += `<div class="sp-section"><h4>סטטוס טפסי נשקים</h4><div class="sp-list">
+    html += `<div class="sp-section"><h4>סטטוס הגשת טפסים לנשק</h4><div class="sp-list">
         <div class="sp-list-item"><span>טופס EasyDo</span>${easyDoStatus
-            ? `<span style="color:#27ae60;font-weight:600;">נחתם (${esc(easyDoStatus.completedAt || '')})</span>`
+            ? `<span style="color:#27ae60;font-weight:600;">נחתם (${formatEasyDoDate(easyDoStatus.completedAt || '')})</span>`
             : `<span style="color:#e65100;font-weight:600;">טרם נחתם</span>`}</div>
-        <div class="sp-list-item"><span>טופס מערכת</span><span style="color:${weaponsStatus === 'complete' ? '#27ae60' : weaponsStatus === 'partial' ? '#f39c12' : '#e65100'};font-weight:600;">${weaponsStatus === 'complete' ? 'הושלם' : weaponsStatus === 'partial' ? 'בתהליך' : 'לא התחיל'}</span></div>
     </div></div>`;
 
     html += `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -8583,6 +8581,23 @@ async function syncWeaponsEasyDoStatus(silent) {
     }
 }
 
+function formatEasyDoDate(dateStr) {
+    if (!dateStr) return '';
+    // Try to parse various date formats and output DD-MM-YYYY HH:MM
+    const m = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+        const time = dateStr.match(/(\d{2}:\d{2})/);
+        return `${m[3]}-${m[2]}-${m[1]}${time ? ' ' + time[1] : ''}`;
+    }
+    // Try DD/MM/YYYY or DD.MM.YYYY
+    const m2 = dateStr.match(/(\d{2})[\/.](\d{2})[\/.](\d{4})/);
+    if (m2) {
+        const time = dateStr.match(/(\d{2}:\d{2})/);
+        return `${m2[1]}-${m2[2]}-${m2[3]}${time ? ' ' + time[1] : ''}`;
+    }
+    return dateStr;
+}
+
 function getEasyDoStatus(soldier) {
     if (!easyDoCompletions.length) return null;
     const solName = soldier.name.trim().toLowerCase();
@@ -8628,40 +8643,11 @@ function parseCSV(csv) {
 
 // ==================== WEAPONS PROJECT ====================
 
-const ISRAELI_CITIES = ['אבו גוש','אבן יהודה','אופקים','אור יהודה','אור עקיבא','אילת','אלעד','אריאל','אשדוד','אשקלון','באר יעקב','באר שבע','בית שאן','בית שמש','בני ברק','בת ים','גבעת שמואל','גבעתיים','גדרה','גני תקווה','דימונה','הוד השרון','הרצליה','חדרה','חולון','חיפה','טבריה','טירת כרמל','יבנה','יהוד-מונוסון','ירוחם','ירושלים','כפר יונה','כפר סבא','כרמיאל','לוד','מגדל העמק','מודיעין-מכבים-רעות','מודיעין עילית','מעלה אדומים','מעלות-תרשיחא','מצפה רמון','נהריה','נס ציונה','נצרת','נתיבות','נתניה','עכו','עפולה','ערד','פתח תקווה','צפת','קדימה-צורן','קלנסווה','קרית אונו','קרית אתא','קרית ביאליק','קרית גת','קרית ים','קרית מוצקין','קרית מלאכי','קרית שמונה','ראש העין','ראשון לציון','רהט','רחובות','רכסים','רמלה','רמת גן','רמת השרון','רעננה','שדרות','שוהם','שלומי','תל אביב-יפו','דולב','בית אריה','אפרת','ביתר עילית','קרני שומרון','אלקנה','גבע בנימין','עמנואל','קדומים','גבעת זאב','ניצן','פרדסיה','זכרון יעקב','בנימינה-גבעת עדה','יקנעם','טירה','טמרה','סח\'נין','באקה אל-גרבייה','אום אל-פחם','רהט','ערערה','כפר קאסם','שפרעם','דלית אל-כרמל','יפיע','עין מאהל','כאבול','טורעאן'];
-
-let currentWizardStep = 1;
-let wpSignatureCanvases = {};
-
 function setWeaponsFilter(filter, btn) {
     weaponsFilter = filter;
     document.querySelectorAll('#tab-weapons .filter-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
     renderWeaponsTab();
-}
-
-function getWeaponsStatus(soldierId) {
-    const rec = state.weaponsData.find(r => r.soldierId === soldierId);
-    if (!rec) return 'none';
-    let filled = 0;
-    // Step 1: Personal details
-    if (rec.firstName && rec.lastName && rec.idNumber) filled++;
-    // Step 2: Military details
-    if (rec.phone || rec.enlistmentDate || rec.rank) filled++;
-    // Step 3: Documents
-    if (rec.idPhoto) filled++;
-    if (rec.doctorApproval) filled++;
-    // Step 4: Commander signature
-    if (rec.cmdSig && rec.cmdName) filled++;
-    if (filled >= 5) return 'complete';
-    if (filled > 0) return 'partial';
-    return 'none';
-}
-
-function populateCitiesDatalist() {
-    const dl = document.getElementById('israeliCitiesList');
-    if (!dl || dl.children.length > 0) return;
-    dl.innerHTML = ISRAELI_CITIES.map(c => `<option value="${c}">`).join('');
 }
 
 function renderRestrictedTab(tabName, message) {
@@ -8722,24 +8708,22 @@ function renderWeaponsTab() {
     if (query) soldiers = soldiers.filter(s => s.name.toLowerCase().includes(query));
 
     // Apply filter
-    if (weaponsFilter !== 'all') {
-        soldiers = soldiers.filter(s => getWeaponsStatus(s.id) === weaponsFilter);
+    if (weaponsFilter === 'signed') {
+        soldiers = soldiers.filter(s => getEasyDoStatus(s));
+    } else if (weaponsFilter === 'unsigned') {
+        soldiers = soldiers.filter(s => !getEasyDoStatus(s));
     }
 
     // Stats
     const statsEl = document.getElementById('weaponsStats');
     if (statsEl) {
         const total = state.soldiers.length;
-        const complete = state.soldiers.filter(s => getWeaponsStatus(s.id) === 'complete').length;
-        const partial = state.soldiers.filter(s => getWeaponsStatus(s.id) === 'partial').length;
-        const none = total - complete - partial;
         const easyDoSigned = state.soldiers.filter(s => getEasyDoStatus(s)).length;
+        const notSigned = total - easyDoSigned;
         statsEl.innerHTML = `
             <div class="quick-stat"><div class="value">${total}</div><div class="label">סה"כ חיילים</div></div>
-            <div class="quick-stat" style="border-top:3px solid #2563eb;"><div class="value">${easyDoSigned}</div><div class="label">חתמו ב-EasyDo</div></div>
-            <div class="quick-stat" style="border-top:3px solid var(--success);"><div class="value">${complete}</div><div class="label">הושלם במערכת</div></div>
-            <div class="quick-stat" style="border-top:3px solid var(--warning);"><div class="value">${partial}</div><div class="label">בתהליך</div></div>
-            <div class="quick-stat" style="border-top:3px solid var(--danger);"><div class="value">${none}</div><div class="label">לא התחיל</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--success);"><div class="value">${easyDoSigned}</div><div class="label">חתמו על טופס</div></div>
+            <div class="quick-stat" style="border-top:3px solid var(--danger);"><div class="value">${notSigned}</div><div class="label">טרם חתמו</div></div>
         `;
     }
 
@@ -8753,25 +8737,19 @@ function renderWeaponsTab() {
         return;
     }
 
-    const statusLabel = { complete: 'הושלם', partial: 'בתהליך', none: 'לא התחיל' };
-    const statusClass = { complete: 'wp-status-complete', partial: 'wp-status-partial', none: 'wp-status-none' };
-
-    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס מערכת</th><th>טופס EasyDo</th><th>פעולות</th></tr></thead><tbody>';
+    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>טופס EasyDo</th><th>תאריך חתימה</th></tr></thead><tbody>';
     soldiers.forEach(s => {
-        const status = getWeaponsStatus(s.id);
         const easyDo = getEasyDoStatus(s);
         const easyDoHtml = easyDo
-            ? `<span class="wp-status-badge wp-status-complete" title="מולא ב-${esc(easyDo.completedAt)}">נחתם</span>`
+            ? `<span class="wp-status-badge wp-status-complete">נחתם</span>`
             : `<span class="wp-status-badge wp-status-none">טרם נחתם</span>`;
+        const dateHtml = easyDo ? formatEasyDoDate(easyDo.completedAt) : '-';
         html += `<tr>
             <td style="font-weight:600;">${esc(s.name)}</td>
             <td>${esc(companyNames[s.company] || s.company)}</td>
             <td>${esc(s.personalId) || '-'}</td>
-            <td><span class="wp-status-badge ${statusClass[status]}">${statusLabel[status]}</span></td>
             <td>${easyDoHtml}</td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="openWeaponsForm('${s.id}')">מלא טופס</button>
-            </td>
+            <td>${dateHtml}</td>
         </tr>`;
     });
     html += '</tbody></table></div></div>';
@@ -8790,314 +8768,6 @@ function getCompanyCommander(compKey) {
         palsam: { name: '', rank: '', role: 'מ"פ פלס"ם' }
     };
     return commanders[compKey] || { name: '', rank: '', role: compNames[compKey] || '' };
-}
-
-function openWeaponsForm(soldierId) {
-    const sol = state.soldiers.find(s => s.id === soldierId);
-    if (!sol) return;
-
-    populateCitiesDatalist();
-
-    document.getElementById('weaponsSoldierId').value = soldierId;
-    document.getElementById('weaponsModalTitle').textContent = `בקשה לקבלת נשק - ${sol.name}`;
-
-    // Load existing data or create new with auto-fill
-    let rec = state.weaponsData.find(r => r.soldierId === soldierId);
-    if (!rec) {
-        const nameParts = sol.name.split(' ');
-        const cmd = getCompanyCommander(sol.company);
-        rec = {
-            soldierId,
-            company: sol.company || '',
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            idNumber: '',
-            personalNum: sol.personalId || '',
-            birthYear: '',
-            fatherName: '',
-            street: '',
-            houseNum: '',
-            city: '',
-            postalCode: '',
-            phone: sol.phone || '',
-            landline: '',
-            personalWeaponSource: '',
-            rangeDate: '',
-            enlistmentDate: '',
-            dischargeDate: '',
-            medicalApprovalDate: '',
-            rank: sol.rank || '',
-            combatCertified: null,
-            idPhoto: null,
-            doctorApproval: null,
-            cmdName: cmd.name,
-            cmdRank: cmd.rank,
-            cmdId: '',
-            cmdRole: cmd.role,
-            cmdSig: null,
-            cmdDate: new Date().toISOString().split('T')[0],
-            lastUpdated: null,
-            source: 'app'
-        };
-    }
-
-    // Map company key to Hebrew name for dropdown
-    const compMap = { a: 'א', b: 'ב', c: 'ג', d: 'ד', hq: 'מבצעים/חפ״ק', palsam: 'פלס״ם' };
-
-    // Fill Step 1: Personal
-    document.getElementById('wpCompany').value = compMap[rec.company] || rec.company || '';
-    document.getElementById('wpFirstName').value = rec.firstName;
-    document.getElementById('wpLastName').value = rec.lastName;
-    document.getElementById('wpIdNumber').value = rec.idNumber;
-    document.getElementById('wpPersonalNum').value = rec.personalNum;
-    document.getElementById('wpBirthYear').value = rec.birthYear;
-    document.getElementById('wpFatherName').value = rec.fatherName;
-    document.getElementById('wpStreet').value = rec.street || '';
-    document.getElementById('wpHouseNum').value = rec.houseNum || '';
-    document.getElementById('wpCity').value = rec.city;
-    document.getElementById('wpPostalCode').value = rec.postalCode || '';
-
-    // Fill Step 2: Military & Contact
-    document.getElementById('wpPhone').value = rec.phone;
-    document.getElementById('wpLandline').value = rec.landline || '';
-    document.getElementById('wpPersonalWeaponSource').value = rec.personalWeaponSource || '';
-    document.getElementById('wpRangeDate').value = rec.rangeDate || '';
-    document.getElementById('wpEnlistmentDate').value = rec.enlistmentDate || '';
-    document.getElementById('wpDischargeDate').value = rec.dischargeDate || '';
-    document.getElementById('wpMedicalApprovalDate').value = rec.medicalApprovalDate || '';
-    document.getElementById('wpRank').value = rec.rank;
-    // Combat certified radio
-    document.querySelectorAll('input[name="wpCombatCertified"]').forEach(r => r.checked = false);
-    if (rec.combatCertified === true) document.querySelector('input[name="wpCombatCertified"][value="yes"]').checked = true;
-    else if (rec.combatCertified === false) document.querySelector('input[name="wpCombatCertified"][value="no"]').checked = true;
-
-    // Fill Step 3: Documents
-    if (rec.idPhoto) {
-        document.getElementById('idPhotoImg').src = rec.idPhoto;
-        document.getElementById('idPhotoPreview').style.display = '';
-        document.getElementById('idUploadArea').style.display = 'none';
-    } else {
-        document.getElementById('idPhotoPreview').style.display = 'none';
-        document.getElementById('idUploadArea').style.display = '';
-    }
-    if (rec.doctorApproval) {
-        document.getElementById('doctorApprovalImg').src = rec.doctorApproval;
-        document.getElementById('doctorApprovalPreview').style.display = '';
-        document.getElementById('doctorUploadArea').style.display = 'none';
-    } else {
-        document.getElementById('doctorApprovalPreview').style.display = 'none';
-        document.getElementById('doctorUploadArea').style.display = '';
-    }
-
-    // Fill Step 4: Commander
-    document.getElementById('wpCmdName').value = rec.cmdName;
-    document.getElementById('wpCmdRank').value = rec.cmdRank;
-    document.getElementById('wpCmdId').value = rec.cmdId;
-    document.getElementById('wpCmdRole').value = rec.cmdRole;
-    document.getElementById('wpCmdDate').value = rec.cmdDate || new Date().toISOString().split('T')[0];
-
-    // Go to step 1
-    currentWizardStep = 1;
-    updateWizardUI();
-
-    openModal('weaponsFormModal');
-
-    // Init commander signature canvas after modal is visible
-    setTimeout(() => {
-        initWpSignatureCanvas('cmdSigCanvas');
-        if (rec.cmdSig) restoreCanvasImage('cmdSigCanvas', rec.cmdSig);
-    }, 200);
-}
-
-function updateWizardUI() {
-    document.querySelectorAll('.wizard-step').forEach(s => {
-        const step = parseInt(s.dataset.step);
-        s.classList.toggle('active', step === currentWizardStep);
-        s.classList.toggle('done', step < currentWizardStep);
-    });
-    document.querySelectorAll('.wizard-page').forEach((p, i) => {
-        p.classList.toggle('active', i + 1 === currentWizardStep);
-    });
-    document.getElementById('wpBtnPrev').disabled = currentWizardStep <= 1;
-    document.getElementById('wpBtnNext').style.display = currentWizardStep >= 4 ? 'none' : '';
-}
-
-function weaponsWizardNext() {
-    if (currentWizardStep < 4) {
-        currentWizardStep++;
-        updateWizardUI();
-    }
-}
-
-function weaponsWizardPrev() {
-    if (currentWizardStep > 1) {
-        currentWizardStep--;
-        updateWizardUI();
-    }
-}
-
-function initWpSignatureCanvas(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    // Resize canvas to fit container
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = Math.min(600, rect.width - 20);
-
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    let drawing = false;
-    const getPos = (e) => {
-        const r = canvas.getBoundingClientRect();
-        const touch = e.touches ? e.touches[0] : e;
-        const scaleX = canvas.width / r.width;
-        const scaleY = canvas.height / r.height;
-        return { x: (touch.clientX - r.left) * scaleX, y: (touch.clientY - r.top) * scaleY };
-    };
-
-    const start = (e) => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
-    const move = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#2563eb'; ctx.lineTo(p.x, p.y); ctx.stroke(); };
-    const end = () => { drawing = false; };
-
-    canvas.onmousedown = start;
-    canvas.onmousemove = move;
-    canvas.onmouseup = end;
-    canvas.onmouseleave = end;
-    canvas.ontouchstart = start;
-    canvas.ontouchmove = move;
-    canvas.ontouchend = end;
-
-    wpSignatureCanvases[canvasId] = true;
-}
-
-function clearWpCanvas(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function restoreCanvasImage(canvasId, dataUrl) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || !dataUrl) return;
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
-    img.src = dataUrl;
-}
-
-function isWpCanvasEmpty(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return true;
-    const ctx = canvas.getContext('2d');
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    for (let i = 0; i < data.length; i += 4) {
-        if (data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) return false;
-    }
-    return true;
-}
-
-function getWpCanvasDataURL(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    return canvas ? canvas.toDataURL('image/png') : null;
-}
-
-function handleIdPhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('idPhotoImg').src = e.target.result;
-        document.getElementById('idPhotoPreview').style.display = '';
-        document.getElementById('idUploadArea').style.display = 'none';
-    };
-    reader.readAsDataURL(file);
-}
-
-function removeIdPhoto() {
-    document.getElementById('idPhotoPreview').style.display = 'none';
-    document.getElementById('idUploadArea').style.display = '';
-    document.getElementById('idPhotoInput').value = '';
-    document.getElementById('idPhotoImg').src = '';
-}
-
-function handleDoctorApprovalUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('doctorApprovalImg').src = e.target.result;
-        document.getElementById('doctorApprovalPreview').style.display = '';
-        document.getElementById('doctorUploadArea').style.display = 'none';
-    };
-    reader.readAsDataURL(file);
-}
-
-function removeDoctorApproval() {
-    document.getElementById('doctorApprovalPreview').style.display = 'none';
-    document.getElementById('doctorUploadArea').style.display = '';
-    document.getElementById('doctorApprovalInput').value = '';
-    document.getElementById('doctorApprovalImg').src = '';
-}
-
-function collectWeaponsFormData() {
-    const soldierId = document.getElementById('weaponsSoldierId').value;
-    const combatRadio = document.querySelector('input[name="wpCombatCertified"]:checked');
-
-    return {
-        soldierId,
-        company: document.getElementById('wpCompany').value,
-        firstName: document.getElementById('wpFirstName').value.trim(),
-        lastName: document.getElementById('wpLastName').value.trim(),
-        idNumber: document.getElementById('wpIdNumber').value.trim(),
-        personalNum: document.getElementById('wpPersonalNum').value.trim(),
-        birthYear: document.getElementById('wpBirthYear').value.trim(),
-        fatherName: document.getElementById('wpFatherName').value.trim(),
-        street: document.getElementById('wpStreet').value.trim(),
-        houseNum: document.getElementById('wpHouseNum').value.trim(),
-        city: document.getElementById('wpCity').value.trim(),
-        postalCode: document.getElementById('wpPostalCode').value.trim(),
-        phone: document.getElementById('wpPhone').value.trim(),
-        landline: document.getElementById('wpLandline').value.trim(),
-        personalWeaponSource: document.getElementById('wpPersonalWeaponSource').value.trim(),
-        rangeDate: document.getElementById('wpRangeDate').value,
-        enlistmentDate: document.getElementById('wpEnlistmentDate').value,
-        dischargeDate: document.getElementById('wpDischargeDate').value,
-        medicalApprovalDate: document.getElementById('wpMedicalApprovalDate').value,
-        rank: document.getElementById('wpRank').value,
-        combatCertified: combatRadio ? combatRadio.value === 'yes' : null,
-        idPhoto: (document.getElementById('idPhotoImg').src && document.getElementById('idPhotoImg').src.startsWith('data:')) ? document.getElementById('idPhotoImg').src : null,
-        doctorApproval: (document.getElementById('doctorApprovalImg').src && document.getElementById('doctorApprovalImg').src.startsWith('data:')) ? document.getElementById('doctorApprovalImg').src : null,
-        cmdName: document.getElementById('wpCmdName').value.trim(),
-        cmdRank: document.getElementById('wpCmdRank').value.trim(),
-        cmdId: document.getElementById('wpCmdId').value.trim(),
-        cmdRole: document.getElementById('wpCmdRole').value.trim(),
-        cmdSig: isWpCanvasEmpty('cmdSigCanvas') ? null : getWpCanvasDataURL('cmdSigCanvas'),
-        cmdDate: document.getElementById('wpCmdDate').value,
-        lastUpdated: new Date().toISOString(),
-        source: 'app'
-    };
-}
-
-function saveWeaponsForm() {
-    const data = collectWeaponsFormData();
-    if (!data.firstName) { showToast('יש למלא שם פרטי', 'error'); return; }
-
-    const idx = state.weaponsData.findIndex(r => r.soldierId === data.soldierId);
-    if (idx >= 0) state.weaponsData[idx] = data;
-    else state.weaponsData.push(data);
-
-    saveState();
-    showToast('טופס נשמר בהצלחה');
-    renderWeaponsTab();
-
-    // Push to Google Sheets if configured
-    if (CONFIG.weaponsScriptUrl) {
-        pushWeaponsToSheets(data);
-    }
 }
 
 // --- SmoovSign: Send weapons questionnaire via personal links ---
@@ -9321,107 +8991,6 @@ function renderWaSendHistory() {
         </div>`;
     }).join('');
 }
-
-// --- Google Sheets Sync ---
-
-async function pushWeaponsToSheets(data) {
-    if (!CONFIG.weaponsScriptUrl) return;
-    try {
-        const payload = {
-            timestamp: new Date().toISOString(),
-            company: data.company,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            idNumber: data.idNumber,
-            personalNum: data.personalNum,
-            birthYear: data.birthYear,
-            fatherName: data.fatherName,
-            street: data.street,
-            houseNum: data.houseNum,
-            city: data.city,
-            postalCode: data.postalCode,
-            phone: data.phone,
-            landline: data.landline,
-            personalWeaponSource: data.personalWeaponSource,
-            rangeDate: data.rangeDate,
-            enlistmentDate: data.enlistmentDate,
-            dischargeDate: data.dischargeDate,
-            medicalApprovalDate: data.medicalApprovalDate,
-            rank: data.rank,
-            combatCertified: data.combatCertified ? 'כן' : 'לא'
-        };
-        await fetch(CONFIG.weaponsScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-    } catch (err) {
-        console.warn('Push to Sheets failed:', err);
-    }
-}
-
-async function pullWeaponsFromSheets() {
-    if (!CONFIG.weaponsSheetId) { showToast('לא הוגדר מזהה טבלת נשקים', 'error'); return; }
-    showToast('מסנכרן תשובות מגוגל שיטס...', 'info');
-    try {
-        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/export?format=csv&gid=1582935634`;
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error('שגיאה בטעינת הטבלה');
-        const csv = await resp.text();
-        const rows = csv.split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
-        if (rows.length < 2) { showToast('הטבלה ריקה', 'info'); return; }
-
-        const headers = rows[0];
-        let synced = 0;
-
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row.length < 5) continue;
-            const idNumber = row[headers.indexOf('תעודת זהות')] || '';
-            if (!idNumber) continue;
-
-            // Find soldier by ID number
-            const soldier = state.soldiers.find(s => {
-                const rec = state.weaponsData.find(r => r.soldierId === s.id);
-                return rec && rec.idNumber === idNumber;
-            }) || state.soldiers.find(s => s.personalId === (row[headers.indexOf('מספר אישי')] || ''));
-
-            if (!soldier) continue;
-
-            let rec = state.weaponsData.find(r => r.soldierId === soldier.id);
-            if (!rec) {
-                rec = { soldierId: soldier.id, source: 'sheets' };
-                state.weaponsData.push(rec);
-            }
-
-            // Only update fields that are empty in the app (don't overwrite app data)
-            if (!rec.firstName) rec.firstName = row[headers.indexOf('שם פרטי')] || '';
-            if (!rec.lastName) rec.lastName = row[headers.indexOf('שם משפחה')] || '';
-            if (!rec.idNumber) rec.idNumber = idNumber;
-            if (!rec.personalNum) rec.personalNum = row[headers.indexOf('מספר אישי')] || '';
-            if (!rec.birthYear) rec.birthYear = row[headers.indexOf('שנת לידה')] || '';
-            if (!rec.fatherName) rec.fatherName = row[headers.indexOf('שם האב')] || '';
-            if (!rec.street) rec.street = row[headers.indexOf('רחוב')] || '';
-            if (!rec.houseNum) rec.houseNum = row[headers.indexOf('מס\' הבית')] || '';
-            if (!rec.city) rec.city = row[headers.indexOf('יישוב')] || '';
-            if (!rec.postalCode) rec.postalCode = row[headers.indexOf('מיקוד')] || '';
-            if (!rec.phone) rec.phone = row[headers.indexOf('טלפון נייד')] || '';
-            if (!rec.landline) rec.landline = row[headers.indexOf('טלפון נייח')] || '';
-            if (!rec.rank) rec.rank = row[headers.indexOf('דרגה נוכחית בצה"ל')] || '';
-
-            synced++;
-        }
-
-        saveState();
-        renderWeaponsTab();
-        showToast(`סונכרנו ${synced} רשומות מגוגל שיטס`);
-    } catch (err) {
-        console.error('Pull from Sheets error:', err);
-        showToast('שגיאה בסנכרון: ' + err.message, 'error');
-    }
-}
-
 
 // ==================== PAKAL (PERSONAL EQUIPMENT) SYSTEM ====================
 
