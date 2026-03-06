@@ -1157,6 +1157,20 @@ const CONFIG = {
         'פלגת רפואה': 'palsam'
     },
 
+    // --- נשקים ---
+    weaponsSheetId: '',
+    weaponsDoctorFormUrl: 'https://example.com/demo-doctor-form',
+    weaponsEasyDoLinks: {
+        a: 'https://example.com/demo-easydo/a',
+        b: 'https://example.com/demo-easydo/b',
+        c: 'https://example.com/demo-easydo/c',
+        d: 'https://example.com/demo-easydo/d',
+        palsam: 'https://example.com/demo-easydo/palsam',
+        hq: 'https://example.com/demo-easydo/hq',
+        agam: 'https://example.com/demo-easydo/agam',
+        battalion: 'https://example.com/demo-easydo/battalion',
+    },
+
     // --- תפקידים ---
     signingRoles: ['רס"פ', 'סרס"פ', 'סמ"ח', 'מ"כ', 'מ"פ', 'סמ"פ'],
     warehouses: ['מחסן גדודי', 'מחסן חטיבה', 'מחסן אוגדה'],
