@@ -178,7 +178,7 @@ function isGdudiAccess() {
 function canView(compKey) {
     if (!currentUser) return false;
     const level = getUserPermissionLevel();
-    if (level >= PERM.COMPANY_CMD) return true;
+    if (level >= PERM.FULL_ACCESS) return true;
     if (level === PERM.PALSAM) return true;
     return currentUser.unit === compKey;
 }
@@ -565,7 +565,7 @@ function renderSoldierShifts() {
 
 function applyUnitFilter() {
     const level = getUserPermissionLevel();
-    const seesAll = level >= PERM.COMPANY_CMD; // levels 5, 6, 7 see all companies
+    const seesAll = level >= PERM.FULL_ACCESS || level === PERM.PALSAM; // only FULL_ACCESS + palsam see all companies
 
     // "All companies" overview tab - only for users who see all
     document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = seesAll ? '' : 'none');
