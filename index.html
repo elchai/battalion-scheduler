@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v147';
+    var _cb = 'v148';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -47,28 +47,23 @@
         document.getElementById('loginSubtitle').textContent = CONFIG.systemSubtitle;
         </script>
 
-        <!-- Step 1: Password -->
+        <!-- Combined Login -->
         <div id="loginStep1">
             <div class="login-field">
                 <label>סיסמה</label>
                 <input type="password" id="loginPassword" placeholder="הזן סיסמה" autocomplete="new-password"
-                       onkeypress="if(event.key==='Enter')checkPassword()">
+                       onkeypress="if(event.key==='Enter')document.getElementById('loginPersonalId').focus()">
             </div>
-            <button class="login-btn" onclick="checkPassword()">כניסה</button>
-            <div class="login-error" id="loginError"></div>
-        </div>
-
-        <!-- Step 2: Personal ID -->
-        <div id="loginStep2" class="hidden">
             <div class="login-field">
                 <label>מספר אישי (מ.א)</label>
                 <input type="text" id="loginPersonalId" placeholder="הזן מספר אישי" inputmode="numeric" autocomplete="off"
                        oninput="typeof autoIdentifyByPersonalId==='function'&&autoIdentifyByPersonalId()"
-                       onkeypress="if(event.key==='Enter')doLoginByPersonalId()">
+                       onkeypress="if(event.key==='Enter')doLogin()">
             </div>
             <div id="loginSoldierPreview" class="hidden" style="background:var(--card-bg,#f5f5f5);border-radius:10px;padding:12px;margin:8px 0;text-align:center;"></div>
-            <button class="login-btn" onclick="doLoginByPersonalId()">המשך</button>
-            <div class="login-error" id="loginStep2Error"></div>
+            <div id="roleHoldersList"></div>
+            <button class="login-btn" onclick="doLogin()">כניסה</button>
+            <div class="login-error" id="loginError"></div>
         </div>
 
         <!-- Demo mode fields (shown only when CONFIG.skipPassword) -->

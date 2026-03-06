@@ -293,24 +293,19 @@ function sendGreenApiWhatsApp(firstName, phone) {
 // ==================== LOGIN ====================
 let currentUser = null;
 
-function checkPassword() {
+function doLogin() {
+    const err = document.getElementById('loginError');
+    err.classList.remove('show');
+
     const password = document.getElementById('loginPassword').value;
     if (password !== CONFIG.password) {
-        const err = document.getElementById('loginError');
         err.textContent = 'סיסמה שגויה';
         err.classList.add('show');
         return;
     }
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('loginStep1').classList.add('hidden');
-    document.getElementById('loginStep2').classList.remove('hidden');
-    document.getElementById('loginPersonalId').focus();
-}
 
-function doLoginByPersonalId() {
     const pid = document.getElementById('loginPersonalId').value.trim();
     if (!pid) {
-        const err = document.getElementById('loginStep2Error');
         err.textContent = 'יש להזין מספר אישי';
         err.classList.add('show');
         return;
@@ -318,13 +313,10 @@ function doLoginByPersonalId() {
 
     const soldier = state.soldiers.find(s => s.personalId === pid);
     if (!soldier) {
-        const err = document.getElementById('loginStep2Error');
         err.textContent = 'מספר אישי לא נמצא במערכת';
         err.classList.add('show');
         return;
     }
-
-    document.getElementById('loginStep2Error').classList.remove('show');
 
     let effectiveUnit = soldier.company;
     if (FULL_ACCESS_NAMES.some(n => soldier.name.includes(n))) effectiveUnit = 'gdudi';
@@ -342,6 +334,10 @@ function doLoginByPersonalId() {
     localStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
     activateApp();
 }
+
+// Backwards compat aliases
+function checkPassword() { doLogin(); }
+function doLoginByPersonalId() { doLogin(); }
 
 
 function doDemoLogin() {
@@ -420,13 +416,14 @@ function doLogout() {
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('mainApp').style.display = 'none';
 
-    // Reset login steps
+    // Reset login form
     document.getElementById('loginStep1')?.classList.remove('hidden');
-    document.getElementById('loginStep2')?.classList.add('hidden');
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginPersonalId').value = '';
     const preview = document.getElementById('loginSoldierPreview');
     if (preview) preview.classList.add('hidden');
+    const loginErr = document.getElementById('loginError');
+    if (loginErr) loginErr.classList.remove('show');
 }
 
 let _refreshIconsTimer = null;
