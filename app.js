@@ -1049,7 +1049,8 @@ function syncFromGoogleSheets(silent) {
         updateCompanyTotals();
         saveState();
         renderAll();
-        if (!silent) showToast(`סונכרנו ${sheetSoldiers.length} חיילים מגוגל שיטס`, 'success');
+        const manualCount = manualSoldiers.length;
+        if (!silent) showToast(`סונכרנו ${state.soldiers.length} חיילים${manualCount > 0 ? ` (${sheetSoldiers.length} משיטס + ${manualCount} ידניים)` : ' מגוגל שיטס'}`, 'success');
     }).catch(err => {
         console.error('Sync error:', err);
         if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
