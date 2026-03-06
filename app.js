@@ -481,9 +481,12 @@ function activateApp() {
     }
     refreshIcons();
 
-    // Auto-sync from Google Sheets on login
-    syncFromGoogleSheets(true);
-    syncWeaponsEasyDoStatus(true);
+    // Auto-sync from Google Sheets on login (throttled - max once per 5 minutes)
+    const lastSync = parseInt(localStorage.getItem(CONFIG.storagePrefix + 'LastSync') || '0');
+    if (Date.now() - lastSync > 5 * 60 * 1000) {
+        syncFromGoogleSheets(true);
+        syncWeaponsEasyDoStatus(true);
+    }
 }
 
 function activateSoldierView() {
@@ -1059,6 +1062,7 @@ function syncFromGoogleSheets(silent) {
         saveState();
         renderAll();
         const manualCount = manualSoldiers.length;
+        localStorage.setItem(CONFIG.storagePrefix + 'LastSync', String(Date.now()));
         if (!silent) showToast(`סונכרנו ${state.soldiers.length} חיילים${manualCount > 0 ? ` (${sheetSoldiers.length} משיטס + ${manualCount} ידניים)` : ' מגוגל שיטס'}`, 'success');
     }).catch(err => {
         console.error('Sync error:', err);
@@ -3191,6 +3195,7 @@ function openSoldierProfile(id) {
     html += `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="closeModal('soldierProfileModal');openEditSoldier('${id}')">&#9998; ערוך</button>
         ${sol.phone ? `<a class="btn btn-sm" style="background:#25D366;color:white;text-decoration:none;" href="https://wa.me/${sol.phone.replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank">WhatsApp</a>` : ''}
+        ${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="closeModal('soldierProfileModal');deleteSoldier('${id}')">&#10005; מחק חייל</button>` : ''}
     </div>`;
 
     html += `</div>`;
@@ -3330,13 +3335,17 @@ async function toggleNotArrived(soldierId) {
 
 async function deleteSoldier(id) {
     const sol = state.soldiers.find(s => s.id === id);
-    if (sol && !canEditSoldierDetails(sol.company)) { showToast('אין הרשאה', 'error'); return; }
+    if (!isAdmin() && (!sol || !canEditSoldierDetails(sol.company))) { showToast('אין הרשאה', 'error'); return; }
     if (CONFIG.skipPassword && id.startsWith('demo_')) { showToast('לא ניתן למחוק נתוני דמו', 'error'); return; }
-    if (!await customConfirm('למחוק חייל זה?')) return;
+    if (!await customConfirm(`למחוק את ${sol ? sol.name : 'חייל זה'}? פעולה זו בלתי הפיכה.`)) return;
     state.soldiers = state.soldiers.filter(s => s.id !== id);
     state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
     state.leaves = state.leaves.filter(l => l.soldierId !== id);
     state.rotationGroups.forEach(g => { g.soldiers = g.soldiers.filter(sid => sid !== id); });
+    state.signatureLog = (state.signatureLog || []).filter(l => l.soldierId !== id);
+    state.weaponsData = (state.weaponsData || []).filter(w => w.soldierId !== id);
+    state.personalEquipment = (state.personalEquipment || []).filter(p => p.soldierId !== id);
+    state.training = (state.training || []).filter(t => t.soldierId !== id);
     saveState();
     if (sol) renderCompanyTab(sol.company);
     renderOverview();
