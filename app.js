@@ -1296,14 +1296,16 @@ function renderDashboard() {
         state.shifts.filter(sh => sh.company === k && sh.date === todayStr).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
         const assigned = assignedIds.size;
-        const home = Math.max(0, regCount - assigned - notArrivedCount);
+        const home = onLeave + rotLeave;
+        const available = Math.max(0, regCount - assigned - home - notArrivedCount);
 
         const forecast = companyData[k].forecast || 0;
         const effectiveForecast = forecast > 0 ? forecast : regCount;
-        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available: 0, onLeave, rotLeave, notArrivedCount, forecast, effectiveForecast };
+        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount, forecast, effectiveForecast };
         totalPersonnel += regCount;
         totalAssigned += assigned;
         totalHome += home;
+        totalAvailable += available;
         totalForecast += effectiveForecast;
     });
     const totalNotArrived = ALL_COMPANIES.reduce((s, k) => s + compStats[k].notArrivedCount, 0);
@@ -1337,6 +1339,16 @@ function renderDashboard() {
                         <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAssigned/totalPersonnel*100) : 0}%</div>
                     </div>
                 </div>
+                <div class="dash-hero-card hero-available">
+                    <div class="dash-hero-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="dash-hero-info">
+                        <div class="dash-hero-num">${totalAvailable}</div>
+                        <div class="dash-hero-label">זמינים</div>
+                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}%</div>
+                    </div>
+                </div>
                 <div class="dash-hero-card hero-home">
                     <div class="dash-hero-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -1364,9 +1376,10 @@ function renderDashboard() {
     // === DONUT CHART ===
     const donutData = [
         { label: 'משובצים', value: totalAssigned, color: '#2563eb' },
+        { label: 'זמינים', value: totalAvailable, color: '#10b981' },
         { label: 'בבית', value: totalHome, color: '#f97316' },
         { label: 'לא גויסו', value: totalNotRecruited, color: '#94a3b8' }
-    ].filter(d => d.value > 0);
+    ];
     const donutTotal = donutData.reduce((s, d) => s + d.value, 0) || 1;
     let donutAngle = 0;
     const gradStops = donutData.map(d => {
