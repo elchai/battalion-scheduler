@@ -1291,8 +1291,9 @@ function renderDashboard() {
             }
         });
 
+        const todayStr = localToday();
         const assignedIds = new Set();
-        state.shifts.filter(sh => sh.company === k).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
+        state.shifts.filter(sh => sh.company === k && sh.date === todayStr).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
         const home = onLeave + rotLeave;
         const assigned = assignedIds.size;
