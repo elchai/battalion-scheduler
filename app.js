@@ -1295,17 +1295,15 @@ function renderDashboard() {
         const assignedIds = new Set();
         state.shifts.filter(sh => sh.company === k && sh.date === todayStr).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
-        const home = onLeave + rotLeave;
         const assigned = assignedIds.size;
-        const available = Math.max(0, regCount - assigned - home - notArrivedCount);
+        const home = Math.max(0, regCount - assigned - notArrivedCount);
 
         const forecast = companyData[k].forecast || 0;
         const effectiveForecast = forecast > 0 ? forecast : regCount;
-        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount, forecast, effectiveForecast };
+        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available: 0, onLeave, rotLeave, notArrivedCount, forecast, effectiveForecast };
         totalPersonnel += regCount;
         totalAssigned += assigned;
         totalHome += home;
-        totalAvailable += available;
         totalForecast += effectiveForecast;
     });
     const totalNotArrived = ALL_COMPANIES.reduce((s, k) => s + compStats[k].notArrivedCount, 0);
@@ -1349,16 +1347,6 @@ function renderDashboard() {
                         <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalHome/totalPersonnel*100) : 0}%</div>
                     </div>
                 </div>
-                <div class="dash-hero-card hero-available">
-                    <div class="dash-hero-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    </div>
-                    <div class="dash-hero-info">
-                        <div class="dash-hero-num">${totalAvailable}</div>
-                        <div class="dash-hero-label">זמינים</div>
-                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}%</div>
-                    </div>
-                </div>
                 <div class="dash-hero-card hero-notrecruited">
                     <div class="dash-hero-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -1366,7 +1354,7 @@ function renderDashboard() {
                     <div class="dash-hero-info">
                         <div class="dash-hero-num">${totalNotRecruited}</div>
                         <div class="dash-hero-label">לא גויסו</div>
-                        <div class="dash-hero-sub">${totalForecast > 0 ? Math.round(totalNotRecruited/totalForecast*100) : 0}%</div>
+                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalNotRecruited/totalPersonnel*100) : 0}%</div>
                     </div>
                 </div>
             </div>
@@ -1377,7 +1365,6 @@ function renderDashboard() {
     const donutData = [
         { label: 'משובצים', value: totalAssigned, color: '#2563eb' },
         { label: 'בבית', value: totalHome, color: '#f97316' },
-        { label: 'זמינים', value: totalAvailable, color: '#10b981' },
         { label: 'לא גויסו', value: totalNotRecruited, color: '#94a3b8' }
     ].filter(d => d.value > 0);
     const donutTotal = donutData.reduce((s, d) => s + d.value, 0) || 1;
