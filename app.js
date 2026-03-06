@@ -5977,15 +5977,15 @@ function generateMorningReport() {
     const companies = allCompanyKeys();
     const compNames = getCompNames();
     let rows = '';
-    let totalAll = 0, totalPresent = 0, totalLeave = 0, totalShift = 0;
+    let totalAll = 0, totalPresent = 0, totalLeave = 0, totalShift = 0, totalForecast = 0;
 
     companies.forEach(k => {
         const soldiers = state.soldiers.filter(s => s.company === k);
         const total = soldiers.length;
+        const forecast = companyData[k].forecast || 0;
         const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
-        // Include rotation-absent soldiers
         const rotationAbsent = soldiers.filter(s => {
-            if (onLeave.find(x => x.id === s.id)) return false; // already counted
+            if (onLeave.find(x => x.id === s.id)) return false;
             const group = state.rotationGroups?.find(g => g.soldiers?.includes(s.id));
             if (!group) return false;
             const status = getRotationStatus(group, now);
@@ -5995,23 +5995,29 @@ function generateMorningReport() {
         const leaveCount = onLeave.length + rotationAbsent.length;
         const shiftCount = onShift.length;
         const present = total - leaveCount;
+        const notRecruited = Math.max(0, forecast - total);
 
         totalAll += total;
         totalPresent += present;
         totalLeave += leaveCount;
         totalShift += shiftCount;
+        totalForecast += forecast;
 
         const leaveNames = onLeave.map(s => esc(s.name)).join(', ');
         const shiftNames = onShift.map(s => esc(s.name)).join(', ');
 
         rows += `<tr>
-            <td style="font-weight:600;">${compNames[k]}</td>
-            <td>${total}</td>
-            <td style="color:var(--success);font-weight:600;">${present}</td>
-            <td style="color:var(--danger);">${leaveCount}${leaveCount > 0 ? `<div class="mr-names">${leaveNames}</div>` : ''}</td>
-            <td>${shiftCount}${shiftCount > 0 ? `<div class="mr-names">${shiftNames}</div>` : ''}</td>
+            <td class="mr-td-name"><span class="mr-comp-dot" style="background:${companyData[k].color}"></span>${compNames[k]}</td>
+            <td class="mr-td-num">${forecast > 0 ? forecast : total}</td>
+            <td class="mr-td-num">${total}</td>
+            <td class="mr-td-num" style="color:var(--success);font-weight:600;">${present}</td>
+            <td class="mr-td-num" style="color:var(--danger);">${leaveCount}</td>
+            <td class="mr-td-num">${shiftCount}</td>
+            <td class="mr-td-num" style="color:#94a3b8;">${notRecruited}</td>
         </tr>`;
     });
+
+    const totalNotRecruited = Math.max(0, totalForecast - totalAll);
 
     // Upcoming leaves (next 3 days)
     const upcoming = [];
@@ -6051,17 +6057,19 @@ function generateMorningReport() {
                 <div class="mr-author">הופק ע"י: ${esc(currentUser ? currentUser.name : 'מערכת')}</div>
             </div>
             <div class="mr-summary">
-                <div class="mr-stat"><span class="mr-stat-value">${totalAll}</span><span class="mr-stat-label">כוח סה"כ</span></div>
+                <div class="mr-stat"><span class="mr-stat-value">${totalForecast > 0 ? totalForecast : totalAll}</span><span class="mr-stat-label">צפי כוח</span></div>
+                <div class="mr-stat recruited"><span class="mr-stat-value">${totalAll}</span><span class="mr-stat-label">גויסו</span></div>
                 <div class="mr-stat present"><span class="mr-stat-value">${totalPresent}</span><span class="mr-stat-label">נוכחים</span></div>
                 <div class="mr-stat leave"><span class="mr-stat-value">${totalLeave}</span><span class="mr-stat-label">בבית</span></div>
-                <div class="mr-stat shift"><span class="mr-stat-value">${totalShift}</span><span class="mr-stat-label">במשמרות היום</span></div>
+                <div class="mr-stat shift"><span class="mr-stat-value">${totalShift}</span><span class="mr-stat-label">במשמרות</span></div>
+                <div class="mr-stat notrecruited"><span class="mr-stat-value">${totalNotRecruited}</span><span class="mr-stat-label">לא גויסו</span></div>
             </div>
             <div class="table-scroll">
                 <table class="mr-table">
-                    <thead><tr><th>מסגרת</th><th>סה"כ</th><th>נוכחים</th><th>בבית</th><th>במשמרת</th></tr></thead>
+                    <thead><tr><th>מסגרת</th><th>צפי</th><th>גויסו</th><th>נוכחים</th><th>בבית</th><th>במשמרת</th><th>לא גויסו</th></tr></thead>
                     <tbody>${rows}</tbody>
                     <tfoot><tr style="font-weight:700;background:var(--bg);">
-                        <td>סה"כ גדוד</td><td>${totalAll}</td><td>${totalPresent}</td><td>${totalLeave}</td><td>${totalShift}</td>
+                        <td class="mr-td-name">סה"כ גדוד</td><td class="mr-td-num">${totalForecast > 0 ? totalForecast : totalAll}</td><td class="mr-td-num">${totalAll}</td><td class="mr-td-num">${totalPresent}</td><td class="mr-td-num">${totalLeave}</td><td class="mr-td-num">${totalShift}</td><td class="mr-td-num">${totalNotRecruited}</td>
                     </tr></tfoot>
                 </table>
             </div>
@@ -6078,13 +6086,13 @@ function getMorningReportText() {
     const compNames = getCompNames();
 
     let text = `*דוח גדודי - ${CONFIG.battalionName}*\n${dateDisplay} | ${timeDisplay}\n\n`;
-    let totalAll = 0, totalPresent = 0;
+    let totalAll = 0, totalPresent = 0, totalForecast = 0, totalLeave = 0, totalShift = 0;
 
     companies.forEach(k => {
         const soldiers = state.soldiers.filter(s => s.company === k);
         const total = soldiers.length;
+        const forecast = companyData[k].forecast || 0;
         const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
-        // Include rotation-absent soldiers (same as generateMorningReport)
         const rotationAbsent = soldiers.filter(s => {
             if (onLeave.find(x => x.id === s.id)) return false;
             const group = state.rotationGroups?.find(g => g.soldiers?.includes(s.id));
@@ -6092,22 +6100,33 @@ function getMorningReportText() {
             const status = getRotationStatus(group, now);
             return !status.inBase;
         });
+        const onShift = soldiers.filter(s => state.shifts.some(sh => sh.company === k && sh.date === todayStr && sh.soldiers.includes(s.id)));
         const absentCount = onLeave.length + rotationAbsent.length;
         const present = total - absentCount;
+        const notRecruited = Math.max(0, forecast - total);
         totalAll += total;
         totalPresent += present;
+        totalForecast += forecast;
+        totalLeave += absentCount;
+        totalShift += onShift.length;
 
-        text += `*${compNames[k]}:* ${present}/${total}`;
-        if (onLeave.length > 0) {
-            text += ` (ביציאה: ${onLeave.map(s => s.name).join(', ')})`;
-        }
-        if (rotationAbsent.length > 0) {
-            text += ` (רוטציה: ${rotationAbsent.length})`;
-        }
+        // Company line with details
+        text += `*${compNames[k]}:* ${present}/${total} נוכחים`;
+        if (forecast > 0 && notRecruited > 0) text += ` | צפי ${forecast} (${notRecruited} לא גויסו)`;
+        if (absentCount > 0) text += ` | ${absentCount} בבית`;
+        if (onShift.length > 0) text += ` | ${onShift.length} במשמרת`;
         text += '\n';
     });
 
-    text += `\n*סה"כ גדוד:* ${totalPresent}/${totalAll} נוכחים`;
+    const totalNotRecruited = Math.max(0, totalForecast - totalAll);
+    text += `\n━━━━━━━━━━━━━━━\n`;
+    text += `*סה"כ גדוד:*\n`;
+    text += `נוכחים: *${totalPresent}*/${totalAll}`;
+    if (totalForecast > 0) text += ` | צפי: ${totalForecast}`;
+    text += '\n';
+    if (totalLeave > 0) text += `בבית: ${totalLeave}\n`;
+    if (totalShift > 0) text += `במשמרות: ${totalShift}\n`;
+    if (totalNotRecruited > 0) text += `לא גויסו: ${totalNotRecruited}\n`;
     return text;
 }
 
