@@ -139,9 +139,9 @@ const PERM = {
 
 const ROLE_LEVEL_MAP = [
     { level: PERM.COMPANY_CMD, roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'] },
-    { level: PERM.OFFICER,     roles: ['קצין', 'סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ'] },
+    { level: PERM.OFFICER,     roles: ['קצין', 'סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ', 'מ"מ', 'מפקד', 'מפק"צ'] },
     { level: PERM.SAMAL,       roles: ['סמל', 'סמ"ח', 'רס"מ', 'רס"ר'] },
-    { level: PERM.MASHAK,      roles: ['מ"כ', 'מ"מ', 'מפקד'] },
+    { level: PERM.MASHAK,      roles: ['מ"כ'] },
 ];
 
 const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
@@ -589,8 +589,8 @@ function applyUnitFilter() {
     // Weapons - hidden in demo, otherwise visible
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
 
-    // Settings - COMPANY_CMD+ (officers and above)
-    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.COMPANY_CMD ? '' : 'none');
+    // Settings - OFFICER+ (מ"מ, מפקד מחלקה, מפק"צ, מ"פ ומעלה)
+    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.OFFICER ? '' : 'none');
 
     // Rotation management - only FULL_ACCESS
     const addRotBtn = document.getElementById('addRotGroupBtn');
@@ -4891,14 +4891,11 @@ function renderSettingsTab() {
     const companyNames = getCompNames();
     const level = getUserPermissionLevel();
     const isFull = level >= PERM.FULL_ACCESS;
-    const isOfficer = level >= PERM.COMPANY_CMD;
+    const isOfficer = level >= PERM.OFFICER;
     const userUnit = currentUser ? currentUser.unit : '';
 
-    // Officers see only task management for their company; FULL_ACCESS sees everything
-    let html = '';
-
-    if (isFull) {
-        html += `
+    // All officers see all settings; task management filtered to own company
+    let html = `
     <!-- Shift Presets -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> שעות משמרות</h3>
@@ -4972,7 +4969,7 @@ function renderSettingsTab() {
         <button class="btn btn-sm" style="margin-top:8px;" onclick="addTrainingType()">+ הוסף סוג אימון</button>
     </div>
 
-    <!-- Security -->
+    ${isFull ? `<!-- Security -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> אבטחה</h3>
         <div class="settings-field">
@@ -4983,7 +4980,7 @@ function renderSettingsTab() {
             <label>שם מנהל מערכת (אדמין)</label>
             <input type="text" value="${esc(settings.adminName)}" onchange="settings.adminName=this.value.trim();saveSettings();showToast('שם אדמין עודכן');">
         </div>
-    </div>
+    </div>` : ''}
 
     <!-- Google Sheets -->
     <div class="settings-card">
@@ -5033,10 +5030,8 @@ function renderSettingsTab() {
             סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
         </div>
     </div>`;
-    } // end isFull
 
-    // Task Management — visible to COMPANY_CMD+ (officers)
-    // FULL_ACCESS sees all companies; company officers see only their own
+    // Task Management — officers see only their own company's tasks
     const taskCompanies = isFull
         ? ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || (CONFIG.combatCompanies || []).includes(k))
         : ALL_COMPANIES.filter(k => k === userUnit && (companyData[k].tasks.length > 0 || (CONFIG.combatCompanies || []).includes(k)));
