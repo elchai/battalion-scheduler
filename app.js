@@ -139,8 +139,8 @@ const PERM = {
 
 const ROLE_LEVEL_MAP = [
     { level: PERM.COMPANY_CMD, roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'] },
-    { level: PERM.OFFICER,     roles: ['קצין', 'סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ', 'מ"מ', 'מפקד', 'מפק"צ'] },
-    { level: PERM.SAMAL,       roles: ['סמל', 'סמ"ח', 'רס"מ', 'רס"ר'] },
+    { level: PERM.OFFICER,     roles: ['קצין', 'סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ', 'מ"מ', 'מפק"צ'] },
+    { level: PERM.SAMAL,       roles: ['סמל', 'סמ"ח'] },
     { level: PERM.MASHAK,      roles: ['מ"כ'] },
 ];
 
