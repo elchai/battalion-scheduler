@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v149';
+    var _cb = 'v150';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -170,7 +170,7 @@
             <span>אימונים</span>
         </button>
         <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
-            <img src="m4.png" width="22" height="14" style="opacity:0.9;" alt="">
+            <img src="m4.png" width="22" height="14" style="mix-blend-mode:screen;" alt="">
             <span>פרוייקט הנשקים</span>
         </button>
 
@@ -707,7 +707,7 @@
 <div class="tab-content" id="tab-weapons">
     <div class="main-content">
         <div class="info-box">
-            <span class="info-icon"><i data-lucide="shield"></i></span>
+            <span class="info-icon"><img src="m4.png" width="28" height="18" style="filter:brightness(0);opacity:0.6;" alt=""></span>
             <div>
                 <strong>סטטוס הגשת טפסים לנשק:</strong> מעקב אחר חתימת טפסי נשק דיגיטליים דרך EasyDo.
                 ניתן לשלוח קישור לחתימה בוואטסאפ ולסנכרן סטטוס חתימות.
@@ -744,7 +744,7 @@
         </div>
         <div class="sub-section">
             <div class="section-title">
-                <div class="icon" style="background:#E8EAF6;color:#5C6BC0;"><i data-lucide="shield"></i></div>
+                <div class="icon" style="background:#E8EAF6;color:#5C6BC0;"><i data-lucide="file-check"></i></div>
                 סטטוס חיילים (<span id="weaponsSoldiersCount">0</span>)
             </div>
             <div id="weaponsTableContainer"></div>
