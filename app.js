@@ -1270,7 +1270,7 @@ function renderDashboard() {
 
     // Calculate stats per company
     const compStats = {};
-    let totalPersonnel = 0, totalAssigned = 0, totalHome = 0, totalAvailable = 0;
+    let totalPersonnel = 0, totalAssigned = 0, totalHome = 0, totalAvailable = 0, totalForecast = 0;
 
     ALL_COMPANIES.forEach(k => {
         const c = companyData[k];
@@ -1297,12 +1297,14 @@ function renderDashboard() {
         const assigned = assignedIds.size;
         const available = Math.max(0, regCount - assigned - home);
 
-        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount };
+        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount, forecast: companyData[k].forecast || 0 };
         totalPersonnel += regCount;
         totalAssigned += assigned;
         totalHome += home;
         totalAvailable += available;
+        totalForecast += (companyData[k].forecast || 0);
     });
+    const totalNotRecruited = Math.max(0, totalForecast - totalPersonnel);
 
     const mainCompanies = ALL_COMPANIES.filter(k => compStats[k].regCount > 0);
     const chartMainCompanies = ['a', 'b', 'c', 'd', 'palsam'].filter(k => compStats[k]);
@@ -1313,44 +1315,54 @@ function renderDashboard() {
     // === HERO STATS ===
     if (heroEl) {
         heroEl.innerHTML = `
-            <div class="dash-hero-card hero-total">
-                <div class="dash-hero-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <div class="dash-hero-banner">
+                <div class="dash-hero-banner-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                 </div>
-                <div class="dash-hero-info">
-                    <div class="dash-hero-num">${totalPersonnel}</div>
-                    <div class="dash-hero-label">סה"כ כוח אדם</div>
-                    <div class="dash-hero-sub">${activeCompCount} פלוגות</div>
-                </div>
+                <div class="dash-hero-banner-num">${totalForecast > 0 ? totalForecast : totalPersonnel}</div>
+                <div class="dash-hero-banner-label">סה"כ כוח אדם${totalForecast > 0 ? ` (${totalPersonnel} גויסו)` : ''}</div>
+                <div class="dash-hero-banner-sub">${activeCompCount} פלוגות</div>
             </div>
-            <div class="dash-hero-card hero-assigned">
-                <div class="dash-hero-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="dash-hero-grid">
+                <div class="dash-hero-card hero-assigned">
+                    <div class="dash-hero-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="dash-hero-info">
+                        <div class="dash-hero-num">${totalAssigned}</div>
+                        <div class="dash-hero-label">משובצים</div>
+                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAssigned/totalPersonnel*100) : 0}%</div>
+                    </div>
                 </div>
-                <div class="dash-hero-info">
-                    <div class="dash-hero-num">${totalAssigned}</div>
-                    <div class="dash-hero-label">משובצים למשימות</div>
-                    <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAssigned/totalPersonnel*100) : 0}% מהכוח</div>
+                <div class="dash-hero-card hero-home">
+                    <div class="dash-hero-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </div>
+                    <div class="dash-hero-info">
+                        <div class="dash-hero-num">${totalHome}</div>
+                        <div class="dash-hero-label">בבית</div>
+                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalHome/totalPersonnel*100) : 0}%</div>
+                    </div>
                 </div>
-            </div>
-            <div class="dash-hero-card hero-home">
-                <div class="dash-hero-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <div class="dash-hero-card hero-available">
+                    <div class="dash-hero-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="dash-hero-info">
+                        <div class="dash-hero-num">${totalAvailable}</div>
+                        <div class="dash-hero-label">זמינים</div>
+                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}%</div>
+                    </div>
                 </div>
-                <div class="dash-hero-info">
-                    <div class="dash-hero-num">${totalHome}</div>
-                    <div class="dash-hero-label">בבית</div>
-                    <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalHome/totalPersonnel*100) : 0}% מהכוח</div>
-                </div>
-            </div>
-            <div class="dash-hero-card hero-available">
-                <div class="dash-hero-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </div>
-                <div class="dash-hero-info">
-                    <div class="dash-hero-num">${totalAvailable}</div>
-                    <div class="dash-hero-label">זמינים</div>
-                    <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}% מהכוח</div>
+                <div class="dash-hero-card hero-notrecruited">
+                    <div class="dash-hero-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    </div>
+                    <div class="dash-hero-info">
+                        <div class="dash-hero-num">${totalNotRecruited}</div>
+                        <div class="dash-hero-label">לא גויסו</div>
+                        <div class="dash-hero-sub">${totalForecast > 0 ? Math.round(totalNotRecruited/totalForecast*100) : 0}%</div>
+                    </div>
                 </div>
             </div>
         `;
@@ -1358,10 +1370,11 @@ function renderDashboard() {
 
     // === DONUT CHART ===
     const donutData = [
-        { label: 'משובצים', value: totalAssigned, color: '#27ae60' },
-        { label: 'בבית', value: totalHome, color: '#e74c3c' },
-        { label: 'זמינים', value: totalAvailable, color: '#3498db' }
-    ];
+        { label: 'משובצים', value: totalAssigned, color: '#2563eb' },
+        { label: 'בבית', value: totalHome, color: '#f97316' },
+        { label: 'זמינים', value: totalAvailable, color: '#10b981' },
+        { label: 'לא גויסו', value: totalNotRecruited, color: '#94a3b8' }
+    ].filter(d => d.value > 0);
     const donutTotal = donutData.reduce((s, d) => s + d.value, 0) || 1;
     let donutAngle = 0;
     const gradStops = donutData.map(d => {
@@ -1376,7 +1389,7 @@ function renderDashboard() {
     const barsHtml = chartCompanies.map(k => {
         const cs = compStats[k];
         const isGray = chartGrayCompanies.includes(k);
-        const barColor = isGray ? '#90a4ae' : (cs.color || 'var(--primary)');
+        const barColor = isGray ? (k === 'agam' ? 'var(--pluga-agam)' : '#90a4ae') : (cs.color || 'var(--primary)');
         const forecast = companyData[k].forecast || 0;
         const pct = (cs.regCount / maxVal) * 100;
         const forecastPct = forecast > 0 ? (forecast / maxVal) * 100 : 0;
