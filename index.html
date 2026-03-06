@@ -50,14 +50,14 @@
         <!-- Combined Login -->
         <div id="loginStep1">
             <div class="login-field">
-                <label>סיסמה</label>
-                <input type="password" id="loginPassword" placeholder="הזן סיסמה" autocomplete="new-password"
-                       onkeypress="if(event.key==='Enter')document.getElementById('loginPersonalId').focus()">
-            </div>
-            <div class="login-field">
                 <label>מספר אישי (מ.א)</label>
                 <input type="text" id="loginPersonalId" placeholder="הזן מספר אישי" inputmode="numeric" autocomplete="off"
                        oninput="typeof autoIdentifyByPersonalId==='function'&&autoIdentifyByPersonalId()"
+                       onkeypress="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+            </div>
+            <div class="login-field">
+                <label>סיסמה</label>
+                <input type="password" id="loginPassword" placeholder="הזן סיסמה" autocomplete="new-password"
                        onkeypress="if(event.key==='Enter')doLogin()">
             </div>
             <div id="loginSoldierPreview" class="hidden" style="background:var(--card-bg,#f5f5f5);border-radius:10px;padding:12px;margin:8px 0;text-align:center;"></div>

@@ -589,8 +589,8 @@ function applyUnitFilter() {
     // Weapons - hidden in demo, otherwise visible
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
 
-    // Settings - only FULL_ACCESS (level 7)
-    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.FULL_ACCESS ? '' : 'none');
+    // Settings - COMPANY_CMD+ (officers and above)
+    document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.COMPANY_CMD ? '' : 'none');
 
     // Rotation management - only FULL_ACCESS
     const addRotBtn = document.getElementById('addRotGroupBtn');
@@ -4889,8 +4889,16 @@ function renderSettingsTab() {
     const container = document.getElementById('settingsContent');
     if (!container) return;
     const companyNames = getCompNames();
+    const level = getUserPermissionLevel();
+    const isFull = level >= PERM.FULL_ACCESS;
+    const isOfficer = level >= PERM.COMPANY_CMD;
+    const userUnit = currentUser ? currentUser.unit : '';
 
-    container.innerHTML = `
+    // Officers see only task management for their company; FULL_ACCESS sees everything
+    let html = '';
+
+    if (isFull) {
+        html += `
     <!-- Shift Presets -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> שעות משמרות</h3>
@@ -5024,22 +5032,35 @@ function renderSettingsTab() {
         <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
             סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
         </div>
-    </div>
+    </div>`;
+    } // end isFull
 
+    // Task Management — visible to COMPANY_CMD+ (officers)
+    // FULL_ACCESS sees all companies; company officers see only their own
+    const taskCompanies = isFull
+        ? ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || (CONFIG.combatCompanies || []).includes(k))
+        : ALL_COMPANIES.filter(k => k === userUnit && (companyData[k].tasks.length > 0 || (CONFIG.combatCompanies || []).includes(k)));
+
+    if (taskCompanies.length > 0) {
+        html += `
     <!-- Task Management -->
     <div class="settings-card" style="grid-column: 1 / -1;">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> ניהול משימות לפי פלוגה</h3>
         <div class="form-group" style="margin-bottom:14px;">
+            ${taskCompanies.length > 1 ? `
             <select id="settingsTaskCompany" onchange="renderTaskEditor()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
-                ${ALL_COMPANIES.filter(k => companyData[k].tasks.length > 0 || CONFIG.combatCompanies.includes(k)).map(k =>
+                ${taskCompanies.map(k =>
                     `<option value="${k}">${companyNames[k]}</option>`
                 ).join('')}
-            </select>
+            </select>` : `
+            <input type="hidden" id="settingsTaskCompany" value="${taskCompanies[0]}">
+            <span style="font-weight:600;">${companyNames[taskCompanies[0]]}</span>`}
         </div>
         <div id="taskEditorContainer"></div>
-    </div>
+    </div>`;
+    }
 
-    `;
+    container.innerHTML = html;
 
     renderTaskEditor();
 }
