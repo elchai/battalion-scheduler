@@ -339,7 +339,7 @@ function doLoginByPersonalId() {
         soldierId: soldier.id
     };
 
-    sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
+    localStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
     activateApp();
 }
 
@@ -369,7 +369,7 @@ function doDemoLogin() {
     if (CONFIG.greenApi && phone) sendGreenApiWhatsApp(name, phone);
 
     currentUser = { name, unit: 'gdudi', personalId: '', company: 'gdudi', role: '' };
-    sessionStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
+    localStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
     activateApp();
 }
 
@@ -414,7 +414,8 @@ function autoIdentifyByPersonalId() {
 }
 
 function doLogout() {
-    sessionStorage.removeItem(CONFIG.storagePrefix + 'User');
+    localStorage.removeItem(CONFIG.storagePrefix + 'User');
+    sessionStorage.removeItem(CONFIG.storagePrefix + 'User'); // cleanup old
     currentUser = null;
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('mainApp').style.display = 'none';
@@ -667,12 +668,18 @@ function closeSidebarMobile() {
     }, { passive: true });
 })();
 
-// Check for existing session
+// Check for existing session (localStorage persists across browser restarts)
 function checkSession() {
-    const saved = sessionStorage.getItem(CONFIG.storagePrefix + 'User');
+    const saved = localStorage.getItem(CONFIG.storagePrefix + 'User')
+        || sessionStorage.getItem(CONFIG.storagePrefix + 'User'); // fallback for old sessions
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
+            // Migrate old sessionStorage to localStorage
+            if (!localStorage.getItem(CONFIG.storagePrefix + 'User')) {
+                localStorage.setItem(CONFIG.storagePrefix + 'User', saved);
+            }
+            sessionStorage.removeItem(CONFIG.storagePrefix + 'User'); // cleanup old
             // Detect role if not already set (e.g. manual login sessions)
             if (!currentUser.role && state.soldiers.length) {
                 detectUserRole();
@@ -680,6 +687,7 @@ function checkSession() {
             activateApp();
             return true;
         } catch {
+            localStorage.removeItem(CONFIG.storagePrefix + 'User');
             sessionStorage.removeItem(CONFIG.storagePrefix + 'User');
         }
     }
