@@ -3187,7 +3187,7 @@ function openSoldierProfile(id) {
     // Weapons & EasyDo status
     const easyDoStatus = typeof getEasyDoStatus === 'function' ? getEasyDoStatus(sol) : null;
     html += `<div class="sp-section"><h4>סטטוס הגשת טפסים לנשק</h4><div class="sp-list">
-        <div class="sp-list-item"><span>טופס EasyDo</span>${easyDoStatus
+        <div class="sp-list-item"><span>סטטוס טופס</span>${easyDoStatus
             ? `<span style="color:#27ae60;font-weight:600;">נחתם (${formatEasyDoDate(easyDoStatus.completedAt || '')})</span>`
             : `<span style="color:#e65100;font-weight:600;">טרם נחתם</span>`}</div>
     </div></div>`;
@@ -4262,8 +4262,8 @@ function renderTrainingTab() {
 
     let html = `
         <div class="section-header">
-            <div class="section-title" style="display:flex;align-items:center;gap:10px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+            <div class="section-title">
+                <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg></div>
                 מעקב אימונים
             </div>
         </div>
@@ -8592,7 +8592,7 @@ async function syncWeaponsEasyDoStatus(silent) {
                 completedAt: (row[2] || '').trim(),
             });
         }
-        if (!silent) showToast(`נטענו ${easyDoCompletions.length} רשומות סטטוס מ-EasyDo`, 'success');
+        if (!silent) showToast(`נטענו ${easyDoCompletions.length} רשומות סטטוס`, 'success');
         console.log(`EasyDo status: ${easyDoCompletions.length} completions loaded`);
     } catch (err) {
         console.warn('EasyDo status sync error:', err);
@@ -8755,19 +8755,22 @@ function renderWeaponsTab() {
         return;
     }
 
-    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>טופס EasyDo</th><th>תאריך חתימה</th></tr></thead><tbody>';
+    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>תאריך חתימה</th><th></th></tr></thead><tbody>';
     soldiers.forEach(s => {
         const easyDo = getEasyDoStatus(s);
         const easyDoHtml = easyDo
             ? `<span class="wp-status-badge wp-status-complete">נחתם</span>`
             : `<span class="wp-status-badge wp-status-none">טרם נחתם</span>`;
         const dateHtml = easyDo ? formatEasyDoDate(easyDo.completedAt) : '-';
+        const waPhone = s.phone ? s.phone.replace(/[^0-9]/g, '').replace(/^0/, '972') : '';
+        const waBtn = waPhone ? `<a href="https://wa.me/${waPhone}" target="_blank" title="שלח הודעה" style="color:#25D366;display:inline-flex;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.106 1.519 5.834L.052 23.476a.5.5 0 00.607.607l5.642-1.467A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.38-1.572l-.386-.232-3.348.87.87-3.348-.232-.386A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg></a>` : '';
         html += `<tr>
             <td style="font-weight:600;">${esc(s.name)}</td>
             <td>${esc(companyNames[s.company] || s.company)}</td>
             <td>${esc(s.personalId) || '-'}</td>
             <td>${easyDoHtml}</td>
             <td>${dateHtml}</td>
+            <td>${waBtn}</td>
         </tr>`;
     });
     html += '</tbody></table></div></div>';
@@ -10515,6 +10518,7 @@ function renderTasksPage() {
         <div class="tasks-page">
             <div class="tasks-header">
                 <div class="tasks-header-top">
+                    <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><i data-lucide="shield"></i></div>
                     <h2>משימות הגדוד</h2>
                     <div class="tasks-date">${dateDisplay}</div>
                 </div>

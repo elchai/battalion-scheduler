@@ -145,10 +145,6 @@
             <span>הודעות</span>
             <span class="sidebar-count tab-count" id="announcementBadge" style="display:none;">0</span>
         </button>
-        <button class="sidebar-item tab-reports" onclick="switchTab('reports')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            <span>ייצוא דוחות</span>
-        </button>
         <button class="sidebar-item tab-calendar" onclick="switchTab('calendar')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>לוח שבועי</span>
@@ -172,6 +168,10 @@
         <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
             <img src="m4.png" width="28" height="10" style="filter:invert(1);opacity:0.9;" alt="">
             <span>פרוייקט הנשקים</span>
+        </button>
+        <button class="sidebar-item tab-reports" onclick="switchTab('reports')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>ייצוא דוחות</span>
         </button>
 
         <div class="sidebar-section-label">ראשי</div>
@@ -477,8 +477,11 @@
             </select>
             <div id="report1NavBtns" style="display:flex;align-items:center;gap:4px;">
                 <button class="btn btn-sm" onclick="report1Nav(-1)" title="הקודם">&rarr;</button>
-                <button class="btn btn-sm btn-primary" onclick="report1Nav(0)" title="היום">היום</button>
                 <button class="btn btn-sm" onclick="report1Nav(1)" title="הבא">&larr;</button>
+                <button class="btn btn-sm btn-secondary" onclick="report1Nav(0)" title="חזור להיום" style="font-size:0.8em;padding:4px 10px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    עכשיו
+                </button>
             </div>
             <button class="btn btn-secondary" onclick="copyReport1Text()">העתק לוואטסאפ</button>
             <button class="btn btn-excel btn-sm" onclick="exportShavtzak()">ייצוא שבצ"ק (Excel)</button>
@@ -709,8 +712,8 @@
         <div class="info-box">
             <span class="info-icon"><img src="m4.png" width="36" height="13" style="opacity:0.7;" alt=""></span>
             <div>
-                <strong>סטטוס הגשת טפסים לנשק:</strong> מעקב אחר חתימת טפסי נשק דיגיטליים דרך EasyDo.
-                ניתן לשלוח קישור לחתימה בוואטסאפ ולסנכרן סטטוס חתימות.
+                <strong>סטטוס הגשת טפסים לנשק:</strong> מעקב אחר חתימת טפסי נשק דיגיטליים.
+                ניתן לשלוח קישור לחתימה בוואטסאפ.
             </div>
         </div>
         <div class="quick-stats" id="weaponsStats"></div>
@@ -730,7 +733,7 @@
             </button>
             <button class="btn btn-outline" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
-                סנכרן EasyDo
+                סנכרן סטטוס
             </button>
         </div>
         <div class="search-bar">
