@@ -8,6 +8,7 @@ function _generateDemoSoldiers() {
     const soldiers = [];
     let counter = 1;
     const used = new Set();
+    const usedPersonalIds = new Set();
 
     function makeName() {
         let name;
@@ -18,6 +19,47 @@ function _generateDemoSoldiers() {
         } while (used.has(name));
         used.add(name);
         return name;
+    }
+
+    // IDF draft cycles: March, August, November each year
+    // Personal ID prefix increments each cycle: March 93=51, Aug 93=52, Nov 93=53, March 94=53, Aug 94=54...
+    const draftMonths = [3, 8, 11]; // מרץ, אוגוסט, נובמבר
+    const draftCycles = [];
+    let prefix = 51;
+    for (let year = 1993; year <= 2020; year++) {
+        draftMonths.forEach((month, mi) => {
+            draftCycles.push({ year, month, prefix });
+            // Increment prefix: each cycle bumps by 1, but March of next year sometimes shares with prev November
+            if (mi === 2) prefix++; // after November, bump for next year's March
+            else prefix++;
+        });
+    }
+
+    function makeDraftInfo() {
+        const cycle = draftCycles[Math.floor(Math.random() * draftCycles.length)];
+        return cycle;
+    }
+
+    function makePersonalId(draftInfo) {
+        let pid;
+        do {
+            const suffix = String(10000 + Math.floor(Math.random() * 89999));
+            pid = String(draftInfo.prefix) + suffix;
+        } while (usedPersonalIds.has(pid));
+        usedPersonalIds.add(pid);
+        return pid;
+    }
+
+    function makeEnlistmentDate(draftInfo) {
+        // Enlistment day varies within the draft month
+        const day = 1 + Math.floor(Math.random() * 20);
+        return `${draftInfo.year}-${String(draftInfo.month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+
+    function makeDischargeDate(enlistDate) {
+        // Reserve service: 3 years after enlistment
+        const y = parseInt(enlistDate.slice(0, 4)) + 3;
+        return y + enlistDate.slice(4);
     }
 
     function makeId() { return '800' + String(counter++).padStart(4, '0'); }
@@ -50,43 +92,55 @@ function _generateDemoSoldiers() {
     companyDefs.forEach(def => {
         // Officers
         for (let i = 0; i < def.offN; i++) {
+            const draft = makeDraftInfo();
+            const enlistDate = makeEnlistmentDate(draft);
             const s = {
                 id: 'demo_' + makeId(),
                 name: makeName(),
-                personalId: makeId(),
+                personalId: makePersonalId(draft),
                 phone: makePhone(),
                 company: def.key,
                 unit: def.units[i % def.units.length],
                 role: officerRoles[i % officerRoles.length],
-                rank: officerRanks[i % officerRanks.length]
+                rank: officerRanks[i % officerRanks.length],
+                enlistmentDate: enlistDate,
+                dischargeDate: makeDischargeDate(enlistDate)
             };
             soldiers.push(s);
         }
         // Commanders
         for (let i = 0; i < def.cmdN; i++) {
+            const draft = makeDraftInfo();
+            const enlistDate = makeEnlistmentDate(draft);
             const s = {
                 id: 'demo_' + makeId(),
                 name: makeName(),
-                personalId: makeId(),
+                personalId: makePersonalId(draft),
                 phone: makePhone(),
                 company: def.key,
                 unit: def.units[i % def.units.length],
                 role: cmdRoles[i % cmdRoles.length],
-                rank: cmdRanks[i % cmdRanks.length]
+                rank: cmdRanks[i % cmdRanks.length],
+                enlistmentDate: enlistDate,
+                dischargeDate: makeDischargeDate(enlistDate)
             };
             soldiers.push(s);
         }
         // Soldiers
         for (let i = 0; i < def.soldiersN; i++) {
+            const draft = makeDraftInfo();
+            const enlistDate = makeEnlistmentDate(draft);
             const s = {
                 id: 'demo_' + makeId(),
                 name: makeName(),
-                personalId: makeId(),
+                personalId: makePersonalId(draft),
                 phone: makePhone(),
                 company: def.key,
                 unit: def.units[i % def.units.length],
                 role: soldierRoles[i % soldierRoles.length],
-                rank: soldierRanks[i % soldierRanks.length]
+                rank: soldierRanks[i % soldierRanks.length],
+                enlistmentDate: enlistDate,
+                dischargeDate: makeDischargeDate(enlistDate)
             };
             // ~20% of soldiers get service periods (splits)
             if (Math.random() < 0.2 && ['a','b','c','d','agam'].includes(def.key)) {
@@ -795,7 +849,7 @@ function _generateDemoWeaponsData(soldiers) {
     const weaponsData = [];
     const cities = ['ירושלים','תל אביב','חיפה','באר שבע','נתניה','פתח תקווה','ראשון לציון','אשדוד','הרצליה','רעננה','כפר סבא','מודיעין','רמת גן','גבעתיים','חולון'];
     const streets = ['הרצל','ז\'בוטינסקי','בן גוריון','ויצמן','רוטשילד','אלנבי','דיזנגוף','בגין','רבין','שמעון פרס'];
-    const cmdNames = { a: 'דוד כהן', b: 'אלחי פיין', c: 'משה לוי', d: 'יוסי ברק', hq: 'אבי שמש', agam: 'רון דגן' };
+    const cmdNames = { a: 'דוד כהן', b: 'ניר גולן', c: 'משה לוי', d: 'יוסי ברק', hq: 'אבי שמש', agam: 'רון דגן' };
     const cmdRanks = { a: 'סרן', b: 'סרן', c: 'סרן', d: 'רס"ן', hq: 'סגן', agam: 'סגן' };
 
     // ~60% of combat soldiers have completed weapons forms
@@ -811,7 +865,7 @@ function _generateDemoWeaponsData(soldiers) {
             lastName: nameParts.slice(1).join(' ') || '',
             idNumber: s.personalId || '',
             personalNum: s.personalId || '',
-            birthYear: String(1985 + (idx % 20)),
+            birthYear: String(s.enlistmentDate ? parseInt(s.enlistmentDate.slice(0,4)) - 18 : 1985 + (idx % 20)),
             fatherName: _FIRST_NAMES[(idx * 7) % _FIRST_NAMES.length],
             street: streets[idx % streets.length],
             houseNum: String(1 + (idx % 50)),
@@ -822,8 +876,8 @@ function _generateDemoWeaponsData(soldiers) {
             personalWeaponSource: idx % 20 === 0 ? 'צה"ל' : '',
             rangeDate: idx % 20 === 0 ? '2025-' + String(6 + (idx % 4)).padStart(2,'0') + '-15'
                      : '2026-02-' + String(1 + (idx % 28)).padStart(2,'0'),
-            enlistmentDate: '20' + String(15 + (idx % 8)).padStart(2,'0') + '-03-01',
-            dischargeDate: '20' + String(18 + (idx % 8)).padStart(2,'0') + '-03-01',
+            enlistmentDate: s.enlistmentDate || '2010-03-01',
+            dischargeDate: s.dischargeDate || '2013-03-01',
             medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
             rank: s.rank || '',
             combatCertified: idx % 8 !== 0,
@@ -962,7 +1016,7 @@ const CONFIG = {
 
     // --- כניסה ---
     password: 'demo',
-    adminName: 'ישראל ישראלי',
+    adminName: 'רון כהן',
     isDemo: true,
     skipPassword: true,
     collectVisitorData: true,
