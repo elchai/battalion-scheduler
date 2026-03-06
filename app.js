@@ -1297,12 +1297,14 @@ function renderDashboard() {
         const assigned = assignedIds.size;
         const available = Math.max(0, regCount - assigned - home);
 
-        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount, forecast: companyData[k].forecast || 0 };
+        const forecast = companyData[k].forecast || 0;
+        const effectiveForecast = forecast > 0 ? forecast : regCount;
+        compStats[k] = { name: c.name, color: c.color, regCount, total, assigned, home, available, onLeave, rotLeave, notArrivedCount, forecast, effectiveForecast };
         totalPersonnel += regCount;
         totalAssigned += assigned;
         totalHome += home;
         totalAvailable += available;
-        totalForecast += (companyData[k].forecast || 0);
+        totalForecast += effectiveForecast;
     });
     const totalNotRecruited = Math.max(0, totalForecast - totalPersonnel);
 
@@ -1319,8 +1321,8 @@ function renderDashboard() {
                 <div class="dash-hero-banner-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                 </div>
-                <div class="dash-hero-banner-num">${totalForecast > 0 ? totalForecast : totalPersonnel}</div>
-                <div class="dash-hero-banner-label">סה"כ כוח אדם${totalForecast > 0 ? ` (${totalPersonnel} גויסו)` : ''}</div>
+                <div class="dash-hero-banner-num">${totalPersonnel}</div>
+                <div class="dash-hero-banner-label">סה"כ כוח אדם${totalNotRecruited > 0 ? ` (צפי ${totalForecast})` : ''}</div>
                 <div class="dash-hero-banner-sub">${activeCompCount} פלוגות</div>
             </div>
             <div class="dash-hero-grid">
@@ -5983,6 +5985,7 @@ function generateMorningReport() {
         const soldiers = state.soldiers.filter(s => s.company === k);
         const total = soldiers.length;
         const forecast = companyData[k].forecast || 0;
+        const effectiveForecast = forecast > 0 ? forecast : total;
         const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
         const rotationAbsent = soldiers.filter(s => {
             if (onLeave.find(x => x.id === s.id)) return false;
@@ -6001,7 +6004,7 @@ function generateMorningReport() {
         totalPresent += present;
         totalLeave += leaveCount;
         totalShift += shiftCount;
-        totalForecast += forecast;
+        totalForecast += effectiveForecast;
 
         const leaveNames = onLeave.map(s => esc(s.name)).join(', ');
         const shiftNames = onShift.map(s => esc(s.name)).join(', ');
@@ -6092,6 +6095,7 @@ function getMorningReportText() {
         const soldiers = state.soldiers.filter(s => s.company === k);
         const total = soldiers.length;
         const forecast = companyData[k].forecast || 0;
+        const effectiveForecast = forecast > 0 ? forecast : total;
         const onLeave = soldiers.filter(s => state.leaves.some(l => l.soldierId === s.id && isCurrentlyOnLeave(l)));
         const rotationAbsent = soldiers.filter(s => {
             if (onLeave.find(x => x.id === s.id)) return false;
@@ -6106,7 +6110,7 @@ function getMorningReportText() {
         const notRecruited = Math.max(0, forecast - total);
         totalAll += total;
         totalPresent += present;
-        totalForecast += forecast;
+        totalForecast += effectiveForecast;
         totalLeave += absentCount;
         totalShift += onShift.length;
 
