@@ -151,7 +151,7 @@ function getUserPermissionLevel() {
     if (isAdmin()) return PERM.FULL_ACCESS;
     if (FULL_ACCESS_NAMES.some(n => currentUser.name.includes(n))) return PERM.FULL_ACCESS;
     if (currentUser.unit === 'gdudi' || currentUser.unit === 'hq') return PERM.FULL_ACCESS;
-    if (currentUser.unit === 'palsam') return PERM.PALSAM;
+    // Palsam uses role-based level like any company (no flat PALSAM level)
     const role = currentUser.role || '';
     if (!role) return PERM.SOLDIER;
     for (const mapping of ROLE_LEVEL_MAP) {
@@ -160,11 +160,12 @@ function getUserPermissionLevel() {
     return PERM.SOLDIER;
 }
 
+function isPalsam() {
+    return currentUser?.unit === 'palsam';
+}
+
 function isPalsamOfficer() {
-    if (currentUser?.unit !== 'palsam') return false;
-    const role = currentUser.role || '';
-    return ROLE_LEVEL_MAP[0].roles.concat(ROLE_LEVEL_MAP[1].roles)
-        .some(r => role.includes(r));
+    return isPalsam() && getUserPermissionLevel() >= PERM.OFFICER;
 }
 
 function isAdmin() {
@@ -179,7 +180,7 @@ function canView(compKey) {
     if (!currentUser) return false;
     const level = getUserPermissionLevel();
     if (level >= PERM.FULL_ACCESS) return true;
-    if (level === PERM.PALSAM) return true;
+    if (isPalsam()) return true; // palsam sees all companies
     return currentUser.unit === compKey;
 }
 
@@ -187,8 +188,7 @@ function canEdit(compKey) {
     if (!currentUser) return false;
     const level = getUserPermissionLevel();
     if (level >= PERM.FULL_ACCESS) return true;
-    if (level === PERM.PALSAM) return false;
-    if (level >= PERM.SAMAL) return currentUser.unit === compKey;
+    if (level >= PERM.SAMAL) return currentUser.unit === compKey; // includes palsam editing palsam
     return false;
 }
 
@@ -259,7 +259,7 @@ function canSignEquipment(compKey) {
     if (!currentUser) return false;
     const level = getUserPermissionLevel();
     if (level >= PERM.FULL_ACCESS) return true;
-    if (level === PERM.PALSAM) return true;
+    if (isPalsam() && level >= PERM.SAMAL) return true; // palsam officers+sergeants sign everywhere
     if (level >= PERM.SAMAL) return currentUser.unit === (compKey || currentUser.unit);
     return false;
 }
@@ -565,7 +565,7 @@ function renderSoldierShifts() {
 
 function applyUnitFilter() {
     const level = getUserPermissionLevel();
-    const seesAll = level >= PERM.FULL_ACCESS || level === PERM.PALSAM; // only FULL_ACCESS + palsam see all companies
+    const seesAll = level >= PERM.FULL_ACCESS || isPalsam(); // FULL_ACCESS + palsam see all companies
 
     // "All companies" overview tab - only for users who see all
     document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = seesAll ? '' : 'none');
@@ -584,7 +584,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-tasks').forEach(el => el.style.display = '');
 
     // Training - hidden for palsam (excluded from combat training)
-    document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = level !== PERM.PALSAM ? '' : 'none');
+    document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = !isPalsam() ? '' : 'none');
 
     // Weapons - hidden in demo, otherwise visible
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
