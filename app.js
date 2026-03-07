@@ -802,6 +802,8 @@ function loadState() {
             }
             saveState();
         }
+        // Always recalculate totals from actual demo soldier data
+        updateCompanyTotals();
     }
     // Apply demo settings overrides
     if (CONFIG.demoSettings) {
