@@ -184,22 +184,23 @@ function _generateDemoShifts(soldiers) {
     ];
 
     // Task definitions matching CONFIG.companies — { perShift: {s,c,o}, shifts, time }
+    // Task names MUST match CONFIG.companies[x].tasks[y].name exactly!
     const taskDefs = {
         a: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
             { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
             { name: 'תצפית', s: 2, c: 0, o: 0, numShifts: 3 },
             { name: 'שמירה', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'צוותי יזומות', s: 20, c: 2, o: 0, numShifts: 1, time: ['06:00','22:00'] },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
         ],
         b: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
-            { name: 'סיור קל', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'מחסום', s: 3, c: 1, o: 0, numShifts: 3 },
+            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
             { name: 'בונקר', s: 1, c: 0, o: 0, numShifts: 3 },
             { name: 'ש.ג', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'כ"כ', s: 4, c: 1, o: 0, numShifts: 1 },
             { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1, time: ['06:00','22:00'] },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1, time: ['06:00','18:00'] }
         ],
@@ -315,23 +316,23 @@ function _generateDemoShifts(soldiers) {
 }
 
 function _generateDemoTasks() {
-    // Must match task names used in _generateDemoShifts taskDefs
+    // Must match task names in CONFIG.companies AND _generateDemoShifts taskDefs
     const defs = {
         a: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
             { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
             { name: 'תצפית', s: 2, c: 0, o: 0, numShifts: 3 },
             { name: 'שמירה', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'צוותי יזומות', s: 22, c: 2, o: 0, numShifts: 1 },
+            { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1 },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1 }
         ],
         b: [
             { name: 'חפק מפ', s: 3, c: 0, o: 1, numShifts: 1 },
-            { name: 'סיור קל', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'סיור', s: 2, c: 1, o: 0, numShifts: 3 },
+            { name: 'מחסום', s: 3, c: 1, o: 0, numShifts: 3 },
+            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
             { name: 'בונקר', s: 1, c: 0, o: 0, numShifts: 3 },
             { name: 'ש.ג', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'חמל', s: 1, c: 0, o: 0, numShifts: 3 },
-            { name: 'כ"כ', s: 4, c: 1, o: 0, numShifts: 1 },
             { name: 'צוות יזומות', s: 11, c: 1, o: 0, numShifts: 1 },
             { name: 'תורן מטבח', s: 1, c: 0, o: 0, numShifts: 1 }
         ],
@@ -1237,7 +1238,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 18,
+    demoSeedVersion: 19,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
