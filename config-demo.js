@@ -163,6 +163,15 @@ function _generateDemoSoldiers() {
         }
     });
 
+    // Mark ~21 soldiers as "לא גויסו" (did not arrive) — realistic for reserve duty
+    const notArrivedPerComp = { a: 5, b: 5, c: 4, d: 4, palsam: 3 };
+    Object.entries(notArrivedPerComp).forEach(([comp, count]) => {
+        const pool = soldiers.filter(s => s.company === comp && !['מ"פ','סמ"פ','קצין','מ"כ','מפקד'].some(r => (s.role||'').includes(r)));
+        for (let i = 0; i < count && i < pool.length; i++) {
+            pool[pool.length - 1 - i].notArrived = true;
+        }
+    });
+
     return soldiers;
 }
 
@@ -1228,7 +1237,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 17,
+    demoSeedVersion: 18,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
