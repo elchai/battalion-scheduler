@@ -1566,6 +1566,111 @@
     </div>
 </div>
 
+<!-- Training Event Modal -->
+<div class="modal-overlay" id="trainingEventModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#2e7d32;">
+            <h3 id="trainingEventModalTitle">הוספת תרגיל</h3>
+            <button class="modal-close" onclick="closeModal('trainingEventModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="trainingEventEditId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>סוג תרגיל</label>
+                    <select id="teExerciseType">
+                        <option value="">-- בחר סוג --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>שם התרגיל</label>
+                    <input type="text" id="teEventName" placeholder="שם התרגיל">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תאריך</label>
+                    <input type="date" id="teDate">
+                </div>
+                <div class="form-group">
+                    <label>שעה</label>
+                    <input type="time" id="teTime">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="teCompany" onchange="updateTeUnits()">
+                        <option value="">כל הגדוד</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מחלקה</label>
+                    <select id="teUnit">
+                        <option value="">הכל</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מפקד</label>
+                    <input type="text" id="teCommander" placeholder="שם המפקד">
+                </div>
+                <div class="form-group">
+                    <label>מדריך</label>
+                    <input type="text" id="teInstructor" placeholder="שם המדריך">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תנאי תרגיל</label>
+                    <select id="teCondition">
+                        <option value="dry">יבש</option>
+                        <option value="wet">חי</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <textarea id="teNotes" rows="2" placeholder="הערות נוספות..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveTrainingEvent()">שמור</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('trainingEventModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Exercise Type Manager Modal -->
+<div class="modal-overlay" id="exerciseTypeModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#1565c0;">
+            <h3>ניהול סוגי תרגילים</h3>
+            <button class="modal-close" onclick="closeModal('exerciseTypeModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;" id="exerciseTypeContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="addExerciseType()">+ הוסף סוג</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('exerciseTypeModal')">סגור</button>
+        </div>
+    </div>
+</div>
+
+<!-- Soldier Rating Modal (per training event) -->
+<div class="modal-overlay" id="soldierRatingModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#2e7d32;">
+            <h3 id="soldierRatingTitle">דירוג חיילים</h3>
+            <button class="modal-close" onclick="closeModal('soldierRatingModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto;" id="soldierRatingContent"></div>
+        <div class="modal-footer">
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('soldierRatingModal')">סגור</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>

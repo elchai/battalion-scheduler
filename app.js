@@ -4365,10 +4365,465 @@ function removeTrainingType(idx) {
 }
 
 // ==================== TRAINING EVENTS (מערך האימונים) ====================
+let trainingEventsCompanyFilter = 'all';
+
 function renderTrainingEventsTab() {
     const container = document.getElementById('content-training-events');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-light);"><h3>מערך האימונים</h3><p>בקרוב...</p></div>';
+    const level = getUserPermissionLevel();
+    const isFull = level >= PERM.FULL_ACCESS;
+    const canCreate = isFull || level >= PERM.COMPANY_CMD;
+    const userUnit = currentUser ? currentUser.unit : '';
+
+    // Filter events by company
+    let events = [...(state.trainingEvents || [])];
+    if (trainingEventsCompanyFilter !== 'all') {
+        events = events.filter(e => e.company === trainingEventsCompanyFilter);
+    } else if (!isFull && !isPalsam()) {
+        events = events.filter(e => !e.company || e.company === userUnit);
+    }
+    events.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    // Stats
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyEvents = events.filter(e => new Date(e.trainingDate) >= monthStart);
+    const monthlyExercises = (state.trainingExercises || []).filter(ex => {
+        const evt = events.find(e => e.id === ex.trainingEventId);
+        return evt && new Date(evt.trainingDate) >= monthStart;
+    });
+    const ratedExercises = monthlyExercises.filter(ex => ex.commanderRating && ex.commanderRating !== 'לא השתתף');
+    const ratingMap = { 'חלש': 1, 'בינוני': 2, 'השתתף': 2.5, 'מעולה': 3 };
+    const avgRating = ratedExercises.length > 0
+        ? (ratedExercises.reduce((sum, ex) => sum + (ratingMap[ex.commanderRating] || 0), 0) / ratedExercises.length).toFixed(1)
+        : '—';
+
+    let html = `
+        <div class="section-header">
+            <div class="section-title">
+                <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                מערך האימונים
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                ${isFull ? `<button class="btn" style="background:#1565c0;color:white;font-size:0.82em;" onclick="openExerciseTypeManager()">ניהול סוגי תרגילים</button>` : ''}
+                ${canCreate ? `<button class="btn btn-primary" onclick="openTrainingEventModal()">+ הוסף תרגיל</button>` : ''}
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <select onchange="trainingEventsCompanyFilter=this.value;renderTrainingEventsTab()" style="padding:8px 14px;border-radius:var(--radius);border:2px solid var(--primary-light);background:var(--bg);color:var(--text);font-weight:600;font-size:0.9em;cursor:pointer;">
+                <option value="all" ${trainingEventsCompanyFilter === 'all' ? 'selected' : ''}>כל הגדוד</option>
+                ${allCompanyKeys().map(k => `<option value="${k}" ${trainingEventsCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
+            </select>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px;">
+            <div class="training-card" style="text-align:center;">
+                <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">תרגילים החודש</div>
+                <div style="font-size:1.8em;font-weight:700;color:var(--primary);">${monthlyEvents.length}</div>
+            </div>
+            <div class="training-card" style="text-align:center;">
+                <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">משתתפים החודש</div>
+                <div style="font-size:1.8em;font-weight:700;color:#2e7d32;">${ratedExercises.length}</div>
+            </div>
+            <div class="training-card" style="text-align:center;">
+                <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">דירוג ממוצע</div>
+                <div style="font-size:1.8em;font-weight:700;color:#ff9800;">${avgRating}</div>
+            </div>
+        </div>`;
+
+    if (events.length === 0) {
+        html += `<div class="empty-state"><p>אין תרגילים להצגה</p>${canCreate ? '<p style="font-size:0.85em;color:var(--text-light);">לחץ על "הוסף תרגיל" ליצירת תרגיל חדש</p>' : ''}</div>`;
+    } else {
+        html += '<div style="display:flex;flex-direction:column;gap:12px;">';
+        events.forEach((evt, idx) => {
+            const exerciseType = (settings.exerciseTypes || []).find(t => t.id === evt.exerciseTypeId);
+            const participants = (state.trainingExercises || []).filter(ex => ex.trainingEventId === evt.id);
+            const rated = participants.filter(p => p.commanderRating && p.commanderRating !== 'לא השתתף');
+            const condBadge = evt.exerciseCondition === 'wet'
+                ? '<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:12px;font-size:0.78em;font-weight:600;">חי</span>'
+                : '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:12px;font-size:0.78em;font-weight:600;">יבש</span>';
+            const canEditThis = isFull || (level >= PERM.COMPANY_CMD && evt.company === userUnit);
+            const canRate = isFull || (level >= PERM.MASHAK && (!evt.company || evt.company === userUnit));
+
+            html += `<div class="card" style="padding:14px;position:relative;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+                    <div>
+                        <div style="font-weight:700;font-size:1.05em;">${esc(evt.eventName)}</div>
+                        <div style="font-size:0.82em;color:var(--text-light);margin-top:4px;">
+                            ${exerciseType ? esc(exerciseType.name) : ''}
+                            ${evt.trainingDate ? ' • ' + evt.trainingDate : ''}
+                            ${evt.trainingTime ? ' ' + evt.trainingTime : ''}
+                            ${evt.company ? ' • ' + compName(evt.company) : ''}
+                            ${evt.unit ? ' מח\' ' + evt.unit : ''}
+                        </div>
+                        <div style="font-size:0.8em;color:var(--text-light);margin-top:2px;">
+                            ${evt.commander ? 'מפקד: ' + esc(evt.commander) : ''}
+                            ${evt.instructor ? ' | מדריך: ' + esc(evt.instructor) : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        ${condBadge}
+                        <span style="background:var(--bg);padding:2px 8px;border-radius:12px;font-size:0.78em;font-weight:600;">${rated.length}/${participants.length} דורגו</span>
+                    </div>
+                </div>
+                ${evt.notes ? `<div style="font-size:0.82em;color:var(--text-light);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">${esc(evt.notes)}</div>` : ''}
+                <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+                    ${canRate ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#e8f5e9;color:#2e7d32;" onclick="openSoldierRating('${evt.id}')">דירוג חיילים</button>` : ''}
+                    ${canEditThis ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openTrainingEventModal('${evt.id}')">ערוך</button>` : ''}
+                    ${canEditThis ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#ffebee;color:#c62828;" onclick="deleteTrainingEvent('${evt.id}')">מחק</button>` : ''}
+                    ${canEditThis && idx > 0 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderTrainingEvent('${evt.id}',-1)">▲</button>` : ''}
+                    ${canEditThis && idx < events.length - 1 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderTrainingEvent('${evt.id}',1)">▼</button>` : ''}
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function openTrainingEventModal(editId) {
+    const evt = editId ? (state.trainingEvents || []).find(e => e.id === editId) : null;
+    document.getElementById('trainingEventEditId').value = editId || '';
+    document.getElementById('trainingEventModalTitle').textContent = evt ? 'עריכת תרגיל' : 'הוספת תרגיל';
+
+    // Populate exercise types dropdown
+    const typeSelect = document.getElementById('teExerciseType');
+    typeSelect.innerHTML = '<option value="">-- בחר סוג --</option>' +
+        (settings.exerciseTypes || []).map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+
+    // Populate company dropdown
+    const compSelect = document.getElementById('teCompany');
+    compSelect.innerHTML = '<option value="">כל הגדוד</option>' +
+        allCompanyKeys().map(k => `<option value="${k}">${compName(k)}</option>`).join('');
+
+    if (evt) {
+        typeSelect.value = evt.exerciseTypeId || '';
+        document.getElementById('teEventName').value = evt.eventName || '';
+        document.getElementById('teDate').value = evt.trainingDate || '';
+        document.getElementById('teTime').value = evt.trainingTime || '';
+        compSelect.value = evt.company || '';
+        document.getElementById('teCommander').value = evt.commander || '';
+        document.getElementById('teInstructor').value = evt.instructor || '';
+        document.getElementById('teCondition').value = evt.exerciseCondition || 'dry';
+        document.getElementById('teNotes').value = evt.notes || '';
+    } else {
+        document.getElementById('teEventName').value = '';
+        document.getElementById('teDate').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('teTime').value = '';
+        compSelect.value = (!currentUser || currentUser.unit === 'gdudi') ? '' : currentUser.unit;
+        document.getElementById('teCommander').value = '';
+        document.getElementById('teInstructor').value = '';
+        document.getElementById('teCondition').value = 'dry';
+        document.getElementById('teNotes').value = '';
+    }
+    updateTeUnits();
+    openModal('trainingEventModal');
+}
+
+function updateTeUnits() {
+    const comp = document.getElementById('teCompany').value;
+    const unitSelect = document.getElementById('teUnit');
+    unitSelect.innerHTML = '<option value="">הכל</option>';
+    if (comp) {
+        const sections = [...new Set(state.soldiers.filter(s => s.company === comp && s.section).map(s => s.section))].sort();
+        sections.forEach(sec => {
+            unitSelect.innerHTML += `<option value="${sec}">${sec}</option>`;
+        });
+    }
+}
+
+function saveTrainingEvent() {
+    const editId = document.getElementById('trainingEventEditId').value;
+    const eventName = document.getElementById('teEventName').value.trim();
+    if (!eventName) { showToast('יש להזין שם תרגיל', 'error'); return; }
+
+    const eventData = {
+        id: editId || 'te_' + Date.now(),
+        eventName,
+        exerciseTypeId: document.getElementById('teExerciseType').value,
+        trainingDate: document.getElementById('teDate').value,
+        trainingTime: document.getElementById('teTime').value,
+        company: document.getElementById('teCompany').value,
+        unit: document.getElementById('teUnit').value,
+        commander: document.getElementById('teCommander').value.trim(),
+        instructor: document.getElementById('teInstructor').value.trim(),
+        exerciseCondition: document.getElementById('teCondition').value,
+        notes: document.getElementById('teNotes').value.trim(),
+        createdBy: currentUser ? currentUser.name : '',
+        createdAt: new Date().toISOString()
+    };
+
+    if (!state.trainingEvents) state.trainingEvents = [];
+    if (!state.trainingExercises) state.trainingExercises = [];
+
+    if (editId) {
+        const idx = state.trainingEvents.findIndex(e => e.id === editId);
+        if (idx >= 0) {
+            eventData.orderIndex = state.trainingEvents[idx].orderIndex;
+            state.trainingEvents[idx] = eventData;
+        }
+    } else {
+        eventData.orderIndex = state.trainingEvents.length;
+        state.trainingEvents.push(eventData);
+
+        // Auto-create exercises for matching soldiers
+        const matchingSoldiers = state.soldiers.filter(s => {
+            if (!s.active_status && s.active_status !== undefined) return false;
+            if (eventData.company && s.company !== eventData.company) return false;
+            if (eventData.unit && s.section !== eventData.unit) return false;
+            // Exclude soldiers on leave today
+            const today = eventData.trainingDate || new Date().toISOString().slice(0, 10);
+            const onLeave = state.leaves.some(l => l.soldierId === s.id && l.startDate <= today && l.endDate >= today);
+            return !onLeave;
+        });
+        matchingSoldiers.forEach(s => {
+            state.trainingExercises.push({
+                id: 'tex_' + Date.now() + '_' + s.id,
+                trainingEventId: eventData.id,
+                soldierId: s.id,
+                exerciseTypeId: eventData.exerciseTypeId,
+                trainingDate: eventData.trainingDate,
+                commanderRating: 'לא השתתף',
+                notes: ''
+            });
+        });
+    }
+
+    saveState();
+    closeModal('trainingEventModal');
+    renderTrainingEventsTab();
+    showToast(editId ? 'תרגיל עודכן' : 'תרגיל נוצר בהצלחה', 'success');
+}
+
+async function deleteTrainingEvent(id) {
+    if (!await customDeleteConfirm()) return;
+    state.trainingEvents = (state.trainingEvents || []).filter(e => e.id !== id);
+    state.trainingExercises = (state.trainingExercises || []).filter(ex => ex.trainingEventId !== id);
+    saveState();
+    renderTrainingEventsTab();
+    showToast('תרגיל נמחק', 'success');
+}
+
+function reorderTrainingEvent(id, dir) {
+    const events = state.trainingEvents || [];
+    const idx = events.findIndex(e => e.id === id);
+    if (idx < 0) return;
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= events.length) return;
+    const tmpOrder = events[idx].orderIndex;
+    events[idx].orderIndex = events[swapIdx].orderIndex;
+    events[swapIdx].orderIndex = tmpOrder;
+    saveState();
+    renderTrainingEventsTab();
+}
+
+// --- Soldier Rating ---
+function openSoldierRating(eventId) {
+    const evt = (state.trainingEvents || []).find(e => e.id === eventId);
+    if (!evt) return;
+    document.getElementById('soldierRatingTitle').textContent = 'דירוג חיילים — ' + evt.eventName;
+    renderSoldierRatingContent(eventId);
+    openModal('soldierRatingModal');
+}
+
+function renderSoldierRatingContent(eventId, searchQuery) {
+    const container = document.getElementById('soldierRatingContent');
+    if (!container) return;
+    const exercises = (state.trainingExercises || []).filter(ex => ex.trainingEventId === eventId);
+    const level = getUserPermissionLevel();
+    const isFull = level >= PERM.FULL_ACCESS;
+    const evt = (state.trainingEvents || []).find(e => e.id === eventId);
+    const canRate = isFull || (level >= PERM.MASHAK && (!evt || !evt.company || evt.company === (currentUser ? currentUser.unit : '')));
+
+    let filtered = exercises.map(ex => {
+        const sol = state.soldiers.find(s => s.id === ex.soldierId);
+        return { ...ex, soldierName: sol ? sol.name : 'לא ידוע', soldierCompany: sol ? sol.company : '' };
+    });
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(ex => ex.soldierName.includes(q));
+    }
+    filtered.sort((a, b) => a.soldierName.localeCompare(b.soldierName, 'he'));
+
+    const ratings = ['לא השתתף', 'חלש', 'בינוני', 'השתתף', 'מעולה'];
+
+    let html = `
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <input type="text" placeholder="חיפוש חייל..." style="flex:1;min-width:150px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);"
+                oninput="renderSoldierRatingContent('${eventId}', this.value)" value="${searchQuery || ''}">
+            ${canRate ? `<button class="btn" style="font-size:0.82em;" onclick="addMissingSoldiersToEvent('${eventId}')">+ הוסף חיילים חסרים</button>` : ''}
+        </div>
+        <div style="font-size:0.82em;color:var(--text-light);margin-bottom:8px;">${filtered.length} חיילים</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+            <thead><tr style="background:var(--bg);">
+                <th style="padding:8px;text-align:right;">חייל</th>
+                <th style="padding:8px;text-align:right;">פלוגה</th>
+                <th style="padding:8px;text-align:center;">דירוג</th>
+                <th style="padding:8px;text-align:right;">הערות</th>
+                ${canRate ? '<th style="padding:8px;text-align:center;">פעולות</th>' : ''}
+            </tr></thead>
+            <tbody>`;
+
+    filtered.forEach(ex => {
+        const ratingColor = { 'מעולה': '#2e7d32', 'בינוני': '#ff9800', 'חלש': '#c62828', 'השתתף': '#1565c0', 'לא השתתף': 'var(--text-light)' };
+        html += `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:6px 8px;font-weight:500;">${esc(ex.soldierName)}</td>
+            <td style="padding:6px 8px;font-size:0.85em;">${compName(ex.soldierCompany)}</td>
+            <td style="padding:6px 8px;text-align:center;">
+                ${canRate ? `<select onchange="updateSoldierRating('${ex.id}',this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:0.9em;color:${ratingColor[ex.commanderRating] || 'inherit'};">
+                    ${ratings.map(r => `<option value="${r}" ${ex.commanderRating === r ? 'selected' : ''} style="color:${ratingColor[r] || 'inherit'}">${r}</option>`).join('')}
+                </select>` : `<span style="color:${ratingColor[ex.commanderRating] || 'inherit'};font-weight:600;">${ex.commanderRating || '—'}</span>`}
+            </td>
+            <td style="padding:6px 8px;">
+                ${canRate ? `<input type="text" value="${esc(ex.notes || '')}" placeholder="הערה..." style="width:100%;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.85em;"
+                    onblur="updateSoldierExerciseNotes('${ex.id}',this.value)">` : `<span style="font-size:0.85em;">${esc(ex.notes || '')}</span>`}
+            </td>
+            ${canRate ? `<td style="padding:6px 8px;text-align:center;">
+                <button class="btn" style="font-size:0.75em;padding:2px 8px;background:#ffebee;color:#c62828;" onclick="removeSoldierFromEvent('${ex.id}','${eventId}')">הסר</button>
+            </td>` : ''}
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateSoldierRating(exerciseId, rating) {
+    const ex = (state.trainingExercises || []).find(e => e.id === exerciseId);
+    if (ex) {
+        ex.commanderRating = rating;
+        saveState();
+    }
+}
+
+function updateSoldierExerciseNotes(exerciseId, notes) {
+    const ex = (state.trainingExercises || []).find(e => e.id === exerciseId);
+    if (ex) {
+        ex.notes = notes;
+        saveState();
+    }
+}
+
+function removeSoldierFromEvent(exerciseId, eventId) {
+    state.trainingExercises = (state.trainingExercises || []).filter(e => e.id !== exerciseId);
+    saveState();
+    renderSoldierRatingContent(eventId);
+}
+
+function addMissingSoldiersToEvent(eventId) {
+    const evt = (state.trainingEvents || []).find(e => e.id === eventId);
+    if (!evt) return;
+    const existingIds = new Set((state.trainingExercises || []).filter(ex => ex.trainingEventId === eventId).map(ex => ex.soldierId));
+    const candidates = state.soldiers.filter(s => {
+        if (existingIds.has(s.id)) return false;
+        if (!s.active_status && s.active_status !== undefined) return false;
+        if (evt.company && s.company !== evt.company) return false;
+        if (evt.unit && s.section !== evt.unit) return false;
+        return true;
+    });
+    if (candidates.length === 0) { showToast('כל החיילים כבר נמצאים ברשימה', 'info'); return; }
+    candidates.forEach(s => {
+        state.trainingExercises.push({
+            id: 'tex_' + Date.now() + '_' + s.id,
+            trainingEventId: eventId,
+            soldierId: s.id,
+            exerciseTypeId: evt.exerciseTypeId,
+            trainingDate: evt.trainingDate,
+            commanderRating: 'לא השתתף',
+            notes: ''
+        });
+    });
+    saveState();
+    renderSoldierRatingContent(eventId);
+    showToast(`נוספו ${candidates.length} חיילים`, 'success');
+}
+
+// --- Exercise Type Manager ---
+function openExerciseTypeManager() {
+    renderExerciseTypeContent();
+    openModal('exerciseTypeModal');
+}
+
+function renderExerciseTypeContent() {
+    const container = document.getElementById('exerciseTypeContent');
+    if (!container) return;
+    const types = settings.exerciseTypes || [];
+
+    if (types.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);">אין סוגי תרגילים. לחץ "הוסף סוג" ליצירת סוג חדש.</div>';
+        return;
+    }
+
+    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    types.forEach((t, idx) => {
+        html += `<div class="card" style="padding:10px;">
+            <div class="form-row">
+                <div class="form-group" style="flex:2;">
+                    <label style="font-size:0.78em;">שם</label>
+                    <input type="text" value="${esc(t.name)}" onblur="updateExerciseTypeProp(${idx},'name',this.value)" style="padding:4px 8px;font-size:0.88em;">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label style="font-size:0.78em;">קטגוריה</label>
+                    <select onchange="updateExerciseTypeProp(${idx},'category',this.value)" style="padding:4px 8px;font-size:0.88em;">
+                        <option value="שטח פתוח" ${t.category === 'שטח פתוח' ? 'selected' : ''}>שטח פתוח</option>
+                        <option value="שטח בנוי" ${t.category === 'שטח בנוי' ? 'selected' : ''}>שטח בנוי</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label style="font-size:0.78em;">כוח מתאמן</label>
+                    <select onchange="updateExerciseTypeProp(${idx},'trainingForceType',this.value)" style="padding:4px 8px;font-size:0.88em;">
+                        <option value="team" ${t.trainingForceType === 'team' ? 'selected' : ''}>כיתה</option>
+                        <option value="squad" ${t.trainingForceType === 'squad' ? 'selected' : ''}>מחלקה</option>
+                        <option value="platoon" ${t.trainingForceType === 'platoon' ? 'selected' : ''}>פלוגה</option>
+                        <option value="company" ${t.trainingForceType === 'company' ? 'selected' : ''}>גדוד</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label style="font-size:0.78em;">תנאי ברירת מחדל</label>
+                    <select onchange="updateExerciseTypeProp(${idx},'exerciseCondition',this.value)" style="padding:4px 8px;font-size:0.88em;">
+                        <option value="dry" ${t.exerciseCondition === 'dry' ? 'selected' : ''}>יבש</option>
+                        <option value="wet" ${t.exerciseCondition === 'wet' ? 'selected' : ''}>חי</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="font-size:0.78em;">תיאור</label>
+                <input type="text" value="${esc(t.description || '')}" onblur="updateExerciseTypeProp(${idx},'description',this.value)" placeholder="תיאור קצר..." style="padding:4px 8px;font-size:0.88em;">
+            </div>
+            <button class="btn" style="font-size:0.78em;padding:3px 10px;background:#ffebee;color:#c62828;margin-top:4px;" onclick="deleteExerciseType(${idx})">מחק סוג</button>
+        </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function addExerciseType() {
+    if (!settings.exerciseTypes) settings.exerciseTypes = [];
+    settings.exerciseTypes.push({
+        id: 'extype_' + Date.now(),
+        name: 'תרגיל חדש',
+        category: 'שטח פתוח',
+        trainingForceType: 'squad',
+        exerciseCondition: 'dry',
+        description: ''
+    });
+    saveSettings();
+    renderExerciseTypeContent();
+}
+
+function updateExerciseTypeProp(idx, prop, value) {
+    if (!settings.exerciseTypes || !settings.exerciseTypes[idx]) return;
+    settings.exerciseTypes[idx][prop] = value;
+    saveSettings();
+}
+
+async function deleteExerciseType(idx) {
+    if (!settings.exerciseTypes) return;
+    settings.exerciseTypes.splice(idx, 1);
+    saveSettings();
+    renderExerciseTypeContent();
 }
 
 // ==================== SHOOTING (מקצי ירי) ====================
