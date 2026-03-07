@@ -775,35 +775,26 @@ function loadState() {
     // Load demo seed data if available and state is empty or outdated
     if (CONFIG.demoSeedData) {
         const seed = CONFIG.demoSeedData;
-        const expectedCount = seed.soldiers ? seed.soldiers.length : 0;
-        const demoSoldiers = state.soldiers.filter(s => s.id && s.id.startsWith('demo_'));
-        const storedSeedVer = parseInt(localStorage.getItem(CONFIG.storagePrefix + 'SeedVer') || '0');
-        const needReseed = demoSoldiers.length < expectedCount * 0.8 || storedSeedVer < (CONFIG.demoSeedVersion || 0);
-        if (needReseed) {
-            // Remove old demo soldiers and re-seed
-            state.soldiers = state.soldiers.filter(s => !s.id || !s.id.startsWith('demo_'));
-            if (seed.soldiers) seed.soldiers.forEach(s => state.soldiers.push(s));
-            if (seed.training) state.training = seed.training;
-            if (seed.constraints) state.constraints = seed.constraints;
-            if (seed.personalEquipment) state.personalEquipment = seed.personalEquipment;
-            if (seed.signatureLog) seed.signatureLog.forEach(e => state.signatureLog.push(e));
-            if (seed.weaponsData) state.weaponsData = seed.weaponsData;
-            if (seed.equipment) state.equipment = seed.equipment;
-            if (seed.announcements) state.announcements = seed.announcements;
-            localStorage.setItem(CONFIG.storagePrefix + 'SeedVer', String(CONFIG.demoSeedVersion || 0));
-            if (seed.tasks) {
-                localStorage.setItem(CONFIG.storagePrefix + 'Tasks', JSON.stringify(seed.tasks));
-            } else {
-                localStorage.removeItem(CONFIG.storagePrefix + 'Tasks');
-            }
-        }
-        // ALWAYS refresh dynamic data (shifts, leaves, rotations) on every load
-        // These use dates relative to today and must not be stale from localStorage
+        // Demo: ALWAYS refresh all data on every load to keep it fresh
+        state.soldiers = state.soldiers.filter(s => !s.id || !s.id.startsWith('demo_'));
+        if (seed.soldiers) seed.soldiers.forEach(s => state.soldiers.push(s));
         if (seed.shifts) state.shifts = seed.shifts;
         if (seed.leaves) state.leaves = seed.leaves;
         if (seed.rotationGroups) state.rotationGroups = seed.rotationGroups;
+        if (seed.training) state.training = seed.training;
+        if (seed.constraints) state.constraints = seed.constraints;
+        if (seed.personalEquipment) state.personalEquipment = seed.personalEquipment;
+        if (seed.weaponsData) state.weaponsData = seed.weaponsData;
+        if (seed.equipment) state.equipment = seed.equipment;
+        if (seed.announcements) state.announcements = seed.announcements;
+        if (seed.signatureLog) {
+            state.signatureLog = state.signatureLog.filter(e => !e.id || !e.id.startsWith('sig_demo_'));
+            seed.signatureLog.forEach(e => state.signatureLog.push(e));
+        }
+        if (seed.tasks) {
+            localStorage.setItem(CONFIG.storagePrefix + 'Tasks', JSON.stringify(seed.tasks));
+        }
         saveState();
-        // Always recalculate totals from actual demo soldier data
         updateCompanyTotals();
     }
     // Apply demo settings overrides
