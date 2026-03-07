@@ -244,12 +244,12 @@ function _generateDemoShifts(soldiers) {
         ]
     };
 
-    // Generate shifts dynamically: 14 days back + 14 days forward from today
+    // Generate shifts dynamically: 7 days back + 7 days forward from today
     const today = new Date();
     today.setHours(0,0,0,0);
     const baseDate = new Date(today);
-    baseDate.setDate(baseDate.getDate() - 14);
-    for (let day = 0; day < 28; day++) {
+    baseDate.setDate(baseDate.getDate() - 7);
+    for (let day = 0; day < 14; day++) {
         const d = new Date(baseDate);
         d.setDate(d.getDate() + day);
         const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -556,65 +556,73 @@ function _generateDemoLeaves(soldiers) {
 function _generateDemoTraining(soldiers) {
     const training = [];
 
-    // --- Base completion rates per training type (realistic for reserve battalion) ---
+    // --- Base completion rates per training type (battalion mid-operation, high readiness) ---
     const baseRates = {
-        squad_open: 0.73,        // תרגיל כיתה שטח פתוח - harder to organize
-        squad_urban: 0.64,       // תרגיל כיתה שטח בנוי - requires special facilities
-        advanced_shooting: 0.81, // אימון ירי מתקדם - high priority, done early
-        grenade: 0.45,           // אימון זריקת רימון - limited availability, dangerous
-        weapon_zero: 0.92        // בקרת איפוס נשק - basic requirement, almost everyone
+        squad_open: 0.95,        // תרגיל כיתה שטח פתוח
+        squad_urban: 0.94,       // תרגיל כיתה שטח בנוי
+        advanced_shooting: 0.97, // אימון ירי מתקדם
+        grenade: 0.93,           // אימון זריקת רימון
+        weapon_zero: 0.98        // בקרת איפוס נשק
     };
 
-    // --- Per-company variance (makes each company look different) ---
-    // Offsets added to base rate per company (clamped 0-1)
+    // --- Per-company variance (small differences, 93-98% range, rarely 100%) ---
     const companyOffsets = {
-        a:     { squad_open: +0.05, squad_urban: -0.04, advanced_shooting: +0.08, grenade: +0.03, weapon_zero: +0.03 },
-        b:     { squad_open: -0.03, squad_urban: +0.07, advanced_shooting: -0.02, grenade: +0.08, weapon_zero: +0.02 },
-        c:     { squad_open: +0.02, squad_urban: +0.03, advanced_shooting: -0.06, grenade: -0.05, weapon_zero: -0.01 },
-        d:     { squad_open: -0.06, squad_urban: -0.03, advanced_shooting: +0.04, grenade: +0.10, weapon_zero: +0.01 },
-        hq:    { squad_open: +0.10, squad_urban: +0.10, advanced_shooting: +0.05, grenade: -0.08, weapon_zero: +0.05 },
-        agam:  { squad_open: -0.08, squad_urban: -0.10, advanced_shooting: -0.04, grenade: -0.12, weapon_zero: +0.02 }
+        a:     { squad_open: +0.02, squad_urban: -0.01, advanced_shooting: +0.01, grenade: +0.02, weapon_zero: +0.00 },
+        b:     { squad_open: -0.02, squad_urban: +0.01, advanced_shooting: -0.01, grenade: +0.01, weapon_zero: -0.01 },
+        c:     { squad_open: +0.01, squad_urban: +0.02, advanced_shooting: -0.02, grenade: -0.01, weapon_zero: +0.01 },
+        d:     { squad_open: -0.01, squad_urban: -0.02, advanced_shooting: +0.02, grenade: +0.03, weapon_zero: -0.01 },
+        hq:    { squad_open: +0.03, squad_urban: +0.02, advanced_shooting: +0.01, grenade: -0.02, weapon_zero: +0.02 },
+        agam:  { squad_open: -0.02, squad_urban: -0.01, advanced_shooting: -0.01, grenade: -0.03, weapon_zero: +0.01 }
     };
 
     // Palsam weapon_zero rate
-    const palsamWeaponZeroRate = 0.88;
+    const palsamWeaponZeroRate = 0.96;
 
     // Combat training types (everything except weapon_zero)
     const combatTypes = ['squad_open', 'squad_urban', 'advanced_shooting', 'grenade'];
 
-    // Simple deterministic hash for consistent per-soldier results
-    function soldierHash(id, salt) {
-        let h = salt || 0;
-        for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
-        return (Math.abs(h) % 1000) / 1000;
-    }
-
+    // Group soldiers by company, then deterministically skip N soldiers per training type
+    // This gives exact control over completion percentages
+    const companySoldiers = {};
     soldiers.forEach(s => {
-        const isPalsam = s.company === 'palsam';
+        if (!companySoldiers[s.company]) companySoldiers[s.company] = [];
+        companySoldiers[s.company].push(s);
+    });
 
-        if (isPalsam) {
-            // Palsam soldiers ONLY get weapon_zero, nothing else
-            if (soldierHash(s.id, 7) < palsamWeaponZeroRate) {
-                training.push({ soldierId: s.id, typeId: 'weapon_zero', done: true, date: '2026-02-17' });
-            }
-            return; // Skip all combat training for palsam
-        }
-
-        // --- Combat soldiers (a, b, c, d, hq, agam) ---
-        const offsets = companyOffsets[s.company] || {};
-
-        combatTypes.forEach(typeId => {
-            const rate = Math.min(1, Math.max(0, baseRates[typeId] + (offsets[typeId] || 0)));
-            if (soldierHash(s.id, typeId.length * 13) < rate) {
-                training.push({ soldierId: s.id, typeId, done: true });
-            }
-        });
-
-        // weapon_zero: date-based, high completion
-        const wzRate = Math.min(1, Math.max(0, baseRates.weapon_zero + (offsets.weapon_zero || 0)));
-        if (soldierHash(s.id, 99) < wzRate) {
+    // Palsam: only weapon_zero
+    (companySoldiers['palsam'] || []).forEach((s, idx) => {
+        const total = companySoldiers['palsam'].length;
+        const skip = Math.round(total * (1 - palsamWeaponZeroRate));
+        if (idx >= skip) {
             training.push({ soldierId: s.id, typeId: 'weapon_zero', done: true, date: '2026-02-17' });
         }
+    });
+
+    // Combat companies
+    ['a','b','c','d','hq','agam'].forEach(comp => {
+        const sols = companySoldiers[comp] || [];
+        const offsets = companyOffsets[comp] || {};
+
+        combatTypes.forEach((typeId, typeIdx) => {
+            const rate = Math.min(0.98, Math.max(0, baseRates[typeId] + (offsets[typeId] || 0)));
+            const skip = Math.round(sols.length * (1 - rate));
+            // Offset the skip position per type so different soldiers are missing different trainings
+            sols.forEach((s, idx) => {
+                const shifted = (idx + typeIdx * 7) % sols.length;
+                if (shifted >= skip) {
+                    training.push({ soldierId: s.id, typeId, done: true });
+                }
+            });
+        });
+
+        // weapon_zero
+        const wzRate = Math.min(0.98, Math.max(0, baseRates.weapon_zero + (offsets.weapon_zero || 0)));
+        const wzSkip = Math.round(sols.length * (1 - wzRate));
+        sols.forEach((s, idx) => {
+            if (idx >= wzSkip) {
+                training.push({ soldierId: s.id, typeId: 'weapon_zero', done: true, date: '2026-02-17' });
+            }
+        });
     });
 
     return training;
@@ -646,57 +654,40 @@ function _generateDemoConstraints(soldiers) {
 }
 
 // --- Generate realistic scribble signature on offscreen canvas ---
-function _generateDemoSignature(seed) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 300;
-    canvas.height = 100;
-    const ctx = canvas.getContext('2d');
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#2563eb';
-
-    // Simple seeded random
-    let _s = seed || 1;
-    function rng() { _s = (_s * 16807 + 0) % 2147483647; return (_s & 0x7fffffff) / 2147483647; }
-
-    // Draw 2-4 connected stroke segments like a real signature
-    const strokes = 2 + Math.floor(rng() * 3);
-    let x = 20 + rng() * 40;
-    let y = 30 + rng() * 30;
-
-    for (let s = 0; s < strokes; s++) {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        const points = 3 + Math.floor(rng() * 5);
-        for (let p = 0; p < points; p++) {
-            const cpx1 = x + (rng() * 60 - 10);
-            const cpy1 = y + (rng() * 50 - 25);
-            x = Math.min(280, x + 15 + rng() * 40);
-            y = 20 + rng() * 60;
-            const cpx2 = x - (rng() * 30);
-            const cpy2 = y + (rng() * 40 - 20);
-            ctx.bezierCurveTo(cpx1, cpy1, cpx2, cpy2, x, y);
+// Lazy-generate ONE signature canvas and cache the data URL.
+// All demo data shares this single image to keep localStorage small.
+let _cachedDemoSig = null;
+function _getDemoSig() {
+    if (_cachedDemoSig) return _cachedDemoSig;
+    try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#2563eb';
+        let _s = 42;
+        function rng() { _s = (_s * 16807) % 2147483647; return (_s & 0x7fffffff) / 2147483647; }
+        let x = 20, y = 25;
+        for (let s = 0; s < 3; s++) {
+            ctx.beginPath(); ctx.moveTo(x, y);
+            for (let p = 0; p < 4; p++) {
+                const cx1 = x + rng()*40-5, cy1 = y + rng()*30-15;
+                x = Math.min(180, x + 10 + rng()*30); y = 10 + rng()*40;
+                ctx.bezierCurveTo(cx1, cy1, x-rng()*20, y+rng()*20-10, x, y);
+            }
+            ctx.stroke(); x += rng()*8; y = 20 + rng()*20;
         }
-        ctx.stroke();
-        // Small gap between strokes
-        if (s < strokes - 1) {
-            x += rng() * 10;
-            y = 30 + rng() * 40;
-        }
+        _cachedDemoSig = canvas.toDataURL('image/png');
+    } catch(e) {
+        _cachedDemoSig = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQABNjN9GQAAAABJRUEFTkSuQmCC';
     }
-
-    // Add a small underline flourish
-    if (rng() > 0.4) {
-        ctx.beginPath();
-        ctx.moveTo(20 + rng() * 30, 75 + rng() * 10);
-        ctx.lineTo(80 + rng() * 120, 78 + rng() * 8);
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-    }
-
-    return canvas.toDataURL('image/png');
+    return _cachedDemoSig;
 }
+// For backward compat — all callers use this, but signature is NOT stored in state
+function _generateDemoSignature(seed) { return _getDemoSig(); }
 
 function _generateDemoEquipment(soldiers) {
     const personalEquipment = [];
@@ -742,7 +733,12 @@ function _generateDemoEquipment(soldiers) {
         { first: 'דוד', last: 'ברק' }
     ];
 
-    soldiers.forEach((s, idx) => {
+    // Use a single small signature for all demo equipment (saves ~2MB in localStorage)
+    const demoSig = _generateDemoSignature(1);
+
+    // Only generate equipment for ~20% of soldiers to keep localStorage under 2MB
+    const equipSoldiers = soldiers.filter((s, i) => i % 5 === 0);
+    equipSoldiers.forEach((s, idx) => {
         const isPalsam = s.company === 'palsam';
         const isCombat = ['a','b','c','d'].includes(s.company);
         const isCmd = ['מ"כ','מפקד','סמב"צ','מ"פ','סמ"פ','קצין','רס"פ'].some(r => s.role.includes(r));
@@ -759,9 +755,10 @@ function _generateDemoEquipment(soldiers) {
         const issuer = sigIssuers[idx % sigIssuers.length];
         // 80% signed, 20% unsigned
         const isSigned = (idx % 5 !== 0);
-        // Generate unique scribble signatures per soldier
-        const soldierSigImg = isSigned ? _generateDemoSignature(idx * 7 + 3) : null;
-        const issuerSigImg = isSigned ? _generateDemoSignature(idx * 13 + 97) : null;
+        // Don't store actual signature images in state (saves ~2MB in localStorage)
+        // The display code shows 'חתום' status regardless of image content
+        const soldierSigImg = isSigned ? 'demo_signed' : null;
+        const issuerSigImg = isSigned ? 'demo_signed' : null;
 
         const items = itemTemplates.map((item, ii) => {
             // For unsigned soldiers: items stay 'pending'
@@ -842,7 +839,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: fromSoldier.phone || '',
             soldierPersonalId: fromSoldier.personalId || '',
             date: dateStr,
-            signatureImg: _generateDemoSignature(i * 11 + 41),
+            signatureImg: 'demo_signed',
             issuedBy: 'רס"פ',
             issuerUnit: fromSoldier.company,
             issuerRole: 'רס"פ',
@@ -862,7 +859,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: toSoldier.phone || '',
             soldierPersonalId: toSoldier.personalId || '',
             date: dateStr,
-            signatureImg: _generateDemoSignature(i * 19 + 73),
+            signatureImg: 'demo_signed',
             issuedBy: 'רס"פ',
             issuerUnit: toSoldier.company,
             issuerRole: 'רס"פ',
@@ -879,6 +876,8 @@ function _generateDemoWeaponsData(soldiers) {
     const streets = ['הרצל','ז\'בוטינסקי','בן גוריון','ויצמן','רוטשילד','אלנבי','דיזנגוף','בגין','רבין','שמעון פרס'];
     const cmdNames = { a: 'דוד כהן', b: 'ניר גולן', c: 'משה לוי', d: 'יוסי ברק', hq: 'אבי שמש', agam: 'רון דגן' };
     const cmdRanks = { a: 'סרן', b: 'סרן', c: 'סרן', d: 'רס"ן', hq: 'סגן', agam: 'סגן' };
+
+    // Use placeholder instead of real signatures to save localStorage space
 
     // ~60% of combat soldiers have completed weapons forms
     const combatSoldiers = soldiers.filter(s => ['a','b','c','d','hq','agam'].includes(s.company));
@@ -909,13 +908,13 @@ function _generateDemoWeaponsData(soldiers) {
             medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
             rank: s.rank || '',
             combatCertified: idx % 8 !== 0,
-            idPhoto: idx % 3 === 0 ? null : _generateDemoSignature(idx * 23 + 151),
-            doctorApproval: idx % 4 === 0 ? null : _generateDemoSignature(idx * 29 + 199),
+            idPhoto: idx % 3 === 0 ? null : 'demo_signed',
+            doctorApproval: idx % 4 === 0 ? null : 'demo_signed',
             cmdName: cmdNames[s.company] || 'מפקד',
             cmdRank: cmdRanks[s.company] || 'סרן',
             cmdId: String(100000 + idx),
             cmdRole: 'מ"פ ' + (s.company === 'hq' ? 'חפ"ק' : s.company === 'agam' ? 'אג"מ' : s.company + '\''),
-            cmdSig: idx % 5 === 0 ? null : _generateDemoSignature(idx * 31 + 257),
+            cmdSig: idx % 5 === 0 ? null : 'demo_signed',
             cmdDate: '2026-02-19',
             lastUpdated: '2026-02-19T10:00:00',
             source: 'app'
@@ -1241,7 +1240,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 20,
+    demoSeedVersion: 21,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
