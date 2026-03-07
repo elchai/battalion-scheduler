@@ -834,6 +834,8 @@ function saveState() {
         if (state.weaponsData.length > 260) state.weaponsData = state.weaponsData.slice(0, 260);
         if (state.training.length > 500) state.training = state.training.slice(0, 500);
         if (state.shifts.length > 400) state.shifts = state.shifts.slice(-400);
+        if (state.trainingExercises && state.trainingExercises.length > 2000) state.trainingExercises = state.trainingExercises.slice(-2000);
+        if (state.shootingResults && state.shootingResults.length > 2000) state.shootingResults = state.shootingResults.slice(-2000);
         try {
             localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
         } catch (e2) {
@@ -3185,6 +3187,32 @@ function openSoldierProfile(id) {
             html += `<div class="sp-list-item"><span>${esc(tt.name)}</span>${statusHtml}</div>`;
         });
         html += `</div></div>`;
+    }
+
+    // Training events participated
+    const soldierExercises = (state.trainingExercises || []).filter(ex => ex.soldierId === id && ex.commanderRating && ex.commanderRating !== 'לא השתתף');
+    if (soldierExercises.length > 0) {
+        const ratingMap = { 'חלש': 1, 'בינוני': 2, 'השתתף': 2.5, 'מעולה': 3 };
+        const avgRat = (soldierExercises.reduce((s, ex) => s + (ratingMap[ex.commanderRating] || 0), 0) / soldierExercises.length).toFixed(1);
+        html += `<details class="sp-section"><summary><h4 style="display:inline;">תרגילים (${soldierExercises.length}) — ממוצע: ${avgRat}</h4></summary><div class="sp-list">`;
+        soldierExercises.slice(0, 10).forEach(ex => {
+            const evt = (state.trainingEvents || []).find(e => e.id === ex.trainingEventId);
+            html += `<div class="sp-list-item"><span>${evt ? esc(evt.eventName) : '—'}</span><span>${ex.trainingDate || ''}</span><span style="font-weight:600;">${ex.commanderRating}</span></div>`;
+        });
+        html += `</div></details>`;
+    }
+
+    // Shooting results
+    const soldierShootingResults = (state.shootingResults || []).filter(r => r.soldierId === id && r.scorePercentage !== null && r.scorePercentage !== undefined);
+    if (soldierShootingResults.length > 0) {
+        const shootAvg = Math.round(soldierShootingResults.reduce((s, r) => s + r.scorePercentage, 0) / soldierShootingResults.length);
+        const lastDrill = soldierShootingResults.sort((a, b) => (b.executionDate || '').localeCompare(a.executionDate || ''))[0];
+        html += `<details class="sp-section"><summary><h4 style="display:inline;">ירי (${soldierShootingResults.length} מקצים) — ממוצע: ${shootAvg}%</h4></summary><div class="sp-list">`;
+        soldierShootingResults.slice(0, 10).forEach(r => {
+            const drill = (state.shootingDrills || []).find(d => d.id === r.drillId);
+            html += `<div class="sp-list-item"><span>${drill ? esc(drill.drillName) : '—'}</span><span>${r.executionDate || ''}</span><span style="font-weight:700;color:${r.scorePercentage >= 80 ? '#2e7d32' : r.scorePercentage >= 60 ? '#ff9800' : '#c62828'};">${r.scorePercentage}%</span></div>`;
+        });
+        html += `</div></details>`;
     }
 
     // Weapons & EasyDo status
