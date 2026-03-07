@@ -2025,7 +2025,7 @@ function renderCompanyTab(compKey) {
                             const assigned = shifts.filter(s => s.task === t.name).reduce((sum, s) => sum + s.soldiers.length, 0);
                             const needed = t.soldiers + t.commanders + t.officers;
                             const pct = needed > 0 ? Math.min(100, Math.round(assigned/needed*100)) : 0;
-                            return `<tr>
+                            return `<tr style="${editShifts ? 'cursor:pointer;' : ''}" ${editShifts ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''}>
                                 <td class="task-name">${esc(t.name)}</td>
                                 <td>${t.perShift.soldiers}</td>
                                 <td>${t.perShift.commanders}</td>
@@ -3458,7 +3458,7 @@ async function confirmTransferSoldier() {
 }
 
 // ==================== SHIFT ====================
-function openAddShift(company) {
+function openAddShift(company, preSelectTask) {
     document.getElementById('shiftModalTitle').textContent = 'שיבוץ למשמרת';
     document.getElementById('shiftEditId').value = '';
     document.getElementById('shiftCompany').value = company || 'a';
@@ -3466,6 +3466,10 @@ function openAddShift(company) {
     // Reset preset buttons
     document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
     updateShiftOptions();
+    if (preSelectTask) {
+        const taskSel = document.getElementById('shiftTask');
+        if (taskSel) taskSel.value = preSelectTask;
+    }
     openModal('addShiftModal');
 }
 
