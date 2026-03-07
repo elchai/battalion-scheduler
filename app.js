@@ -144,7 +144,7 @@ const ROLE_LEVEL_MAP = [
     { level: PERM.MASHAK,      roles: ['מ"כ'] },
 ];
 
-const FULL_ACCESS_NAMES = ['ניסים סוויסה', 'ניסים סוויסא'];
+const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
 const FULL_ACCESS_IDS = ['5242848'];
 
 function getUserPermissionLevel() {
