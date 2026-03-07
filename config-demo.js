@@ -83,9 +83,9 @@ function _generateDemoSoldiers() {
     const cmdRanks = ['סמל','סמ"ר','רס"ל'];
     const soldierRanks = ['טוראי','טוראי','רב"ט','טוראי'];
 
-    // Operation dates for service periods (תעסוקה מ-19.02.26)
-    const opStart = '2026-02-19';
-    const opEnd = '2026-04-30';
+    // Operation dates for service periods
+    const opStart = '2026-02-01';
+    const opEnd = '3036-02-01';
     const splitEnd1 = '2026-03-14';
     const splitStart2 = '2026-03-14';
 
@@ -234,8 +234,12 @@ function _generateDemoShifts(soldiers) {
         ]
     };
 
-    const baseDate = new Date('2026-02-25T00:00:00');
-    for (let day = 0; day < 14; day++) {
+    // Generate shifts dynamically: 14 days back + 14 days forward from today
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const baseDate = new Date(today);
+    baseDate.setDate(baseDate.getDate() - 14);
+    for (let day = 0; day < 28; day++) {
         const d = new Date(baseDate);
         d.setDate(d.getDate() + day);
         const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -375,14 +379,16 @@ function _generateDemoTasks() {
 function _generateDemoRotationGroups(soldiers) {
     const groups = [];
     const compDefs = [
-        { key: 'a', name: 'קבוצה א\' — פלוגה א\'', startDate: '2026-02-19', count: 14 },
-        { key: 'b', name: 'קבוצה ב\' — פלוגה ב\'', startDate: '2026-02-23', count: 13 },
-        { key: 'c', name: 'קבוצה ג\' — פלוגה ג\'', startDate: '2026-02-16', count: 15 },
-        { key: 'd', name: 'קבוצה ד\' — פלוגה ד\'', startDate: '2026-02-25', count: 12 }
+        { key: 'a', name: 'קבוצה א\' — פלוגה א\'', startDate: '2026-02-01', count: 50 },
+        { key: 'b', name: 'קבוצה ב\' — פלוגה ב\'', startDate: '2026-02-03', count: 50 },
+        { key: 'c', name: 'קבוצה ג\' — פלוגה ג\'', startDate: '2026-02-01', count: 50 },
+        { key: 'd', name: 'קבוצה ד\' — פלוגה ד\'', startDate: '2026-02-05', count: 50 },
+        { key: 'hq', name: 'חפ"ק מג"ד', startDate: '2026-02-01', count: 20 },
+        { key: 'agam', name: 'אג"מ', startDate: '2026-02-01', count: 30 },
+        { key: 'palsam', name: 'פלס"ם', startDate: '2026-02-02', count: 50 }
     ];
     compDefs.forEach((def, gi) => {
-        const pool = soldiers.filter(s => s.company === def.key && !s.notArrived
-            && ['לוחם','נהג','קשר','חובש'].some(r => (s.role || '').includes(r)));
+        const pool = soldiers.filter(s => s.company === def.key && !s.notArrived);
         const selected = pool.slice(0, Math.min(def.count, pool.length)).map(s => s.id);
         if (selected.length > 0) {
             groups.push({
@@ -460,30 +466,37 @@ function _generateDemoLeaves(soldiers) {
     const approvers = ['מ"פ','סמ"פ','רס"פ'];
     let lvId = 0;
 
-    // Group 1: ~8% currently on leave (covers today 2026-03-04)
-    // ~5-8 per combat company, 1-2 per hq/agam, 3-4 per palsam
+    // Use dynamic dates relative to today so demo always looks fresh
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    function dateStr(offset) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + offset);
+        return d.toISOString().split('T')[0];
+    }
+
+    // Group 1: ~8% currently on leave (active right now)
     const leavePerComp = { a: 7, b: 8, c: 6, d: 7, hq: 2, agam: 3, palsam: 4 };
     companies.forEach(comp => {
         const compSoldiers = soldiers.filter(s => s.company === comp);
         const pool = compSoldiers.filter(s => !['מ"פ','סמ"פ','קצין'].some(r => (s.role||'').includes(r)));
         const count = Math.min(leavePerComp[comp] || 4, pool.length);
         for (let i = 0; i < count; i++) {
-            const startDay = 1 + (i % 4); // March 1-4
-            const endDay = 5 + (i % 4);   // March 5-8
             leaves.push({
                 id: 'lv_demo_' + (lvId++),
                 soldierId: pool[i].id,
-                startDate: `2026-03-${String(startDay).padStart(2,'0')}`,
+                startDate: dateStr(-2 + (i % 3)),
                 startTime: ['08:00','14:00','06:00'][i % 3],
-                endDate: `2026-03-${String(endDay).padStart(2,'0')}`,
+                endDate: dateStr(1 + (i % 4)),
                 endTime: '14:00',
                 reason: activeReasons[i % activeReasons.length],
-                approvedBy: approvers[i % 3]
+                approvedBy: approvers[i % 3],
+                company: comp
             });
         }
     });
 
-    // Group 2: ~3% did not arrive to מילואים (from start of operation, no real end)
+    // Group 2: ~3% did not arrive (from start of operation)
     const noShowPerComp = { a: 4, b: 5, c: 3, d: 4, hq: 0, agam: 1, palsam: 2 };
     companies.forEach(comp => {
         const compSoldiers = soldiers.filter(s => s.company === comp);
@@ -495,13 +508,14 @@ function _generateDemoLeaves(soldiers) {
         for (let i = 0; i < count; i++) {
             leaves.push({
                 id: 'lv_demo_' + (lvId++),
-                soldierId: pool[pool.length - 1 - i].id, // take from end of pool
-                startDate: '2026-02-19',
+                soldierId: pool[pool.length - 1 - i].id,
+                startDate: '2026-02-01',
                 startTime: '06:00',
-                endDate: '2026-04-30',
+                endDate: '3036-02-01',
                 endTime: '23:59',
                 reason: 'לא הגיע',
-                approvedBy: 'מערכת'
+                approvedBy: 'מערכת',
+                company: comp
             });
         }
     });
@@ -509,16 +523,17 @@ function _generateDemoLeaves(soldiers) {
     // Group 3: ~15 past leaves (already returned) for history
     const pastPool = soldiers.filter(s => !leaves.some(l => l.soldierId === s.id));
     for (let i = 0; i < 15 && i < pastPool.length; i++) {
-        const startDay = 20 + (i % 7);
+        const sol = pastPool[i * 3];
         leaves.push({
             id: 'lv_demo_' + (lvId++),
-            soldierId: pastPool[i * 3].id,
-            startDate: `2026-02-${String(startDay).padStart(2,'0')}`,
+            soldierId: sol.id,
+            startDate: dateStr(-10 - (i % 7)),
             startTime: '08:00',
-            endDate: `2026-03-${String(1 + (i % 2)).padStart(2,'0')}`,
+            endDate: dateStr(-3 - (i % 4)),
             endTime: '14:00',
             reason: activeReasons[i % activeReasons.length],
-            approvedBy: approvers[i % 3]
+            approvedBy: approvers[i % 3],
+            company: sol.company
         });
     }
 
@@ -1203,17 +1218,17 @@ const CONFIG = {
 
     // --- הגדרות דמו (override settings) ---
     demoSettings: {
-        operationStartDate: '2026-02-19',
-        operationStartTime: '14:00',
-        operationEndDate: '2026-04-30',
-        operationEndTime: '14:00',
+        operationStartDate: '2026-02-01',
+        operationStartTime: '06:00',
+        operationEndDate: '3036-02-01',
+        operationEndTime: '23:59',
         rotationDaysIn: 10,
         rotationDaysOut: 4,
         closedDays: ['שישי', 'שבת']
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 16,
+    demoSeedVersion: 17,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
