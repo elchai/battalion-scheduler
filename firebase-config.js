@@ -57,6 +57,11 @@ async function firebaseLoadState() {
             state.initiativeTeams = remoteState.initiativeTeams || state.initiativeTeams;
             state.training = remoteState.training || state.training;
             state.waSendLog = remoteState.waSendLog || state.waSendLog;
+            state.trainingEvents = remoteState.trainingEvents || state.trainingEvents;
+            state.trainingExercises = remoteState.trainingExercises || state.trainingExercises;
+            state.shootingDrills = remoteState.shootingDrills || state.shootingDrills;
+            state.shootingExecutions = remoteState.shootingExecutions || state.shootingExecutions;
+            state.shootingResults = remoteState.shootingResults || state.shootingResults;
             localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
             firestoreReady = true;
             return true;
@@ -179,6 +184,11 @@ function setupRealtimeListeners() {
                 state.initiativeTeams = remoteState.initiativeTeams || [];
                 state.training = remoteState.training || [];
                 state.waSendLog = remoteState.waSendLog || [];
+                state.trainingEvents = remoteState.trainingEvents || [];
+                state.trainingExercises = remoteState.trainingExercises || [];
+                state.shootingDrills = remoteState.shootingDrills || [];
+                state.shootingExecutions = remoteState.shootingExecutions || [];
+                state.shootingResults = remoteState.shootingResults || [];
                 localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
                 renderAll();
                 showToast('נתונים עודכנו ממשתמש אחר', 'info');

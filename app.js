@@ -60,7 +60,8 @@ const DEFAULT_SETTINGS = {
         defaultSigningUnit: CONFIG.defaultSigningUnit,
         savedSignatures: {} // לחתימות קבועות של מחתימים
     },
-    operationalMode: false // מצב פעילות - מציג התראות משימות בדשבורד
+    operationalMode: false, // מצב פעילות - מציג התראות משימות בדשבורד
+    exerciseTypes: [] // סוגי תרגילים: { id, name, category, trainingForceType, exerciseCondition, description }
 };
 
 let settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -713,7 +714,7 @@ Object.entries(CONFIG.companies).forEach(([key, cfg]) => {
 });
 
 // State
-let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], shiftHistory: [], constraints: [] };
+let state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], shiftHistory: [], constraints: [], trainingEvents: [], trainingExercises: [], shootingDrills: [], shootingExecutions: [], shootingResults: [] };
 
 // Calendar state
 let calendarWeekOffset = 0;
@@ -724,6 +725,7 @@ let equipmentFilter = 'all';
 let weaponsFilter = 'all';
 let pakalFilter = 'all';
 let equipmentSubTab = 'items';
+let trainingSubTab = 'readiness';
 
 function getSearchState(compKey) {
     if (!searchState[compKey]) searchState[compKey] = { query: '', filter: 'all' };
@@ -747,6 +749,11 @@ function loadState() {
     if (!state.initiativeTeams) state.initiativeTeams = [];
     if (!state.training) state.training = [];
     if (!state.waSendLog) state.waSendLog = [];
+    if (!state.trainingEvents) state.trainingEvents = [];
+    if (!state.trainingExercises) state.trainingExercises = [];
+    if (!state.shootingDrills) state.shootingDrills = [];
+    if (!state.shootingExecutions) state.shootingExecutions = [];
+    if (!state.shootingResults) state.shootingResults = [];
 
     // Normalize shifts — ensure every shift has a soldiers array
     if (state.shifts) state.shifts.forEach(sh => { if (!Array.isArray(sh.soldiers)) sh.soldiers = []; });
@@ -2961,7 +2968,7 @@ function switchTab(tab) {
     if (tab === 'equipment') { renderEquipmentTab(); switchEquipmentSubTab(equipmentSubTab); }
     if (tab === 'weapons') { syncWeaponsEasyDoStatus(true).then(() => renderWeaponsTab()); renderWeaponsTab(); }
     if (tab === 'tasks') renderTasksPage();
-    if (tab === 'training') renderTrainingTab();
+    if (tab === 'training') switchTrainingSubTab(trainingSubTab);
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'whatsapp') renderWhatsAppCenter();
 
@@ -4357,6 +4364,20 @@ function removeTrainingType(idx) {
     renderSettingsTab();
 }
 
+// ==================== TRAINING EVENTS (מערך האימונים) ====================
+function renderTrainingEventsTab() {
+    const container = document.getElementById('content-training-events');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-light);"><h3>מערך האימונים</h3><p>בקרוב...</p></div>';
+}
+
+// ==================== SHOOTING (מקצי ירי) ====================
+function renderShootingTab() {
+    const container = document.getElementById('content-shooting');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-light);"><h3>מקצי ירי</h3><p>בקרוב...</p></div>';
+}
+
 function updateTrainingTypeName(idx, name) {
     if (!settings.trainingTypes) settings.trainingTypes = [...DEFAULT_TRAINING_TYPES];
     settings.trainingTypes[idx].name = name;
@@ -5264,7 +5285,7 @@ function importAllData(input) {
 async function resetAllData() {
     if (!isAdmin()) { showToast('פעולה זו מותרת למנהל מערכת בלבד', 'error'); return; }
     if (!await customDeleteConfirm()) return;
-    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [], shiftHistory: [], constraints: [], initiativeTeams: [], training: [] };
+    state = { soldiers: [], shifts: [], leaves: [], rotationGroups: [], equipment: [], signatureLog: [], weaponsData: [], personalEquipment: [], rollCalls: [], announcements: [], shiftHistory: [], constraints: [], initiativeTeams: [], training: [], trainingEvents: [], trainingExercises: [], shootingDrills: [], shootingExecutions: [], shootingResults: [] };
     saveState();
     localStorage.removeItem(CONFIG.storagePrefix + 'Tasks');
     localStorage.removeItem(CONFIG.storagePrefix + 'DataVersion');
@@ -9194,6 +9215,21 @@ function switchEquipmentSubTab(tab) {
     if (tab === 'dashboard') renderPalsamDashboard();
     if (tab === 'reports') renderEquipmentReports();
     if (tab === 'transfer') renderTransferHistory();
+}
+
+function switchTrainingSubTab(tab) {
+    trainingSubTab = tab;
+    document.querySelectorAll('.training-subtab').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('#trainingSubTabs .subtab-btn').forEach(btn => btn.classList.remove('active'));
+    const target = document.getElementById('training-subtab-' + tab);
+    if (target) target.style.display = '';
+    const btns = document.querySelectorAll('#trainingSubTabs .subtab-btn');
+    const idx = { readiness: 0, events: 1, shooting: 2 }[tab] || 0;
+    if (btns[idx]) btns[idx].classList.add('active');
+
+    if (tab === 'readiness') renderTrainingTab();
+    if (tab === 'events') renderTrainingEventsTab();
+    if (tab === 'shooting') renderShootingTab();
 }
 
 // --- Equipment Reports ---

@@ -700,7 +700,16 @@
 
 <!-- ====== TAB: TRAINING ====== -->
 <div class="tab-content" id="tab-training">
-    <div class="main-content" id="content-training"></div>
+    <div class="main-content">
+        <div id="trainingSubTabs" style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);overflow-x:auto;">
+            <button class="subtab-btn active" onclick="switchTrainingSubTab('readiness')">מעקב כשירות</button>
+            <button class="subtab-btn" onclick="switchTrainingSubTab('events')">מערך האימונים</button>
+            <button class="subtab-btn" onclick="switchTrainingSubTab('shooting')">מקצי ירי</button>
+        </div>
+        <div class="training-subtab" id="training-subtab-readiness"><div id="content-training"></div></div>
+        <div class="training-subtab" id="training-subtab-events" style="display:none;"><div id="content-training-events"></div></div>
+        <div class="training-subtab" id="training-subtab-shooting" style="display:none;"><div id="content-shooting"></div></div>
+    </div>
 </div>
 
 <!-- ====== TAB: WEAPONS PROJECT ====== -->
