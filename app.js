@@ -1354,7 +1354,7 @@ function renderDashboard() {
                     </div>
                     <div class="dash-hero-info">
                         <div class="dash-hero-num">${totalAvailable}</div>
-                        <div class="dash-hero-label">זמינים</div>
+                        <div class="dash-hero-label">בין משמרות</div>
                         <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}%</div>
                     </div>
                 </div>
@@ -1385,7 +1385,7 @@ function renderDashboard() {
     // === DONUT CHART ===
     const donutData = [
         { label: 'משובצים', value: totalAssigned, color: '#2563eb' },
-        { label: 'זמינים', value: totalAvailable, color: '#10b981' },
+        { label: 'בין משמרות', value: totalAvailable, color: '#10b981' },
         { label: 'בבית', value: totalHome, color: '#f97316' },
         { label: 'לא גויסו', value: totalNotRecruited, color: '#94a3b8' }
     ];
@@ -2141,7 +2141,7 @@ function renderCompanyTab(compKey) {
             </div>
             <div class="filter-buttons">
                 <button class="filter-btn ${ss.filter==='all'?'active':''}" onclick="setFilter('${compKey}','all',this)">הכל</button>
-                <button class="filter-btn ${ss.filter==='available'?'active':''}" onclick="setFilter('${compKey}','available',this)">זמינים</button>
+                <button class="filter-btn ${ss.filter==='available'?'active':''}" onclick="setFilter('${compKey}','available',this)">בין משמרות</button>
                 <button class="filter-btn ${ss.filter==='assigned'?'active':''}" onclick="setFilter('${compKey}','assigned',this)">בשיבוץ</button>
                 <button class="filter-btn ${ss.filter==='home'?'active':''}" onclick="setFilter('${compKey}','home',this)">בבית</button>
             </div>
@@ -4139,7 +4139,7 @@ function swapSoldierInProposal(dayIdx, taskIdx, shiftIdx, solIdx) {
     const filtered = available.filter(s => s.id !== currentId && !shift.soldiers.includes(s.id));
 
     if (filtered.length === 0) {
-        showToast('אין חיילים זמינים להחלפה', 'error');
+        showToast('אין חיילים בין משמרות להחלפה', 'error');
         return;
     }
 
@@ -6240,7 +6240,7 @@ function generateDailyReport() {
 
     // Per company summary
     html += '<h3>מצב לפי פלוגה</h3>';
-    html += '<table><tr><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>זמינים</th></tr>';
+    html += '<table><tr><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>בין משמרות</th></tr>';
     ALL_COMPANIES.forEach(k => {
         const comp = companyData[k];
         const reg = state.soldiers.filter(s => s.company === k).length;
@@ -6421,7 +6421,7 @@ function buildReportHTML(type) {
             <tr><td><strong>משובצים היום</strong></td><td>${assignedToday.size}</td></tr>
             <tr><td><strong>משמרות פעילות</strong></td><td>${todayShifts.length}</td></tr></table>`;
         html += `<h3>מצב לפי פלוגה</h3><table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;">
-            <tr style="background:#1a3a5c;color:white;"><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>זמינים</th></tr>`;
+            <tr style="background:#1a3a5c;color:white;"><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>בין משמרות</th></tr>`;
         ALL_COMPANIES.forEach(k => {
             const comp = companyData[k];
             const reg = state.soldiers.filter(s => s.company === k).length;
@@ -6494,7 +6494,7 @@ function exportReportExcel(type) {
             ['ביציאה היום', activeLeaves.length],
             ['משובצים היום', assignedToday.size],
             ['משמרות פעילות', todayShifts.length],
-            [], ['פלוגה', 'רשומים', 'ביציאה', 'משובצים', 'זמינים']
+            [], ['פלוגה', 'רשומים', 'ביציאה', 'משובצים', 'בין משמרות']
         ];
         ALL_COMPANIES.forEach(k => {
             const reg = state.soldiers.filter(s => s.company === k).length;
