@@ -144,12 +144,14 @@ const ROLE_LEVEL_MAP = [
     { level: PERM.MASHAK,      roles: ['מ"כ'] },
 ];
 
-const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
+const FULL_ACCESS_NAMES = ['ניסים סוויסה', 'ניסים סוויסא'];
+const FULL_ACCESS_IDS = ['5242848'];
 
 function getUserPermissionLevel() {
     if (!currentUser) return 0;
     if (isAdmin()) return PERM.FULL_ACCESS;
     if (FULL_ACCESS_NAMES.some(n => currentUser.name.includes(n))) return PERM.FULL_ACCESS;
+    if (currentUser.personalId && FULL_ACCESS_IDS.includes(currentUser.personalId)) return PERM.FULL_ACCESS;
     if (currentUser.unit === 'gdudi' || currentUser.unit === 'hq') return PERM.FULL_ACCESS;
     // Palsam uses role-based level like any company (no flat PALSAM level)
     const role = currentUser.role || '';
