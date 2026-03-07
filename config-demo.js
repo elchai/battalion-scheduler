@@ -360,7 +360,10 @@ function _generateDemoTasks() {
             { name: 'משמרת א׳', s: 2, c: 0, o: 2, numShifts: 1 },
             { name: 'משמרת ב׳', s: 2, c: 0, o: 0, numShifts: 1 },
             { name: 'משמרת ג׳', s: 2, c: 0, o: 0, numShifts: 1 },
-            { name: 'כונן', s: 2, c: 0, o: 0, numShifts: 1 }
+            { name: 'כונן', s: 2, c: 0, o: 0, numShifts: 1 },
+            { name: 'חמל גדודי', s: 3, c: 0, o: 0, numShifts: 1 },
+            { name: 'תקשוב', s: 2, c: 0, o: 0, numShifts: 1 },
+            { name: 'אבטחת מידע', s: 2, c: 0, o: 0, numShifts: 1 }
         ],
         palsam: [
             { name: 'מטבח', s: 5, c: 0, o: 0, numShifts: 1 },
@@ -1238,7 +1241,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 19,
+    demoSeedVersion: 20,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
