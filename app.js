@@ -4827,10 +4827,515 @@ async function deleteExerciseType(idx) {
 }
 
 // ==================== SHOOTING (מקצי ירי) ====================
+let shootingView = 'drills'; // 'drills' | 'executions' | 'stats'
+let shootingCompanyFilter = 'all';
+
 function renderShootingTab() {
     const container = document.getElementById('content-shooting');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-light);"><h3>מקצי ירי</h3><p>בקרוב...</p></div>';
+    const level = getUserPermissionLevel();
+    const isFull = level >= PERM.FULL_ACCESS;
+
+    let html = `
+        <div class="section-header">
+            <div class="section-title">
+                <div class="icon" style="background:#ffebee;color:#b71c1c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+                מקצי ירי
+            </div>
+            <div style="display:flex;gap:6px;">
+                ${isFull ? '<button class="btn" style="font-size:0.82em;background:#ffebee;color:#b71c1c;" onclick="exportDrillSummaryPDF()">ייצוא PDF מקצי ירי</button>' : ''}
+            </div>
+        </div>
+        <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+            <button class="subtab-btn ${shootingView === 'drills' ? 'active' : ''}" onclick="shootingView='drills';renderShootingTab()">ניהול מקצי ירי</button>
+            <button class="subtab-btn ${shootingView === 'executions' ? 'active' : ''}" onclick="shootingView='executions';renderShootingTab()">ביצוע מקצים</button>
+            <button class="subtab-btn ${shootingView === 'stats' ? 'active' : ''}" onclick="shootingView='stats';renderShootingTab()">סטטיסטיקות</button>
+        </div>`;
+
+    if (shootingView === 'drills') html += renderShootingDrillsView();
+    else if (shootingView === 'executions') html += renderShootingExecutionsView();
+    else html += renderShootingStatsView();
+
+    container.innerHTML = html;
+    setTimeout(refreshIcons, 50);
+}
+
+function renderShootingDrillsView() {
+    const isFull = getUserPermissionLevel() >= PERM.FULL_ACCESS;
+    const drills = [...(state.shootingDrills || [])].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    let html = '';
+    if (isFull) {
+        html += `<div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="openShootingDrillModal()">+ הוסף מקצה ירי</button></div>`;
+    }
+
+    if (drills.length === 0) {
+        html += '<div class="empty-state"><p>אין מקצי ירי מוגדרים</p></div>';
+        return html;
+    }
+
+    html += '<div style="display:flex;flex-direction:column;gap:12px;">';
+    drills.forEach((d, idx) => {
+        const totalBullets = (d.magazine1Bullets || 0) + (d.magazine2Bullets || 0);
+        const ranges = [d.shootingRange1, d.shootingRange2, d.shootingRange3].filter(Boolean).join(', ');
+        html += `<div class="card" style="padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <div style="font-weight:700;font-size:1.05em;">${esc(d.drillName)}</div>
+                    <div style="font-size:0.82em;color:var(--text-light);margin-top:4px;">
+                        ${totalBullets} כדורים (${d.magazine1Bullets || 0}+${d.magazine2Bullets || 0})
+                        ${ranges ? ' • טווחים: ' + ranges + ' מ\'' : ''}
+                        ${d.timeLimit > 0 ? ' • ' + d.timeLimit + ' שניות' : ' • ללא מגבלת זמן'}
+                    </div>
+                    ${d.drillCreator ? `<div style="font-size:0.8em;color:var(--text-light);">יוצר: ${esc(d.drillCreator)}</div>` : ''}
+                </div>
+            </div>
+            ${d.description ? `<div style="font-size:0.82em;color:var(--text-light);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">${esc(d.description)}</div>` : ''}
+            ${isFull ? `<div style="display:flex;gap:6px;margin-top:10px;">
+                <button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openShootingDrillModal('${d.id}')">ערוך</button>
+                <button class="btn" style="font-size:0.8em;padding:4px 12px;background:#ffebee;color:#c62828;" onclick="deleteShootingDrill('${d.id}')">מחק</button>
+                ${idx > 0 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderShootingDrill('${d.id}',-1)">▲</button>` : ''}
+                ${idx < drills.length - 1 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderShootingDrill('${d.id}',1)">▼</button>` : ''}
+            </div>` : ''}
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderShootingExecutionsView() {
+    const level = getUserPermissionLevel();
+    const isFull = level >= PERM.FULL_ACCESS;
+    const canCreate = isFull || level >= PERM.COMPANY_CMD;
+    const canEnterResults = isFull || level >= PERM.MASHAK;
+    const userUnit = currentUser ? currentUser.unit : '';
+
+    let executions = [...(state.shootingExecutions || [])];
+    if (shootingCompanyFilter !== 'all') {
+        executions = executions.filter(e => e.company === shootingCompanyFilter);
+    } else if (!isFull && !isPalsam()) {
+        executions = executions.filter(e => e.company === userUnit);
+    }
+    executions.sort((a, b) => (b.executionDate || '').localeCompare(a.executionDate || ''));
+
+    let html = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+            <select onchange="shootingCompanyFilter=this.value;renderShootingTab()" style="padding:8px 14px;border-radius:var(--radius);border:2px solid var(--primary-light);background:var(--bg);color:var(--text);font-weight:600;font-size:0.9em;">
+                <option value="all" ${shootingCompanyFilter === 'all' ? 'selected' : ''}>כל הגדוד</option>
+                ${allCompanyKeys().map(k => `<option value="${k}" ${shootingCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
+            </select>
+            ${canCreate ? `<button class="btn btn-primary" onclick="openShootingExecutionModal()">+ ביצוע חדש</button>` : ''}
+        </div>`;
+
+    if (executions.length === 0) {
+        html += '<div class="empty-state"><p>אין ביצועי מקצים להצגה</p></div>';
+        return html;
+    }
+
+    html += '<div style="display:flex;flex-direction:column;gap:12px;">';
+    executions.forEach(exec => {
+        const drill = (state.shootingDrills || []).find(d => d.id === exec.drillId);
+        const results = (state.shootingResults || []).filter(r => r.executionId === exec.id);
+        const scored = results.filter(r => r.hits !== undefined && r.hits !== null && r.hits !== '');
+        const avgScore = scored.length > 0
+            ? Math.round(scored.reduce((sum, r) => sum + (r.scorePercentage || 0), 0) / scored.length)
+            : '—';
+        const canEditThis = isFull || (canEnterResults && exec.company === userUnit);
+
+        html += `<div class="card" style="padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <div style="font-weight:700;">${drill ? esc(drill.drillName) : 'מקצה לא ידוע'}</div>
+                    <div style="font-size:0.82em;color:var(--text-light);margin-top:2px;">
+                        ${exec.executionDate || ''} • ${compName(exec.company)}
+                        ${exec.unit ? ' מח\' ' + exec.unit : ''}
+                        ${exec.filledBy ? ' • מילא: ' + esc(exec.filledBy) : ''}
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <span style="background:var(--bg);padding:2px 10px;border-radius:12px;font-size:0.82em;font-weight:600;">${scored.length}/${results.length} דווחו</span>
+                    <span style="background:${typeof avgScore === 'number' ? (avgScore >= 80 ? '#e8f5e9' : avgScore >= 60 ? '#fff3e0' : '#ffebee') : 'var(--bg)'};
+                           color:${typeof avgScore === 'number' ? (avgScore >= 80 ? '#2e7d32' : avgScore >= 60 ? '#e65100' : '#c62828') : 'var(--text-light)'};
+                           padding:2px 10px;border-radius:12px;font-size:0.82em;font-weight:700;">${avgScore}${typeof avgScore === 'number' ? '%' : ''}</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;">
+                ${canEditThis ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#e8f5e9;color:#2e7d32;" onclick="openShootingResults('${exec.id}')">הזנת תוצאות</button>` : `<button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openShootingResults('${exec.id}')">צפה בתוצאות</button>`}
+                ${isFull || (level >= PERM.COMPANY_CMD && exec.company === userUnit) ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#ffebee;color:#c62828;" onclick="deleteShootingExecution('${exec.id}')">מחק</button>` : ''}
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderShootingStatsView() {
+    const results = state.shootingResults || [];
+    const executions = state.shootingExecutions || [];
+    const drills = state.shootingDrills || [];
+
+    // Overall stats
+    const scoredResults = results.filter(r => r.scorePercentage !== undefined && r.scorePercentage !== null);
+    const overallAvg = scoredResults.length > 0
+        ? Math.round(scoredResults.reduce((s, r) => s + r.scorePercentage, 0) / scoredResults.length)
+        : 0;
+    const uniqueShooters = new Set(scoredResults.map(r => r.soldierId)).size;
+
+    let html = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px;">
+            <div class="training-card" style="text-align:center;">
+                <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">ממוצע גדודי</div>
+                <div style="font-size:1.8em;font-weight:700;color:${overallAvg >= 80 ? '#2e7d32' : overallAvg >= 60 ? '#ff9800' : '#c62828'};">${overallAvg}%</div>
+            </div>
+            <div class="training-card" style="text-align:center;">
+                <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">סה"כ ביצועים</div>
+                <div style="font-size:1.8em;font-weight:700;color:var(--primary);">${executions.length}</div>
+            </div>
+            <div class="training-card" style="text-align:center;">
+                <div style="font-size:0.82em;color:var(--text-light);margin-bottom:4px;">יורים ייחודיים</div>
+                <div style="font-size:1.8em;font-weight:700;color:#1565c0;">${uniqueShooters}</div>
+            </div>
+        </div>`;
+
+    // By company
+    const companies = allCompanyKeys();
+    const companyStats = companies.map(k => {
+        const compResults = scoredResults.filter(r => {
+            const sol = state.soldiers.find(s => s.id === r.soldierId);
+            return sol && sol.company === k;
+        });
+        const avg = compResults.length > 0
+            ? Math.round(compResults.reduce((s, r) => s + r.scorePercentage, 0) / compResults.length)
+            : 0;
+        return { company: k, avg, count: compResults.length };
+    }).filter(c => c.count > 0);
+
+    if (companyStats.length > 0) {
+        html += '<h3 style="margin:20px 0 10px;font-size:1em;">ממוצע לפי פלוגה</h3>';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:20px;">';
+        companyStats.forEach(cs => {
+            const barColor = cs.avg >= 80 ? '#4CAF50' : cs.avg >= 60 ? '#FF9800' : '#f44336';
+            html += `<div class="card" style="padding:12px;">
+                <div style="font-weight:600;margin-bottom:6px;">${compName(cs.company)}</div>
+                <div style="background:var(--bg);border-radius:8px;height:20px;overflow:hidden;">
+                    <div style="background:${barColor};height:100%;width:${cs.avg}%;border-radius:8px;transition:width 0.3s;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.82em;margin-top:4px;">
+                    <span>${cs.avg}%</span>
+                    <span style="color:var(--text-light);">${cs.count} תוצאות</span>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    // Top 10 performers
+    const soldierScores = {};
+    scoredResults.forEach(r => {
+        if (!soldierScores[r.soldierId]) soldierScores[r.soldierId] = { total: 0, count: 0 };
+        soldierScores[r.soldierId].total += r.scorePercentage;
+        soldierScores[r.soldierId].count++;
+    });
+    const top10 = Object.entries(soldierScores)
+        .map(([id, data]) => {
+            const sol = state.soldiers.find(s => s.id === id);
+            return { name: sol ? sol.name : 'לא ידוע', company: sol ? sol.company : '', avg: Math.round(data.total / data.count), count: data.count };
+        })
+        .sort((a, b) => b.avg - a.avg)
+        .slice(0, 10);
+
+    if (top10.length > 0) {
+        html += '<h3 style="margin:20px 0 10px;font-size:1em;">טובי היורים (טופ 10)</h3>';
+        html += `<table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+            <thead><tr style="background:var(--bg);">
+                <th style="padding:8px;text-align:center;width:30px;">#</th>
+                <th style="padding:8px;text-align:right;">שם</th>
+                <th style="padding:8px;text-align:right;">פלוגה</th>
+                <th style="padding:8px;text-align:center;">ממוצע</th>
+                <th style="padding:8px;text-align:center;">מקצים</th>
+            </tr></thead><tbody>`;
+        top10.forEach((s, i) => {
+            html += `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:6px 8px;text-align:center;font-weight:700;color:${i < 3 ? '#ff9800' : 'var(--text-light)'};">${i + 1}</td>
+                <td style="padding:6px 8px;font-weight:500;">${esc(s.name)}</td>
+                <td style="padding:6px 8px;font-size:0.85em;">${compName(s.company)}</td>
+                <td style="padding:6px 8px;text-align:center;font-weight:700;color:${s.avg >= 80 ? '#2e7d32' : s.avg >= 60 ? '#ff9800' : '#c62828'};">${s.avg}%</td>
+                <td style="padding:6px 8px;text-align:center;">${s.count}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+    }
+
+    return html;
+}
+
+// --- Shooting Drill CRUD ---
+function openShootingDrillModal(editId) {
+    const drill = editId ? (state.shootingDrills || []).find(d => d.id === editId) : null;
+    document.getElementById('sdEditId').value = editId || '';
+    document.getElementById('shootingDrillModalTitle').textContent = drill ? 'עריכת מקצה ירי' : 'הוספת מקצה ירי';
+    document.getElementById('sdDrillName').value = drill ? drill.drillName : '';
+    document.getElementById('sdCreator').value = drill ? (drill.drillCreator || '') : (currentUser ? currentUser.name : '');
+    document.getElementById('sdMag1').value = drill ? (drill.magazine1Bullets || 5) : 5;
+    document.getElementById('sdMag2').value = drill ? (drill.magazine2Bullets || 0) : 0;
+    document.getElementById('sdRange1').value = drill ? (drill.shootingRange1 || '') : '';
+    document.getElementById('sdRange2').value = drill ? (drill.shootingRange2 || '') : '';
+    document.getElementById('sdRange3').value = drill ? (drill.shootingRange3 || '') : '';
+    document.getElementById('sdTimeLimit').value = drill ? (drill.timeLimit || 0) : 0;
+    document.getElementById('sdDescription').value = drill ? (drill.description || '') : '';
+    openModal('shootingDrillModal');
+}
+
+function saveShootingDrill() {
+    const editId = document.getElementById('sdEditId').value;
+    const drillName = document.getElementById('sdDrillName').value.trim();
+    if (!drillName) { showToast('יש להזין שם מקצה', 'error'); return; }
+
+    const drillData = {
+        id: editId || 'sd_' + Date.now(),
+        drillName,
+        drillCreator: document.getElementById('sdCreator').value.trim(),
+        magazine1Bullets: parseInt(document.getElementById('sdMag1').value) || 5,
+        magazine2Bullets: parseInt(document.getElementById('sdMag2').value) || 0,
+        shootingRange1: document.getElementById('sdRange1').value.trim(),
+        shootingRange2: document.getElementById('sdRange2').value.trim(),
+        shootingRange3: document.getElementById('sdRange3').value.trim(),
+        timeLimit: parseInt(document.getElementById('sdTimeLimit').value) || 0,
+        description: document.getElementById('sdDescription').value.trim()
+    };
+
+    if (!state.shootingDrills) state.shootingDrills = [];
+    if (editId) {
+        const idx = state.shootingDrills.findIndex(d => d.id === editId);
+        if (idx >= 0) { drillData.orderIndex = state.shootingDrills[idx].orderIndex; state.shootingDrills[idx] = drillData; }
+    } else {
+        drillData.orderIndex = state.shootingDrills.length;
+        state.shootingDrills.push(drillData);
+    }
+
+    saveState();
+    closeModal('shootingDrillModal');
+    renderShootingTab();
+    showToast(editId ? 'מקצה עודכן' : 'מקצה נוצר בהצלחה', 'success');
+}
+
+async function deleteShootingDrill(id) {
+    if (!await customDeleteConfirm()) return;
+    state.shootingDrills = (state.shootingDrills || []).filter(d => d.id !== id);
+    saveState();
+    renderShootingTab();
+    showToast('מקצה נמחק', 'success');
+}
+
+function reorderShootingDrill(id, dir) {
+    const drills = state.shootingDrills || [];
+    const idx = drills.findIndex(d => d.id === id);
+    if (idx < 0) return;
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= drills.length) return;
+    const tmpOrder = drills[idx].orderIndex;
+    drills[idx].orderIndex = drills[swapIdx].orderIndex;
+    drills[swapIdx].orderIndex = tmpOrder;
+    saveState();
+    renderShootingTab();
+}
+
+// --- Shooting Execution CRUD ---
+function openShootingExecutionModal(editId) {
+    const exec = editId ? (state.shootingExecutions || []).find(e => e.id === editId) : null;
+    document.getElementById('seEditId').value = editId || '';
+    document.getElementById('shootingExecModalTitle').textContent = exec ? 'עריכת ביצוע' : 'ביצוע מקצה חדש';
+
+    const drillSelect = document.getElementById('seDrill');
+    drillSelect.innerHTML = '<option value="">-- בחר מקצה --</option>' +
+        (state.shootingDrills || []).map(d => `<option value="${d.id}">${esc(d.drillName)}</option>`).join('');
+
+    const compSelect = document.getElementById('seCompany');
+    compSelect.innerHTML = '<option value="">-- בחר --</option>' +
+        allCompanyKeys().map(k => `<option value="${k}">${compName(k)}</option>`).join('');
+
+    if (exec) {
+        drillSelect.value = exec.drillId || '';
+        document.getElementById('seDate').value = exec.executionDate || '';
+        compSelect.value = exec.company || '';
+        document.getElementById('seFilledBy').value = exec.filledBy || '';
+    } else {
+        document.getElementById('seDate').value = new Date().toISOString().slice(0, 10);
+        compSelect.value = (!currentUser || currentUser.unit === 'gdudi') ? '' : currentUser.unit;
+        document.getElementById('seFilledBy').value = currentUser ? currentUser.name : '';
+    }
+    updateSeUnits();
+    openModal('shootingExecutionModal');
+}
+
+function updateSeUnits() {
+    const comp = document.getElementById('seCompany').value;
+    const unitSelect = document.getElementById('seUnit');
+    unitSelect.innerHTML = '<option value="">הכל</option>';
+    if (comp) {
+        const sections = [...new Set(state.soldiers.filter(s => s.company === comp && s.section).map(s => s.section))].sort();
+        sections.forEach(sec => { unitSelect.innerHTML += `<option value="${sec}">${sec}</option>`; });
+    }
+}
+
+function saveShootingExecution() {
+    const editId = document.getElementById('seEditId').value;
+    const drillId = document.getElementById('seDrill').value;
+    const company = document.getElementById('seCompany').value;
+    if (!drillId) { showToast('יש לבחור מקצה ירי', 'error'); return; }
+    if (!company) { showToast('יש לבחור פלוגה', 'error'); return; }
+
+    const execData = {
+        id: editId || 'se_' + Date.now(),
+        drillId,
+        executionDate: document.getElementById('seDate').value,
+        company,
+        unit: document.getElementById('seUnit').value,
+        filledBy: document.getElementById('seFilledBy').value.trim(),
+        createdAt: new Date().toISOString()
+    };
+
+    if (!state.shootingExecutions) state.shootingExecutions = [];
+    if (!state.shootingResults) state.shootingResults = [];
+
+    if (editId) {
+        const idx = state.shootingExecutions.findIndex(e => e.id === editId);
+        if (idx >= 0) state.shootingExecutions[idx] = execData;
+    } else {
+        state.shootingExecutions.push(execData);
+        // Auto-create results for matching soldiers
+        const unit = execData.unit;
+        const matchingSoldiers = state.soldiers.filter(s => {
+            if (!s.active_status && s.active_status !== undefined) return false;
+            if (s.company !== company) return false;
+            if (unit && s.section !== unit) return false;
+            return true;
+        });
+        matchingSoldiers.forEach(s => {
+            state.shootingResults.push({
+                id: 'sr_' + Date.now() + '_' + s.id,
+                executionId: execData.id,
+                soldierId: s.id,
+                drillId: drillId,
+                executionDate: execData.executionDate,
+                hits: null,
+                scorePercentage: null,
+                filledBy: execData.filledBy
+            });
+        });
+    }
+
+    saveState();
+    closeModal('shootingExecutionModal');
+    renderShootingTab();
+    showToast(editId ? 'ביצוע עודכן' : 'ביצוע נוצר — הזן תוצאות', 'success');
+}
+
+async function deleteShootingExecution(id) {
+    if (!await customDeleteConfirm()) return;
+    state.shootingExecutions = (state.shootingExecutions || []).filter(e => e.id !== id);
+    state.shootingResults = (state.shootingResults || []).filter(r => r.executionId !== id);
+    saveState();
+    renderShootingTab();
+    showToast('ביצוע נמחק', 'success');
+}
+
+// --- Shooting Results Entry ---
+function openShootingResults(executionId) {
+    const exec = (state.shootingExecutions || []).find(e => e.id === executionId);
+    const drill = exec ? (state.shootingDrills || []).find(d => d.id === exec.drillId) : null;
+    document.getElementById('shootingResultsTitle').textContent = 'תוצאות — ' + (drill ? drill.drillName : 'מקצה');
+    renderShootingResultsContent(executionId);
+    openModal('shootingResultsModal');
+}
+
+function renderShootingResultsContent(executionId) {
+    const container = document.getElementById('shootingResultsContent');
+    if (!container) return;
+    const exec = (state.shootingExecutions || []).find(e => e.id === executionId);
+    const drill = exec ? (state.shootingDrills || []).find(d => d.id === exec.drillId) : null;
+    const totalBullets = drill ? (drill.magazine1Bullets || 0) + (drill.magazine2Bullets || 0) : 0;
+    const results = (state.shootingResults || []).filter(r => r.executionId === executionId);
+    const level = getUserPermissionLevel();
+    const isFull = level >= PERM.FULL_ACCESS;
+    const canEdit = isFull || (level >= PERM.MASHAK && exec && exec.company === (currentUser ? currentUser.unit : ''));
+
+    let items = results.map(r => {
+        const sol = state.soldiers.find(s => s.id === r.soldierId);
+        return { ...r, soldierName: sol ? sol.name : 'לא ידוע', soldierCompany: sol ? sol.company : '' };
+    }).sort((a, b) => a.soldierName.localeCompare(b.soldierName, 'he'));
+
+    let html = `<div style="font-size:0.82em;color:var(--text-light);margin-bottom:10px;">סה"כ כדורים: ${totalBullets} | ${items.length} יורים</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+            <thead><tr style="background:var(--bg);">
+                <th style="padding:8px;text-align:right;">חייל</th>
+                <th style="padding:8px;text-align:right;">פלוגה</th>
+                <th style="padding:8px;text-align:center;">פגיעות</th>
+                <th style="padding:8px;text-align:center;">אחוז</th>
+            </tr></thead><tbody>`;
+
+    items.forEach(r => {
+        const pct = r.scorePercentage !== null && r.scorePercentage !== undefined ? r.scorePercentage : '';
+        const pctColor = pct !== '' ? (pct >= 80 ? '#2e7d32' : pct >= 60 ? '#ff9800' : '#c62828') : 'var(--text-light)';
+        html += `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:6px 8px;font-weight:500;">${esc(r.soldierName)}</td>
+            <td style="padding:6px 8px;font-size:0.85em;">${compName(r.soldierCompany)}</td>
+            <td style="padding:6px 8px;text-align:center;">
+                ${canEdit ? `<input type="number" min="0" max="${totalBullets}" value="${r.hits !== null && r.hits !== undefined ? r.hits : ''}"
+                    style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;text-align:center;"
+                    onblur="updateShootingHits('${r.id}','${executionId}',this.value,${totalBullets})">` : `<span>${r.hits !== null && r.hits !== undefined ? r.hits : '—'}</span>`}
+            </td>
+            <td style="padding:6px 8px;text-align:center;font-weight:700;color:${pctColor};">${pct !== '' ? pct + '%' : '—'}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function updateShootingHits(resultId, executionId, hitsStr, totalBullets) {
+    const r = (state.shootingResults || []).find(r => r.id === resultId);
+    if (!r) return;
+    if (hitsStr === '' || hitsStr === null) {
+        r.hits = null;
+        r.scorePercentage = null;
+    } else {
+        const hits = Math.max(0, Math.min(parseInt(hitsStr) || 0, totalBullets));
+        r.hits = hits;
+        r.scorePercentage = totalBullets > 0 ? Math.round((hits / totalBullets) * 100) : 0;
+    }
+    saveState();
+    renderShootingResultsContent(executionId);
+}
+
+// --- PDF Export ---
+function exportDrillSummaryPDF() {
+    const drills = [...(state.shootingDrills || [])].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+    if (drills.length === 0) { showToast('אין מקצי ירי לייצוא', 'info'); return; }
+
+    let htmlContent = `
+        <div style="direction:rtl;font-family:Arial,sans-serif;padding:20px;">
+            ${DOC_LOGO_BASE64 ? `<div style="text-align:center;margin-bottom:20px;"><img src="${DOC_LOGO_BASE64}" style="height:60px;"></div>` : ''}
+            <h1 style="text-align:center;color:#b71c1c;margin-bottom:30px;">מקצי ירי — סיכום</h1>`;
+
+    drills.forEach((d, i) => {
+        const totalBullets = (d.magazine1Bullets || 0) + (d.magazine2Bullets || 0);
+        const ranges = [d.shootingRange1, d.shootingRange2, d.shootingRange3].filter(Boolean);
+        htmlContent += `
+            <div style="border:2px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid;">
+                <h2 style="color:#b71c1c;margin:0 0 10px;">${i + 1}. ${d.drillName}</h2>
+                <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
+                    <tr><td style="padding:4px 8px;font-weight:600;width:120px;">כדורים</td><td style="padding:4px 8px;">${totalBullets} (מחסנית 1: ${d.magazine1Bullets || 0}, מחסנית 2: ${d.magazine2Bullets || 0})</td></tr>
+                    ${ranges.length > 0 ? `<tr><td style="padding:4px 8px;font-weight:600;">טווחים</td><td style="padding:4px 8px;">${ranges.join(', ')} מ'</td></tr>` : ''}
+                    <tr><td style="padding:4px 8px;font-weight:600;">מגבלת זמן</td><td style="padding:4px 8px;">${d.timeLimit > 0 ? d.timeLimit + ' שניות' : 'ללא מגבלה'}</td></tr>
+                    ${d.drillCreator ? `<tr><td style="padding:4px 8px;font-weight:600;">יוצר</td><td style="padding:4px 8px;">${d.drillCreator}</td></tr>` : ''}
+                </table>
+                ${d.description ? `<div style="margin-top:10px;padding:10px;background:#f5f5f5;border-radius:6px;font-size:0.88em;white-space:pre-wrap;">${d.description}</div>` : ''}
+            </div>`;
+    });
+
+    htmlContent += `<div style="text-align:center;font-size:0.8em;color:#999;margin-top:30px;">הופק מתוך מערכת גדוד יהודה — ${new Date().toLocaleDateString('he-IL')}</div></div>`;
+    downloadPDF(htmlContent, 'מקצי_ירי_סיכום.pdf');
 }
 
 function updateTrainingTypeName(idx, name) {

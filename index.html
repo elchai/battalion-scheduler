@@ -1657,6 +1657,128 @@
     </div>
 </div>
 
+<!-- Shooting Drill Modal -->
+<div class="modal-overlay" id="shootingDrillModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#b71c1c;">
+            <h3 id="shootingDrillModalTitle">הוספת מקצה ירי</h3>
+            <button class="modal-close" onclick="closeModal('shootingDrillModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="sdEditId">
+            <div class="form-row">
+                <div class="form-group" style="flex:2;">
+                    <label>שם המקצה</label>
+                    <input type="text" id="sdDrillName" placeholder="שם המקצה">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>יוצר</label>
+                    <input type="text" id="sdCreator" placeholder="שם היוצר">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>כדורים מחסנית 1 (1-30)</label>
+                    <input type="number" id="sdMag1" min="1" max="30" value="5">
+                </div>
+                <div class="form-group">
+                    <label>כדורים מחסנית 2 (0-30)</label>
+                    <input type="number" id="sdMag2" min="0" max="30" value="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>טווח 1 (מ')</label>
+                    <input type="number" id="sdRange1" placeholder="למשל 25">
+                </div>
+                <div class="form-group">
+                    <label>טווח 2 (מ')</label>
+                    <input type="number" id="sdRange2" placeholder="למשל 50">
+                </div>
+                <div class="form-group">
+                    <label>טווח 3 (מ')</label>
+                    <input type="number" id="sdRange3" placeholder="למשל 100">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מגבלת זמן (שניות, 0=ללא)</label>
+                    <input type="number" id="sdTimeLimit" min="0" value="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>תיאור / הערות</label>
+                <textarea id="sdDescription" rows="3" placeholder="תיאור המקצה, הנחיות מיוחדות..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveShootingDrill()">שמור</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('shootingDrillModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shooting Execution Modal -->
+<div class="modal-overlay" id="shootingExecutionModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#b71c1c;">
+            <h3 id="shootingExecModalTitle">ביצוע מקצה</h3>
+            <button class="modal-close" onclick="closeModal('shootingExecutionModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="seEditId">
+            <div class="form-group">
+                <label>מקצה ירי</label>
+                <select id="seDrill">
+                    <option value="">-- בחר מקצה --</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תאריך</label>
+                    <input type="date" id="seDate">
+                </div>
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="seCompany" onchange="updateSeUnits()">
+                        <option value="">-- בחר --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מחלקה</label>
+                    <select id="seUnit">
+                        <option value="">הכל</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מילא</label>
+                    <input type="text" id="seFilledBy" placeholder="שם הממלא">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveShootingExecution()">שמור</button>
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('shootingExecutionModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shooting Results Modal -->
+<div class="modal-overlay" id="shootingResultsModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#b71c1c;">
+            <h3 id="shootingResultsTitle">תוצאות ירי</h3>
+            <button class="modal-close" onclick="closeModal('shootingResultsModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto;" id="shootingResultsContent"></div>
+        <div class="modal-footer">
+            <button class="btn" style="background:var(--bg)" onclick="closeModal('shootingResultsModal')">סגור</button>
+        </div>
+    </div>
+</div>
+
 <!-- Soldier Rating Modal (per training event) -->
 <div class="modal-overlay" id="soldierRatingModal">
     <div class="modal" style="max-width:800px;">
