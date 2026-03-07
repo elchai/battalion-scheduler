@@ -1019,18 +1019,33 @@ function _generateDemoInventory(soldiers) {
 }
 
 function _generateDemoEasyDoCompletions(soldiers) {
-    // ~55% of combat soldiers completed EasyDo forms
+    // 94% completed, 4% in_progress, 2% not started
     const completions = [];
-    const combatSoldiers = soldiers.filter(s => ['a','b','c','d','hq','agam'].includes(s.company));
-    combatSoldiers.forEach((s, idx) => {
-        if (idx % 9 >= 5) return; // ~55%
-        const day = 1 + (idx % 28);
-        const month = idx % 3 === 0 ? '01' : '02';
-        completions.push({
-            name: s.name,
-            company: s.company,
-            completedAt: `2026-${month}-${String(day).padStart(2,'0')} ${String(8 + (idx % 10)).padStart(2,'0')}:${String(idx % 60).padStart(2,'0')}`
-        });
+    const allSoldiers = soldiers.filter(s => !s.notArrived);
+    const total = allSoldiers.length;
+    const completedCount = Math.round(total * 0.94);
+    const inProgressCount = Math.round(total * 0.04);
+    // Remaining ~2% get no entry (not started)
+
+    allSoldiers.forEach((s, idx) => {
+        if (idx < completedCount) {
+            const day = 1 + (idx % 28);
+            const month = idx % 3 === 0 ? '01' : '02';
+            completions.push({
+                name: s.name,
+                company: s.company,
+                completedAt: `2026-${month}-${String(day).padStart(2,'0')} ${String(8 + (idx % 10)).padStart(2,'0')}:${String(idx % 60).padStart(2,'0')}`,
+                status: 'completed'
+            });
+        } else if (idx < completedCount + inProgressCount) {
+            completions.push({
+                name: s.name,
+                company: s.company,
+                completedAt: '',
+                status: 'in_progress'
+            });
+        }
+        // else: no entry = not started
     });
     return completions;
 }
@@ -1240,7 +1255,7 @@ const CONFIG = {
     },
 
     // --- נתוני דמו ---
-    demoSeedVersion: 21,
+    demoSeedVersion: 22,
     demoSeedData: {
         soldiers: _demoSoldiers,
         shifts: _demoShifts,
