@@ -4,6 +4,85 @@
 const _FIRST_NAMES = ['יוסי','דוד','משה','אבי','רון','עמית','איתי','נתן','אלון','גיל','תומר','עידן','שי','ליאור','אורן','נדב','ערן','מאור','יונתן','בן','אור','הלל','הוד','שחר','רז','נועם','יובל','עומר','דניאל','אייל','גלעד','אסף','רותם','עדי','ניר','ישי','אוהד','מתן','סתיו','נריה','חגי','ארנון','ברק','מוטי','אילן','זיו','שמעון','לוי','תמיר','עקיבא','נפתלי','צחי','קובי','אהרון','אליעד','שלומי','חיים','יניב','גדעון','דרור','ליעד','עמוס','צביקה','אריאל','נתי','אופיר','בועז','ראם','אלעד','נח','עמרי','שגיא','יפתח','ניב','איציק','עוזי','יגאל','מנחם','דורון','אילת','עודד','נועה','מיכל','הילה','יעל','טלי','שירה','דנה','רוני','ליאת','ענבל','אפרת','תמר','מירב','סיגל','אורלי','רינת','שרון','גלית','נועה','מור'];
 const _LAST_NAMES = ['כהן','לוי','אברהם','ישראלי','חיימוב','שרון','גולן','ברק','כרמי','אדרי','פרץ','מזרחי','ביטון','דהן','סויסה','רוזנברג','גבע','אזולאי','פרידמן','אליהו','אוחיון','בוחבוט','דוידוב','הרשקוביץ','וינברג','חדד','טל','יוסף','כנפו','לנדאו','מלכה','נחמני','סבג','עמר','פנחס','צור','קדוש','רביב','שלם','תורג׳מן','אבוטבול','בכר','גפני','דגן','הררי','ויזל','זהבי','חן','טרבלסי','ימיני','כספי','לב','מגן','נעמן','סרוסי','עובדיה','פלד','צדוק','קורן','רז','שמש','אטיאס','בניון','גליק','דרעי','הכהן','ולנשטיין','זנו','חזן','טולדנו','יצחק','כהנוב','לביא','משיח','נגר','סימן-טוב','עזרא','פרנס','צוקרמן','קליין','רמון','שפירא'];
 
+// --- Scribble signature generator (blue ink on transparent) ---
+const _SIGNATURE_POOL = []; // lazily filled
+function _ensureSignaturePool() {
+    if (_SIGNATURE_POOL.length > 0) return;
+    // Generate 20 unique scribble signatures
+    for (let i = 0; i < 20; i++) {
+        _SIGNATURE_POOL.push(_drawScribble(i));
+    }
+}
+
+function _drawScribble(seed) {
+    const w = 200, h = 60;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    // transparent background
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = '#1a3a7a';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // seeded pseudo-random
+    let s = seed * 9301 + 49297;
+    const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+
+    // Draw 2-4 connected stroke segments (like a real signature)
+    const segments = 2 + Math.floor(rng() * 3);
+    let x = 15 + rng() * 30;
+    let y = 20 + rng() * 20;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+
+    for (let seg = 0; seg < segments; seg++) {
+        const points = 3 + Math.floor(rng() * 5);
+        for (let p = 0; p < points; p++) {
+            const dx = 15 + rng() * 30;
+            const dy = (rng() - 0.5) * 35;
+            const cpx1 = x + dx * 0.3 + (rng() - 0.5) * 20;
+            const cpy1 = y + (rng() - 0.5) * 30;
+            const cpx2 = x + dx * 0.7 + (rng() - 0.5) * 20;
+            const cpy2 = y + dy * 0.7 + (rng() - 0.5) * 15;
+            x = Math.min(Math.max(x + dx, 10), w - 10);
+            y = Math.min(Math.max(y + dy, 8), h - 8);
+            ctx.bezierCurveTo(cpx1, cpy1, cpx2, cpy2, x, y);
+        }
+        // small lift between segments
+        if (seg < segments - 1 && rng() > 0.4) {
+            ctx.stroke();
+            ctx.beginPath();
+            x += 5 + rng() * 10;
+            y += (rng() - 0.5) * 10;
+            y = Math.min(Math.max(y, 8), h - 8);
+            ctx.moveTo(x, y);
+        }
+    }
+    ctx.stroke();
+
+    // Add a small flourish/underline for some signatures
+    if (rng() > 0.5) {
+        ctx.beginPath();
+        ctx.lineWidth = 1.2;
+        const startX = 15 + rng() * 20;
+        const endX = x - 5 + rng() * 15;
+        const lineY = h - 10 - rng() * 8;
+        ctx.moveTo(startX, lineY);
+        ctx.quadraticCurveTo((startX + endX) / 2, lineY + (rng() - 0.5) * 12, endX, lineY + (rng() - 0.5) * 6);
+        ctx.stroke();
+    }
+
+    return c.toDataURL('image/png');
+}
+
+function _getDemoSignature(index) {
+    _ensureSignaturePool();
+    return _SIGNATURE_POOL[index % _SIGNATURE_POOL.length];
+}
+
 function _generateDemoSoldiers() {
     const soldiers = [];
     let counter = 1;
@@ -755,10 +834,8 @@ function _generateDemoEquipment(soldiers) {
         const issuer = sigIssuers[idx % sigIssuers.length];
         // 80% signed, 20% unsigned
         const isSigned = (idx % 5 !== 0);
-        // Don't store actual signature images in state (saves ~2MB in localStorage)
-        // The display code shows 'חתום' status regardless of image content
-        const soldierSigImg = isSigned ? 'demo_signed' : null;
-        const issuerSigImg = isSigned ? 'demo_signed' : null;
+        const soldierSigImg = isSigned ? _getDemoSignature(idx) : null;
+        const issuerSigImg = isSigned ? _getDemoSignature(idx + 10) : null;
 
         const items = itemTemplates.map((item, ii) => {
             // For unsigned soldiers: items stay 'pending'
@@ -839,7 +916,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: fromSoldier.phone || '',
             soldierPersonalId: fromSoldier.personalId || '',
             date: dateStr,
-            signatureImg: 'demo_signed',
+            signatureImg: _getDemoSignature(i),
             issuedBy: 'רס"פ',
             issuerUnit: fromSoldier.company,
             issuerRole: 'רס"פ',
@@ -859,7 +936,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: toSoldier.phone || '',
             soldierPersonalId: toSoldier.personalId || '',
             date: dateStr,
-            signatureImg: 'demo_signed',
+            signatureImg: _getDemoSignature(i + 5),
             issuedBy: 'רס"פ',
             issuerUnit: toSoldier.company,
             issuerRole: 'רס"פ',
@@ -908,13 +985,13 @@ function _generateDemoWeaponsData(soldiers) {
             medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
             rank: s.rank || '',
             combatCertified: idx % 8 !== 0,
-            idPhoto: idx % 3 === 0 ? null : 'demo_signed',
-            doctorApproval: idx % 4 === 0 ? null : 'demo_signed',
+            idPhoto: idx % 3 === 0 ? null : _getDemoSignature(idx + 3),
+            doctorApproval: idx % 4 === 0 ? null : _getDemoSignature(idx + 7),
             cmdName: cmdNames[s.company] || 'מפקד',
             cmdRank: cmdRanks[s.company] || 'סרן',
             cmdId: String(100000 + idx),
             cmdRole: 'מ"פ ' + (s.company === 'hq' ? 'חפ"ק' : s.company === 'agam' ? 'אג"מ' : s.company + '\''),
-            cmdSig: idx % 5 === 0 ? null : 'demo_signed',
+            cmdSig: idx % 5 === 0 ? null : _getDemoSignature(idx + 13),
             cmdDate: '2026-02-19',
             lastUpdated: '2026-02-19T10:00:00',
             source: 'app'
