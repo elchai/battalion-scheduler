@@ -930,6 +930,27 @@ async function init() {
     } else if (state.soldiers.length === 0) {
         syncFromGoogleSheets(true);
     }
+    // One-time seed: import shooting drills from Base44 export
+    if (!localStorage.getItem(CONFIG.storagePrefix + 'DrillsSeedV1')) {
+        if (!state.shootingDrills) state.shootingDrills = [];
+        if (state.shootingDrills.length === 0) {
+            state.shootingDrills = [
+                { id: 'sd_b44_0', drillName: 'מקצה איפוס', drillCreator: 'אלחי', magazine1Bullets: 5, magazine2Bullets: 0, shootingRange1: '10', shootingRange2: '25', shootingRange3: '100', timeLimit: 0, description: 'מקצה איפוס ל10 מטר\nאפשר להתחיל עם 3 כדורים כדי לחסוך בזמן\nניתן לבצע גם ל25\nווידוא איפוס יעשה ל50 מטר עם ווסט וקסדה', orderIndex: 0 },
+                { id: 'sd_b44_1', drillName: 'בוחן רמה', drillCreator: 'אלחי', magazine1Bullets: 5, magazine2Bullets: 5, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'בוחן רמה כולל ריצה של 50 מטר, ביצוע 10 שכיבות סמיכה או 20 כפיפות בטן, חזרה בספרינט, הנשק מונח בקו יורים טעון (לא דרוך) כשהלוחם מוכן עם הרצועה עליו הוא מקבל "התקלה" דורך, יורה 5+5 כדורים - יש לקחת זמן מרגע ההתקלה (אפ) עד סיום הירי של הכדור האחרון', orderIndex: 1 },
+                { id: 'sd_b44_2', drillName: 'תרגול כניסה למצב', drillCreator: 'אלחי', magazine1Bullets: 10, magazine2Bullets: 0, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'כל אפ נכנסים למצב ירי ויורים כדור אחד למטרה. האפ הראשון כולל דריכה. מטרת המקצה לתרגל "רכישת" כוונת במצב "על" כמה שיותר מהר', orderIndex: 4 },
+                { id: 'sd_b44_3', drillName: 'ירי בטווח משתנה', drillCreator: 'אלחי', magazine1Bullets: 9, magazine2Bullets: 9, shootingRange1: '12', shootingRange2: '25', shootingRange3: '50', timeLimit: 0, description: '3 כדורים במטרה בטווח של 12 מטר, 3 כדורים למטרה בטווח של 25 מטר ו3 כדורים לטווח של 50 מטר ואז חזור כנ"ל 3 כדורים ל50 3 כדורים ל25, 3 כדורים ל12 מטר קצב משתנה להתאם לטווח', orderIndex: 5 },
+                { id: 'sd_b44_4', drillName: 'מעצור גמר תחמושת', drillCreator: 'אלחי', magazine1Bullets: 1, magazine2Bullets: 10, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'מתחילים עם המחסנית הנמוכה עם כדור 1, אפ ראשון כולל דריכה ואז ירי של כדור ראשון, תפעול מעצור גמר = החלפת מחסנית, עצר מחלק, ירי של הכדור השני (ללא שינויי מצב גוף) ואז מבצעים עצירה מנהלתית, מוציאם מחסנית (שימו לב! יש כדור בקנה!) מכניסים את המחסנית הריקה ומבצעים שוב ככה עוד 4 התקלות (בכל התקלה 2 כדורים כשביניהם החלפת מחסנית)', orderIndex: 7 },
+                { id: 'sd_b44_5', drillName: 'מעצור שני', drillCreator: 'אלחי', magazine1Bullets: 10, magazine2Bullets: 10, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'ירי עם חונך אישי, החונך חוסם את פתח פליטת התרמילים באמצעות שדרית, היורה מנסה לירות ולפגוע במטרה, בכל פעם שנוצר מעצור הלוחם מתפעל בכריעה ומחדש את הירי ואז החונך שוב חוסם ויוצר מעצורים עד סיום התחמושת', orderIndex: 8 },
+                { id: 'sd_b44_6', drillName: 'מניפה', drillCreator: 'אלחי', magazine1Bullets: 10, magazine2Bullets: 0, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'במקצה זה כל המשתתפים יורים אחד אחרי השני ברצף. מחסנית 10 כדורים, הראשון מקבל "התקלה", דורך ויורה כדור אחד. כדור זה הופך להיות ה"התקלה" (כולל דריכה) של הלוחם שסמוך אליו וכך הלאה עד סיום שורת היורים ואז מתחילים מצד שני הפעם 2 כדורים ברצף ואז 3 עד סיום התחמושת. חשוב! יש לבצע הסבר על חשיבות ירי בקצב אחיד כהקדמה למקצה', orderIndex: 9 },
+                { id: 'sd_b44_7', drillName: 'אפ עד אפ', drillCreator: 'אלחי', magazine1Bullets: 10, magazine2Bullets: 10, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'כל התקלה יורים בקצב אחיד עד העצירה - אפ עד אפ\nהמדריך עוצר את היורה כל 4-6 כדורים ואז מתקיל מחדש\nההתקלה הראשונה כוללת דריכה\nאחרי גמר תחמושת מתפעלים בכריעה ויורים כדור אחד וחוזרים למצב "היכון"', orderIndex: 10 },
+                { id: 'sd_b44_8', drillName: 'בוחן רמה - סיכום יום', drillCreator: 'אלחי', magazine1Bullets: 5, magazine2Bullets: 5, shootingRange1: '12', shootingRange2: '', shootingRange3: '', timeLimit: 0, description: 'בוחן רמה כולל ריצה של 50 מטר, ביצוע 10 שכיבות סמיכה או 20 כפיפות בטן, חזרה בספרינט, הנשק מונח בקו יורים טעון (לא דרוך) כשהלוחם מוכן עם הרצועה עליו הוא מקבל "התקלה" דורך, יורה 5+5 כדורים - יש לקחת זמן מרגע ההתקלה (אפ) עד סיום הירי של הכדור האחרון', orderIndex: 11 }
+            ];
+            saveState();
+            console.log('Seeded 9 shooting drills from Base44 export');
+        }
+        localStorage.setItem(CONFIG.storagePrefix + 'DrillsSeedV1', '1');
+    }
+
     // One-time cleanup: remove test soldier "ישראל ישראלי"
     const testSoldier = state.soldiers.find(s => s.name === 'ישראל ישראלי');
     if (testSoldier) {
