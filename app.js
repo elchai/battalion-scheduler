@@ -589,8 +589,8 @@ function applyUnitFilter() {
     // Training - hidden for palsam (excluded from combat training)
     document.querySelectorAll('.sidebar-item.tab-training').forEach(el => el.style.display = !isPalsam() ? '' : 'none');
 
-    // Weapons - hidden in demo, otherwise visible
-    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = CONFIG.isDemo ? 'none' : '');
+    // Weapons - visible to all
+    document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
 
     // Settings - SAMAL+ (סמלים, קצינים, מ"פים ומעלה)
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.SAMAL ? '' : 'none');
@@ -1008,7 +1008,12 @@ function syncFromGoogleSheets(silent) {
                 const soldierCount = state.soldiers ? state.soldiers.length : 0;
                 showToast(`סונכרנו ${soldierCount} חיילים מגוגל שיטס בהצלחה ✓`, 'success');
                 syncBtns.forEach(btn => { btn.innerHTML = btn._origHTML || btn.innerHTML; btn.disabled = false; });
+                renderAll();
+                refreshIcons();
             }, 1800);
+        } else {
+            // Silent demo sync: still trigger a re-render to ensure dashboard is fresh
+            setTimeout(() => { renderAll(); refreshIcons(); }, 100);
         }
         return;
     }

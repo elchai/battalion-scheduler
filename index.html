@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v181';
+    var _cb = 'v182';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -347,7 +347,7 @@
                 <div class="icon" style="background:#e3f2fd;color:var(--primary);"><i data-lucide="users"></i></div>
                 סקירת פלוגות
             </div>
-            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)"><i data-lucide="refresh-cw"></i> סנכרון מגוגל שיטס</button>
+            <button class="btn btn-primary sync-sheets-btn" onclick="syncFromGoogleSheets(false)"><i data-lucide="refresh-cw"></i> סנכרון מגוגל שיטס</button>
         </div>
         <div class="companies-grid" id="companiesGrid"></div>
     </div>
