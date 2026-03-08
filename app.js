@@ -6620,21 +6620,44 @@ function copyRollCallText() {
 
 // ==================== REPORT 1 - ATTENDANCE ====================
 let report1Offset = 0;
+let report1Range = 'week';
+let report1SelectedDay = null; // date string for selected day in multi-day view
+
+function setReport1Range(range) {
+    report1Range = range;
+    report1Offset = 0;
+    report1SelectedDay = null;
+    // Update tab UI
+    document.querySelectorAll('.r1-range-tab').forEach(t => t.classList.toggle('active', t.dataset.range === range));
+    // Show/hide nav buttons
+    const navBtns = document.getElementById('report1NavBtns');
+    if (navBtns) navBtns.style.display = range === 'operation' ? 'none' : '';
+    renderReport1();
+}
 
 function report1Nav(dir) {
     if (dir === 0) report1Offset = 0;
     else report1Offset += dir;
+    report1SelectedDay = null;
     renderReport1();
 }
 
+function report1SelectDay(dateStr) {
+    report1SelectedDay = dateStr;
+    renderReport1();
+}
+
+function toggleR1Group(statusKey) {
+    const el = document.querySelector(`.r1-group[data-status="${statusKey}"]`);
+    if (el) el.classList.toggle('collapsed');
+}
+
 function getReport1Days() {
-    const rangeEl = document.getElementById('report1Range');
-    const range = rangeEl ? rangeEl.value : 'week';
+    const range = report1Range || 'week';
     const today = new Date();
     today.setHours(0,0,0,0);
 
     if (range === 'operation') {
-        // Full operation period - ignore offset
         const start = settings.operationStartDate ? new Date(settings.operationStartDate + 'T00:00:00') : new Date(today);
         const end = settings.operationEndDate ? new Date(settings.operationEndDate + 'T00:00:00') : new Date(today);
         const days = [];
@@ -6664,7 +6687,7 @@ function getReport1Days() {
     }
 
     // week (default)
-    const dayOfWeek = today.getDay(); // 0=Sun
+    const dayOfWeek = today.getDay();
     const sunday = new Date(today);
     sunday.setDate(sunday.getDate() - dayOfWeek + (report1Offset * 7));
     const days = [];
@@ -6730,49 +6753,57 @@ function renderReport1() {
     const days = getReport1Days();
     const todayStr = localToday();
     const hebDays = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+    const range = report1Range || 'week';
 
-    // Hide nav buttons when showing full operation period
-    const rangeEl = document.getElementById('report1Range');
+    // Hide nav for operation range
     const navBtns = document.getElementById('report1NavBtns');
-    if (navBtns) navBtns.style.display = rangeEl && rangeEl.value === 'operation' ? 'none' : '';
+    if (navBtns) navBtns.style.display = range === 'operation' ? 'none' : '';
 
     if (soldiers.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>אין חיילים בפלוגה זו</p></div>';
         return;
     }
 
-    // Operation period info
-    let opInfo = '';
-    if (settings.operationStartDate || settings.operationEndDate) {
-        const s = settings.operationStartDate ? formatDate(settings.operationStartDate) : '?';
-        const e = settings.operationEndDate ? formatDate(settings.operationEndDate) : '?';
-        opInfo = `<div style="font-size:0.82em;color:var(--text-light);margin-bottom:12px;">תעסוקה: ${s} – ${e}</div>`;
+    // Determine which day to show detail for
+    let focusDateStr;
+    if (range === 'day') {
+        focusDateStr = days[0].toISOString().split('T')[0];
+    } else {
+        // Multi-day: use selected day or today (if in range), or first day
+        const dayStrs = days.map(d => d.toISOString().split('T')[0]);
+        if (report1SelectedDay && dayStrs.includes(report1SelectedDay)) {
+            focusDateStr = report1SelectedDay;
+        } else if (dayStrs.includes(todayStr)) {
+            focusDateStr = todayStr;
+        } else {
+            focusDateStr = dayStrs[0];
+        }
     }
 
-    // Date range header
-    const rangeLabel = days.length === 1
-        ? formatDate(days[0].toISOString().split('T')[0])
-        : `${formatDate(days[0].toISOString().split('T')[0])} – ${formatDate(days[days.length - 1].toISOString().split('T')[0])}`;
+    // Compute status for each soldier on focus day
+    const groups = { active: [], base: [], home: [], notserving: [] };
+    soldiers.forEach(s => {
+        const st = getReport1SoldierStatus(s, focusDateStr);
+        groups[st].push(s);
+    });
 
-    // SVG icons for statuses
-    const isCompact = days.length > 14;
-    const ICONS = isCompact ? {
-        active: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1565c0;"></span>',
-        home: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e65100;"></span>',
-        base: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2e7d32;"></span>',
-        notserving: '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#999;"></span>'
-    } : {
-        active: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 2 4 5 4 9c0 1 .2 2 .5 3h15c.3-1 .5-2 .5-3 0-4-4-7-8-7z"/><path d="M4.5 12C3 12 2 13 2 14h20c0-1-1-2-2.5-2"/><path d="M8 14v2"/><path d="M16 14v2"/></svg>',
-        home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-        base: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
-        notserving: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-    };
+    // Get shift names for active soldiers
+    const activeShifts = {};
+    state.shifts.filter(sh => sh.date === focusDateStr).forEach(sh => {
+        (sh.soldiers || []).forEach(sid => { activeShifts[sid] = sh.name || sh.type || 'משמרת'; });
+    });
 
-    // Build daily summaries
-    const dailySummary = days.map(d => {
+    const total = soldiers.length;
+    const pct = (n) => total > 0 ? Math.round(n / total * 100) : 0;
+    const isClosed = (settings.closedDays || []).includes(focusDateStr);
+    const focusDate = new Date(focusDateStr + 'T00:00:00');
+    const focusLabel = `${hebDays[focusDate.getDay()]} ${focusDate.getDate()}/${focusDate.getMonth()+1}`;
+
+    // Build daily summaries for all days (for day strip)
+    const dailySummaries = days.map(d => {
         const ds = d.toISOString().split('T')[0];
         const inOp = isDateInOperation(ds);
-        if (!inOp) return { active: '-', base: '-', home: '-', notserving: '-' };
+        if (!inOp) return { active: 0, base: 0, home: 0, notserving: 0, outOfOp: true };
         let active = 0, base = 0, home = 0, notserving = 0;
         soldiers.forEach(s => {
             const st = getReport1SoldierStatus(s, ds);
@@ -6784,86 +6815,101 @@ function renderReport1() {
         return { active, base, home, notserving };
     });
 
-    // Table
-    container.innerHTML = `
-        ${opInfo}
-        <div class="r1-title-bar">
-            <span class="r1-title-company">${isNispachim ? 'נספחים' : compNames[compKey]}</span>
-            <span class="r1-title-range">${rangeLabel}</span>
-            <span class="r1-title-count">${soldiers.length} חיילים</span>
+    // --- Build HTML ---
+    let html = '';
+
+    // Info header
+    html += `<div class="r1-info-header">
+        <span class="r1-info-company">${isNispachim ? 'נספחים' : compNames[compKey]}</span>
+        <span class="r1-info-date">${focusLabel}${isClosed ? ' (שמ"פ סגור)' : ''}</span>
+        <span class="r1-info-count">${total} חיילים</span>
+        ${isAdmin() || currentUser.unit === 'gdudi' ? `<button class="r1-closed-toggle ${isClosed ? 'is-closed' : ''}" onclick="toggleClosedDay('${focusDateStr}')">
+            ${isClosed ? '🔒 שמ"פ סגור' : '🔓 שמ"פ פתוח'}
+        </button>` : ''}
+    </div>`;
+
+    // Day strip (only for multi-day ranges)
+    if (days.length > 1) {
+        html += '<div class="r1-day-strip">';
+        days.forEach((d, i) => {
+            const ds = d.toISOString().split('T')[0];
+            const isToday = ds === todayStr;
+            const isSelected = ds === focusDateStr;
+            const isWeekend = d.getDay() === 5 || d.getDay() === 6;
+            const sum = dailySummaries[i];
+            const barTotal = sum.active + sum.base + sum.home + sum.notserving;
+            const barW = (n) => barTotal > 0 ? Math.max(n / barTotal * 100, n > 0 ? 8 : 0) : 0;
+
+            html += `<div class="r1-day-chip ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}" onclick="report1SelectDay('${ds}')">
+                <div class="r1-chip-day">${hebDays[d.getDay()]}</div>
+                <div class="r1-chip-date">${d.getDate()}/${d.getMonth()+1}</div>
+                <div class="r1-chip-bar">
+                    <span style="width:${barW(sum.active)}%;background:#1565c0;"></span>
+                    <span style="width:${barW(sum.base)}%;background:#2e7d32;"></span>
+                    <span style="width:${barW(sum.home)}%;background:#e65100;"></span>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    // Summary cards
+    html += `<div class="r1-summary">
+        <div class="r1-stat-card active">
+            <div class="r1-stat-number">${groups.active.length}</div>
+            <div class="r1-stat-label">בפעילות</div>
+            <div class="r1-stat-pct">${pct(groups.active.length)}%</div>
         </div>
-        <div class="table-scroll">
-        <table class="r1-table">
-            <thead>
-                <tr>
-                    <th style="text-align:right;min-width:140px;position:sticky;right:0;background:var(--card);z-index:2;">חייל</th>
-                    ${days.map((d, i) => {
-                        const ds = d.toISOString().split('T')[0];
-                        const isToday = ds === todayStr;
-                        const isClosed = (settings.closedDays || []).includes(ds);
-                        const inOp = isDateInOperation(ds);
-                        const compact = days.length > 14;
-                        const isFriSat = d.getDay() === 5 || d.getDay() === 6;
-                        return `<th class="r1-day-header ${isToday ? 'r1-today' : ''} ${!inOp ? 'r1-out-of-op' : ''} ${isFriSat ? 'r1-weekend' : ''}" style="text-align:center;min-width:${compact ? '36' : '60'}px;${compact ? 'font-size:0.7em;padding:4px 2px;' : ''}">
-                            ${isToday ? '<div class="r1-today-label">היום</div>' : ''}
-                            <div class="r1-day-name">${hebDays[d.getDay()]}</div>
-                            <div class="r1-day-date">${d.getDate()}/${d.getMonth()+1}</div>
-                            ${!compact && inOp ? `<button class="r1-closed-btn ${isClosed ? 'active' : ''}" onclick="toggleClosedDay('${ds}')" title="${isClosed ? 'פתח שמ\"פ' : 'סגור שמ\"פ'}">${isClosed ? '🔒' : '🔓'}</button>` : ''}
-                        </th>`;
-                    }).join('')}
-                </tr>
-            </thead>
-            <tbody>
-                ${soldiers.map(s => `<tr>
-                    <td style="text-align:right;font-weight:600;white-space:nowrap;position:sticky;right:0;background:var(--card);z-index:1;">
-                        <a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>
-                        <div style="font-size:0.72em;color:var(--text-light);font-weight:400;">${esc(s.role || '')}</div>
-                    </td>
-                    ${days.map(d => {
-                        const ds = d.toISOString().split('T')[0];
-                        const inOp = isDateInOperation(ds);
-                        if (!inOp) return '<td class="r1-cell r1-out-of-op" style="text-align:center;">-</td>';
-                        const st = getReport1SoldierStatus(s, ds);
-                        const cls = 'r1-' + st;
-                        return `<td class="r1-cell ${cls}" style="text-align:center;">${ICONS[st]}</td>`;
-                    }).join('')}
-                </tr>`).join('')}
-            </tbody>
-            <tfoot>
-                <tr style="font-weight:700;background:var(--bg);">
-                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">בפעילות</td>
-                    ${dailySummary.map((sum, i) => {
-                        const ds = days[i].toISOString().split('T')[0];
-                        const isToday = ds === todayStr;
-                        return `<td style="text-align:center;color:#1565c0;" class="${isToday ? 'r1-today' : ''}">${sum.active}</td>`;
-                    }).join('')}
-                </tr>
-                <tr style="font-weight:700;background:var(--bg);">
-                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">בבסיס</td>
-                    ${dailySummary.map((sum, i) => {
-                        const ds = days[i].toISOString().split('T')[0];
-                        const isToday = ds === todayStr;
-                        return `<td style="text-align:center;color:#2e7d32;" class="${isToday ? 'r1-today' : ''}">${sum.base}</td>`;
-                    }).join('')}
-                </tr>
-                <tr style="font-weight:700;background:var(--bg);">
-                    <td style="text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">בבית</td>
-                    ${dailySummary.map((sum, i) => {
-                        const ds = days[i].toISOString().split('T')[0];
-                        const isToday = ds === todayStr;
-                        return `<td style="text-align:center;color:#e65100;" class="${isToday ? 'r1-today' : ''}">${sum.home}</td>`;
-                    }).join('')}
-                </tr>
-            </tfoot>
-        </table>
+        <div class="r1-stat-card base">
+            <div class="r1-stat-number">${groups.base.length}</div>
+            <div class="r1-stat-label">בבסיס</div>
+            <div class="r1-stat-pct">${pct(groups.base.length)}%</div>
         </div>
-        <div class="r1-legend">
-            <span class="r1-legend-item"><span class="r1-dot r1-active"></span> בפעילות (קסדה)</span>
-            <span class="r1-legend-item"><span class="r1-dot r1-base"></span> בבסיס (דגל)</span>
-            <span class="r1-legend-item"><span class="r1-dot r1-home"></span> בבית (בית)</span>
-            <span class="r1-legend-item"><span class="r1-dot r1-notserving"></span> לא במילואים (X)</span>
+        <div class="r1-stat-card home">
+            <div class="r1-stat-number">${groups.home.length}</div>
+            <div class="r1-stat-label">בבית</div>
+            <div class="r1-stat-pct">${pct(groups.home.length)}%</div>
         </div>
-    `;
+        <div class="r1-stat-card notserving">
+            <div class="r1-stat-number">${groups.notserving.length}</div>
+            <div class="r1-stat-label">לא במילואים</div>
+            <div class="r1-stat-pct">${pct(groups.notserving.length)}%</div>
+        </div>
+    </div>`;
+
+    // Soldier group renderer
+    const statusConfig = [
+        { key: 'active', label: 'בפעילות', icon: '⛑️' },
+        { key: 'base', label: 'בבסיס', icon: '🚩' },
+        { key: 'home', label: 'בבית', icon: '🏠' },
+        { key: 'notserving', label: 'לא במילואים', icon: '✗' }
+    ];
+
+    statusConfig.forEach(cfg => {
+        const list = groups[cfg.key];
+        if (list.length === 0) return;
+        const isCollapsed = cfg.key === 'notserving' ? ' collapsed' : '';
+        html += `<div class="r1-group${isCollapsed}" data-status="${cfg.key}">
+            <div class="r1-group-header ${cfg.key}" onclick="toggleR1Group('${cfg.key}')">
+                <span class="r1-group-dot"></span>
+                <span>${cfg.icon} ${cfg.label}</span>
+                <span class="r1-group-count">${list.length} חיילים</span>
+                <span class="r1-group-chevron">◀</span>
+            </div>
+            <div class="r1-group-list">
+                ${list.map(s => {
+                    const shift = activeShifts[s.id];
+                    return `<div class="r1-soldier-row">
+                        <span class="r1-soldier-name"><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')">${esc(s.name)}</a></span>
+                        <span class="r1-soldier-role">${esc(s.role || '')}</span>
+                        ${shift ? `<span class="r1-soldier-shift">${esc(shift)}</span>` : ''}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
 }
 
 function copyReport1Text() {

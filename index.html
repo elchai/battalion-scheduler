@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v182';
+    var _cb = 'v183';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -456,32 +456,35 @@
             <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><i data-lucide="check-square"></i></div>
             <h2>דו"ח 1 - נוכחות יומי</h2>
         </div>
-        <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <select id="report1Company" onchange="renderReport1()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
-                <option value="a">פלוגה א</option>
-                <option value="b">פלוגה ב</option>
-                <option value="c">פלוגה ג</option>
-                <option value="d">פלוגה ד</option>
-                <option value="hq">חפ"ק מג"ד</option>
-                <option value="palsam">פלס"ם</option>
-                <option value="nispachim">נספחים</option>
-            </select>
-            <select id="report1Range" onchange="report1Offset=0;renderReport1()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:0.9em;">
-                <option value="day">יום</option>
-                <option value="week" selected>שבוע</option>
-                <option value="month">חודש</option>
-                <option value="operation">כל התקופה</option>
-            </select>
-            <div id="report1NavBtns" style="display:flex;align-items:center;gap:4px;">
-                <button class="btn btn-sm" onclick="report1Nav(-1)" title="הקודם">&rarr;</button>
-                <button class="btn btn-sm" onclick="report1Nav(1)" title="הבא">&larr;</button>
-                <button class="btn btn-sm btn-secondary" onclick="report1Nav(0)" title="חזור להיום" style="font-size:0.8em;padding:4px 10px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    עכשיו
-                </button>
+        <div class="r1-controls">
+            <div class="r1-controls-row">
+                <select id="report1Company" onchange="renderReport1()" class="r1-select">
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                    <option value="nispachim">נספחים</option>
+                </select>
+                <div class="r1-range-tabs" id="report1RangeTabs">
+                    <button class="r1-range-tab" data-range="day" onclick="setReport1Range('day')">היום</button>
+                    <button class="r1-range-tab active" data-range="week" onclick="setReport1Range('week')">שבוע</button>
+                    <button class="r1-range-tab" data-range="month" onclick="setReport1Range('month')">חודש</button>
+                    <button class="r1-range-tab" data-range="operation" onclick="setReport1Range('operation')">תקופה</button>
+                </div>
             </div>
-            <button class="btn btn-secondary" onclick="copyReport1Text()">העתק לוואטסאפ</button>
-            <button class="btn btn-excel btn-sm" onclick="exportShavtzak()">ייצוא שבצ"ק (Excel)</button>
+            <div class="r1-controls-row r1-actions-row">
+                <div id="report1NavBtns" class="r1-nav-btns">
+                    <button class="btn btn-sm" onclick="report1Nav(-1)" title="הקודם">&rarr;</button>
+                    <button class="btn btn-sm btn-secondary" onclick="report1Nav(0)" title="חזור להיום" style="font-size:0.8em;padding:4px 10px;">עכשיו</button>
+                    <button class="btn btn-sm" onclick="report1Nav(1)" title="הבא">&larr;</button>
+                </div>
+                <div class="r1-export-btns">
+                    <button class="btn btn-secondary btn-sm" onclick="copyReport1Text()">📋 העתק</button>
+                    <button class="btn btn-excel btn-sm" onclick="exportShavtzak()">📊 Excel</button>
+                </div>
+            </div>
         </div>
         <div id="report1Content"></div>
     </div>
