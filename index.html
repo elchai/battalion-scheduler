@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v194';
+    var _cb = 'v195';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -726,8 +726,17 @@
             </div>
         </div>
         <div class="quick-stats" id="weaponsStats"></div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
-            <select id="weaponsSendCompany" class="form-select" style="width:auto;min-width:140px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="filter-buttons" style="margin:0;">
+                <button class="filter-btn active" onclick="setWeaponsFilter('all',this)">הכל</button>
+                <button class="filter-btn" onclick="setWeaponsFilter('signed',this)">נחתם</button>
+                <button class="filter-btn" onclick="setWeaponsFilter('unsigned',this)">טרם נחתם</button>
+            </div>
+            <div class="search-bar" style="flex:1;min-width:160px;margin:0;">
+                <span class="search-icon"><i data-lucide="search"></i></span>
+                <input type="text" id="weaponsSearch" placeholder="חיפוש..." oninput="renderWeaponsTab()">
+            </div>
+            <select id="weaponsSendCompany" class="form-select" style="width:auto;min-width:120px;margin:0;">
                 <option value="all">כל הפלוגות</option>
                 <option value="a">פלוגה א'</option>
                 <option value="b">פלוגה ב'</option>
@@ -736,31 +745,17 @@
                 <option value="hq">חפ"ק</option>
                 <option value="palsam">פלס"ם</option>
             </select>
-            <button class="btn btn-primary" onclick="openWeaponsWhatsAppModal()" id="btnSendWeaponsQ">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-                שלח בוואטסאפ
+            <button class="btn btn-primary btn-sm" onclick="openWeaponsWhatsAppModal()" id="btnSendWeaponsQ" style="background:#25D366;border-color:#25D366;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                שליחה מרוכזת
             </button>
-            <button class="btn btn-outline" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
-                סנכרן סטטוס
+            <button class="btn btn-outline btn-sm" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
+                סנכרן
             </button>
         </div>
-        <div class="search-bar">
-            <span class="search-icon"><i data-lucide="search"></i></span>
-            <input type="text" id="weaponsSearch" placeholder="חיפוש לפי שם חייל..." oninput="renderWeaponsTab()">
-        </div>
-        <div class="filter-buttons" style="margin-bottom:14px;">
-            <button class="filter-btn active" onclick="setWeaponsFilter('all',this)">הכל</button>
-            <button class="filter-btn" onclick="setWeaponsFilter('signed',this)">נחתם</button>
-            <button class="filter-btn" onclick="setWeaponsFilter('unsigned',this)">טרם נחתם</button>
-        </div>
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#E8EAF6;color:#5C6BC0;"><i data-lucide="file-check"></i></div>
-                סטטוס חיילים (<span id="weaponsSoldiersCount">0</span>)
-            </div>
-            <div id="weaponsTableContainer"></div>
-        </div>
+        <div style="font-size:0.85em;color:var(--text-light);margin-bottom:8px;"><span id="weaponsSoldiersCount">0</span> חיילים</div>
+        <div id="weaponsTableContainer"></div>
     </div>
 </div>
 
