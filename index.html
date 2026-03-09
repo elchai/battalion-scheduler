@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v183';
+    var _cb = 'v184';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -169,7 +169,7 @@
             <span>אימונים</span>
         </button>
         <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
-            <img src="m4.png" width="18" height="18" style="filter:invert(1);opacity:0.9;object-fit:contain;transform:rotate(-45deg);" alt="">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8H4a1 1 0 00-1 1v2a1 1 0 001 1h1v3h2v-3h7"/><path d="M14 8l4-4"/><path d="M14 8v4l4 2"/><path d="M18 4l2 2"/><rect x="14" y="8" width="6" height="4" rx="1"/></svg>
             <span>פרוייקט הנשקים</span>
         </button>
         <button class="sidebar-item tab-reports" onclick="switchTab('reports')">
