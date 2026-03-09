@@ -9717,20 +9717,26 @@ let easyDoCompletions = []; // [{name, company, completedAt}]
 async function syncWeaponsEasyDoStatus(silent) {
     if (!CONFIG.weaponsSheetId) return;
     try {
-        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('סטטוס מילוי')}`;
+        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('תגובות לטופס 1')}`;
         const resp = await fetch(url);
         if (!resp.ok) { if (!silent) console.warn('EasyDo status sheet not found'); return; }
         const csv = await resp.text();
         const rows = parseCSV(csv);
-        // Skip header row, columns: שם חותם, פלוגה, תאריך מילוי, נושא אימייל, מזהה אימייל
+        // Columns: A=חותמת זמן, B=אימייל, C=ניקוד, D=פלוגה, E=שם פרטי,
+        // F=שם משפחה, G=ת.ז, H=מ.א, I=שנת לידה, ...
         easyDoCompletions = [];
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            if (!row[0]) continue;
+            const personalNum = (row[7] || '').trim(); // H = מ.א
+            const firstName = (row[4] || '').trim();   // E = שם פרטי
+            const lastName = (row[5] || '').trim();     // F = שם משפחה
+            const name = (firstName + ' ' + lastName).trim();
+            if (!name && !personalNum) continue;
             easyDoCompletions.push({
-                name: (row[0] || '').trim(),
-                company: (row[1] || '').trim(),
-                completedAt: (row[2] || '').trim(),
+                name: name,
+                personalNum: personalNum,
+                company: (row[3] || '').trim(),     // D = פלוגה
+                completedAt: (row[0] || '').trim(),  // A = חותמת זמן
                 status: 'completed'
             });
         }
@@ -9760,18 +9766,21 @@ function formatEasyDoDate(dateStr) {
 
 function getEasyDoStatus(soldier) {
     if (!easyDoCompletions.length) return null;
+    // Match by מ.א. (personalId) first — most reliable
+    if (soldier.personalId) {
+        const pid = soldier.personalId.trim();
+        const match = easyDoCompletions.find(c => c.personalNum && c.personalNum === pid);
+        if (match) return match;
+    }
+    // Fallback: match by name
     const solName = soldier.name.trim().toLowerCase();
     const solLastName = solName.split(' ').pop();
-    // Try exact match first
     let match = easyDoCompletions.find(c => c.name.trim().toLowerCase() === solName);
-    // Then try last-name match
     if (!match) match = easyDoCompletions.find(c => c.name.trim().toLowerCase() === solLastName);
-    // Then try partial match (last name contained in full name or vice versa)
     if (!match) match = easyDoCompletions.find(c => {
         const cName = c.name.trim().toLowerCase();
         return solName.includes(cName) || cName.includes(solLastName);
     });
-    if (match && !match.status) match.status = 'completed'; // backward compat
     return match || null;
 }
 
