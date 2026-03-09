@@ -803,6 +803,28 @@ function loadState() {
         }
         saveState();
         updateCompanyTotals();
+
+        // Replace 'demo_signed' placeholders with actual scribble images IN MEMORY ONLY
+        // (not saved to localStorage — keeps storage small)
+        if (typeof _drawScribble === 'function') {
+            const pool = [];
+            for (let i = 0; i < 20; i++) pool.push(_drawScribble(i));
+            const sig = (seed) => pool[(seed || 0) % pool.length];
+            state.personalEquipment.forEach((pe, i) => {
+                if (pe.bulkSignature) {
+                    if (pe.bulkSignature.signatureImg === 'demo_signed') pe.bulkSignature.signatureImg = sig(i);
+                    if (pe.bulkSignature.issuerSignatureImg === 'demo_signed') pe.bulkSignature.issuerSignatureImg = sig(i + 10);
+                }
+            });
+            state.signatureLog.forEach((log, i) => {
+                if (log.signatureImg === 'demo_signed') log.signatureImg = sig(i);
+            });
+            state.weaponsData.forEach((wd, i) => {
+                if (wd.idPhoto === 'demo_signed') wd.idPhoto = sig(i + 3);
+                if (wd.doctorApproval === 'demo_signed') wd.doctorApproval = sig(i + 7);
+                if (wd.cmdSig === 'demo_signed') wd.cmdSig = sig(i + 13);
+            });
+        }
     }
     // Apply demo settings overrides
     if (CONFIG.demoSettings) {
@@ -833,7 +855,13 @@ function saveState() {
         if (state.personalEquipment.length > 180) state.personalEquipment = state.personalEquipment.slice(0, 180);
         if (state.weaponsData.length > 260) state.weaponsData = state.weaponsData.slice(0, 260);
         if (state.training.length > 500) state.training = state.training.slice(0, 500);
-        if (state.shifts.length > 400) state.shifts = state.shifts.slice(-400);
+        if (state.shifts.length > 400) {
+            // Keep today's shifts + most recent others
+            const today = localToday();
+            const todayShifts = state.shifts.filter(sh => sh.date === today);
+            const others = state.shifts.filter(sh => sh.date !== today).slice(-400 + todayShifts.length);
+            state.shifts = [...others, ...todayShifts];
+        }
         if (state.trainingExercises && state.trainingExercises.length > 2000) state.trainingExercises = state.trainingExercises.slice(-2000);
         if (state.shootingResults && state.shootingResults.length > 2000) state.shootingResults = state.shootingResults.slice(-2000);
         try {

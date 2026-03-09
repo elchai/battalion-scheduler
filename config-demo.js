@@ -834,8 +834,8 @@ function _generateDemoEquipment(soldiers) {
         const issuer = sigIssuers[idx % sigIssuers.length];
         // 80% signed, 20% unsigned
         const isSigned = (idx % 5 !== 0);
-        const soldierSigImg = isSigned ? _getDemoSignature(idx) : null;
-        const issuerSigImg = isSigned ? _getDemoSignature(idx + 10) : null;
+        const soldierSigImg = isSigned ? 'demo_signed' : null;
+        const issuerSigImg = isSigned ? 'demo_signed' : null;
 
         const items = itemTemplates.map((item, ii) => {
             // For unsigned soldiers: items stay 'pending'
@@ -916,7 +916,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: fromSoldier.phone || '',
             soldierPersonalId: fromSoldier.personalId || '',
             date: dateStr,
-            signatureImg: _getDemoSignature(i),
+            signatureImg: 'demo_signed',
             issuedBy: 'רס"פ',
             issuerUnit: fromSoldier.company,
             issuerRole: 'רס"פ',
@@ -936,7 +936,7 @@ function _generateDemoSignatureLog(soldiers) {
             soldierPhone: toSoldier.phone || '',
             soldierPersonalId: toSoldier.personalId || '',
             date: dateStr,
-            signatureImg: _getDemoSignature(i + 5),
+            signatureImg: 'demo_signed',
             issuedBy: 'רס"פ',
             issuerUnit: toSoldier.company,
             issuerRole: 'רס"פ',
@@ -985,13 +985,13 @@ function _generateDemoWeaponsData(soldiers) {
             medicalApprovalDate: '2026-01-' + String(1 + (idx % 28)).padStart(2,'0'),
             rank: s.rank || '',
             combatCertified: idx % 8 !== 0,
-            idPhoto: idx % 3 === 0 ? null : _getDemoSignature(idx + 3),
-            doctorApproval: idx % 4 === 0 ? null : _getDemoSignature(idx + 7),
+            idPhoto: idx % 3 === 0 ? null : 'demo_signed',
+            doctorApproval: idx % 4 === 0 ? null : 'demo_signed',
             cmdName: cmdNames[s.company] || 'מפקד',
             cmdRank: cmdRanks[s.company] || 'סרן',
             cmdId: String(100000 + idx),
             cmdRole: 'מ"פ ' + (s.company === 'hq' ? 'חפ"ק' : s.company === 'agam' ? 'אג"מ' : s.company + '\''),
-            cmdSig: idx % 5 === 0 ? null : _getDemoSignature(idx + 13),
+            cmdSig: idx % 5 === 0 ? null : 'demo_signed',
             cmdDate: '2026-02-19',
             lastUpdated: '2026-02-19T10:00:00',
             source: 'app'

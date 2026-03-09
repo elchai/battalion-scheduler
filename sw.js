@@ -1,4 +1,4 @@
-const CACHE_NAME = 'battalion-v192';
+const CACHE_NAME = 'battalion-v193';
 const ASSETS = [
     '/battalion-scheduler/',
     '/battalion-scheduler/index.html',
