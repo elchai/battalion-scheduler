@@ -187,9 +187,9 @@ const CONFIG = {
 
     // --- Green API (WhatsApp) ---
     greenApi: {
-        idInstance: '1101817056',
-        apiTokenInstance: 'faebc932e6514a8eb5695d9a57aad22821fb37d36145468098',
-        apiUrl: 'https://api.green-api.com'
+        idInstance: '7103258354',
+        apiTokenInstance: '4887bbcf63dc43e1a886a8dad54c9c098527765528484934b3',
+        apiUrl: 'https://7103.api.green-api.com'
     },
 
     // --- קרדיט ---
