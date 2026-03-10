@@ -10612,6 +10612,7 @@ function renderWaSendHistory() {
 // ==================== GROUP WHATSAPP ====================
 let _groupWaSending = false;
 let _groupWaSelectedIds = new Set();
+let _groupWaGroupSoldiers = []; // soldiers matching current group selection
 
 function openGroupWaModal() {
     const compNames = getCompNames();
@@ -10677,7 +10678,8 @@ function selectGroupWa(group) {
         soldiers = state.soldiers.filter(s => s.company === k && !isOfficer(s) && !isCommander(s));
     }
 
-    // Filter only those with phone
+    // Store group soldiers and select all with phone
+    _groupWaGroupSoldiers = soldiers;
     const withPhone = soldiers.filter(s => s.phone);
     _groupWaSelectedIds = new Set(withPhone.map(s => s.id));
 
@@ -10707,21 +10709,20 @@ function selectGroupWa(group) {
 function renderGroupWaRecipients() {
     const container = document.getElementById('groupWaRecipients');
     const compNames = getCompNames();
-    // Show only selected soldiers (not all)
-    const selected = state.soldiers.filter(s => _groupWaSelectedIds.has(s.id));
 
-    if (_groupWaSelectedIds.size === 0) {
+    if (_groupWaGroupSoldiers.length === 0) {
         container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);">בחר קבוצה למעלה</div>';
         document.getElementById('groupWaCount').textContent = '';
         return;
     }
 
-    const withPhone = selected.filter(s => s.phone);
-    const noPhone = selected.filter(s => !s.phone);
+    const withPhone = _groupWaGroupSoldiers.filter(s => s.phone);
+    const noPhone = _groupWaGroupSoldiers.filter(s => !s.phone);
 
     container.innerHTML = withPhone.map(s => {
+        const checked = _groupWaSelectedIds.has(s.id) ? 'checked' : '';
         return `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.88em;cursor:pointer;">
-            <input type="checkbox" checked data-sol-id="${s.id}" onchange="toggleGroupWaRecipient('${s.id}',this.checked)">
+            <input type="checkbox" ${checked} data-sol-id="${s.id}" onchange="toggleGroupWaRecipient('${s.id}',this.checked)">
             <strong>${esc(s.name)}</strong>
             <span style="color:var(--text-light);font-size:0.82em;">${compNames[s.company] || ''} | ${s.phone} | ${esc(s.role || '')}</span>
         </label>`;
@@ -10730,7 +10731,7 @@ function renderGroupWaRecipients() {
     </div>` : '');
 
     const countEl = document.getElementById('groupWaCount');
-    if (countEl) countEl.textContent = `${withPhone.length} נמענים עם טלפון`;
+    if (countEl) countEl.textContent = `${withPhone.length} נמענים`;
 }
 
 function toggleGroupWaRecipient(id, checked) {
