@@ -12,8 +12,7 @@
  *   J=שם האב, K=רחוב, L=מס' הבית, M=יישוב, N=מיקוד,
  *   O=טלפון נייד, P=טלפון נייח, Q=מקור הנשק, R=מטווח בנק"ל,
  *   S=תאריך גיוס, T=תאריך שחרור, U=מועד אישור רפואי, V=דרגה,
- *   W=הוסמכת כלוחם?, X=אישור רופא (קישור), Y=צילום ת.ז (קישור),
- *   Z=מספר טלפון נייד
+ *   W=הוסמכת כלוחם?, X=אישור רופא (קישור), Y=צילום ת.ז (קישור)
  *
  * התקנה על החשבון הגדודי (gdud1875idf@gmail.com):
  * 1. פתח https://script.google.com
@@ -209,13 +208,17 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
     const fullAddress  = data[FIELDS.address] || '';
     const phone        = data[FIELDS.phone] || '';
     const landline     = data[FIELDS.landline] || '';
-    const weaponSource = data[FIELDS.weaponSource] || '';
+    const rawWeaponSource = data[FIELDS.weaponSource] || '';
+    const rawWeaponType   = data[FIELDS.weaponType] || '';
     const rangeDate    = data[FIELDS.rangeDate] || '';
     const enlistDate   = data[FIELDS.enlistDate] || '';
     const releaseDate  = data[FIELDS.releaseDate] || '';
     const rank         = data[FIELDS.rank] || '';
     const isFighter    = data[FIELDS.isFighter] || '';
     const signedDate   = data[FIELDS.signedDate] || '';
+
+    // Determine actual weapon source — skip fixed "הגנה גזרתית" text
+    const weaponSource = resolveWeaponSource_(rawWeaponSource, rawWeaponType);
 
     // Download attachments to Google Drive
     const idPhotoFileId = data[FIELDS.idPhotoFile];
@@ -251,12 +254,10 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
     // Company name for column D
     const companyHeb = templateInfo.name;
 
+    // Parse address into components
+    const addr = parseAddress_(fullAddress);
+
     // Write row matching Google Forms column structure (A-Z):
-    // A=חותמת זמן, B=אימייל, C=ניקוד, D=פלוגה, E=שם פרטי, F=שם משפחה,
-    // G=ת.ז, H=מ.א, I=שנת לידה, J=שם האב, K=רחוב, L=מס' בית,
-    // M=יישוב, N=מיקוד, O=טלפון נייד, P=טלפון נייח, Q=מקור נשק,
-    // R=מטווח בנק"ל, S=תאריך גיוס, T=תאריך שחרור, U=מועד אישור רפואי,
-    // V=דרגה, W=הוסמכת כלוחם?, X=אישור רופא, Y=צילום ת.ז, Z=טלפון נייד
     dataTab.appendRow([
       timestamp,         // A - חותמת זמן
       '',                // B - כתובת אימייל (אין ב-EasyDo)
@@ -268,10 +269,10 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
       personalNum,       // H - מספר אישי
       birthYear,         // I - שנת לידה
       fatherName,        // J - שם האב
-      fullAddress,       // K - רחוב (כתובת מלאה מ-EasyDo)
-      '',                // L - מס' הבית (כלול בכתובת)
-      '',                // M - יישוב (כלול בכתובת)
-      '',                // N - מיקוד (כלול בכתובת)
+      addr.street,       // K - רחוב
+      addr.number,       // L - מס' הבית
+      addr.city,         // M - יישוב
+      addr.zip,          // N - מיקוד
       phone,             // O - טלפון נייד
       landline,          // P - טלפון נייח
       weaponSource,      // Q - מקור הנשק
@@ -283,7 +284,6 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
       isFighter,         // W - האם הוסמכת כלוחם?
       doctorUrl,         // X - נא לצרף אישור רופא חתום
       idPhotoUrl,        // Y - נא לצרף צילום תעודת זהות
-      phone,             // Z - מספר טלפון נייד (חזרה על O)
     ]);
 
     processedIds.add(idNumber);
@@ -503,6 +503,184 @@ function resetEasyDoAndSync() {
 
   Logger.log('Removed ' + rowsToDelete.length + ' EasyDo rows. Kept Google Forms rows.');
   syncNewForms();
+}
+
+// ========== פיצול כתובות + תיקון מקור נשק ==========
+
+/**
+ * מנתח כתובת מלאה לרכיבים: רחוב, מספר, יישוב, מיקוד
+ * דוגמאות:
+ *   "הדקל 5, דולב, 7194500" → { street: "הדקל", number: "5", city: "דולב", zip: "7194500" }
+ *   "רחוב הזית 12 מודיעין" → { street: "הזית", number: "12", city: "מודיעין", zip: "" }
+ *   "דולב" → { street: "", number: "", city: "דולב", zip: "" }
+ */
+function parseAddress_(fullAddress) {
+  if (!fullAddress || !String(fullAddress).trim()) {
+    return { street: '', number: '', city: '', zip: '' };
+  }
+
+  const raw = String(fullAddress).trim();
+
+  // Split by comma or multiple spaces
+  const parts = raw.split(/[,،]+/).map(p => p.trim()).filter(Boolean);
+
+  let street = '', number = '', city = '', zip = '';
+
+  if (parts.length >= 3) {
+    // "רחוב 5, יישוב, מיקוד" or "רחוב, מספר, יישוב, מיקוד"
+    const streetPart = parts[0];
+    const streetMatch = streetPart.match(/^(.+?)\s+(\d+.*)$/);
+    if (streetMatch) {
+      street = streetMatch[1].replace(/^רחוב\s+/, '');
+      number = streetMatch[2];
+    } else {
+      street = streetPart.replace(/^רחוב\s+/, '');
+    }
+    // Check last part for zip code (5-7 digits)
+    const lastPart = parts[parts.length - 1];
+    if (/^\d{5,7}$/.test(lastPart)) {
+      zip = lastPart;
+      city = parts.slice(1, parts.length - 1).join(' ');
+    } else {
+      city = parts.slice(1).join(' ');
+    }
+  } else if (parts.length === 2) {
+    // "רחוב 5, יישוב" or "יישוב, מיקוד"
+    const first = parts[0];
+    const second = parts[1];
+    if (/^\d{5,7}$/.test(second)) {
+      // second is zip
+      const m = first.match(/^(.+?)\s+(\d+.*)$/);
+      if (m) { street = m[1].replace(/^רחוב\s+/, ''); number = m[2]; }
+      else { city = first; }
+      zip = second;
+    } else {
+      const m = first.match(/^(.+?)\s+(\d+.*)$/);
+      if (m) { street = m[1].replace(/^רחוב\s+/, ''); number = m[2]; }
+      else { street = first.replace(/^רחוב\s+/, ''); }
+      city = second;
+    }
+  } else {
+    // Single part — try to extract street+number, otherwise treat as city
+    const m = raw.match(/^(.+?)\s+(\d+.*)$/);
+    if (m) {
+      street = m[1].replace(/^רחוב\s+/, '');
+      number = m[2];
+    } else {
+      city = raw;
+    }
+  }
+
+  return { street: street.trim(), number: number.trim(), city: city.trim(), zip: zip.trim() };
+}
+
+/**
+ * קובע את מקור הנשק מתוך שני שדות EasyDo.
+ * מדלג על הטקסט הקבוע "הגנה גזרתית" ומחזיר את המקור בפועל.
+ * ברירת מחדל: "פרטי"
+ */
+function resolveWeaponSource_(rawSource, rawType) {
+  const purposePattern = /הגנה\s*גזרתית/;
+  // If rawSource is the fixed purpose text, use rawType instead
+  if (rawSource && !purposePattern.test(rawSource)) return rawSource;
+  if (rawType && !purposePattern.test(rawType)) return rawType;
+  // Both are empty or both are the fixed text — default to פרטי
+  return 'פרטי';
+}
+
+/**
+ * פיצול כתובות קיימות בגיליון.
+ * עובר על כל השורות — אם K מכיל כתובת מלאה ו-L,M,N ריקים, מפצל.
+ * הרץ פעם אחת: Run > splitExistingAddresses
+ */
+function splitExistingAddresses() {
+  const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+  const dataTab = ss.getSheetByName(DATA_TAB_NAME);
+  if (!dataTab) { Logger.log('Tab not found'); return; }
+
+  const data = dataTab.getDataRange().getValues();
+  let updated = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const streetVal = String(data[i][10] || '').trim(); // K = index 10
+    const numberVal = String(data[i][11] || '').trim(); // L = index 11
+    const cityVal   = String(data[i][12] || '').trim(); // M = index 12
+    const zipVal    = String(data[i][13] || '').trim(); // N = index 13
+
+    // Only split if K has content and L,M,N are empty (not already split)
+    if (streetVal && !numberVal && !cityVal && !zipVal) {
+      const addr = parseAddress_(streetVal);
+      // Only update if we actually parsed something useful
+      if (addr.city || addr.number || addr.zip) {
+        const row = i + 1; // 1-based
+        dataTab.getRange(row, 11).setValue(addr.street);  // K
+        dataTab.getRange(row, 12).setValue(addr.number);   // L
+        dataTab.getRange(row, 13).setValue(addr.city);     // M
+        dataTab.getRange(row, 14).setValue(addr.zip);      // N
+        updated++;
+      }
+    }
+  }
+
+  Logger.log('Split ' + updated + ' addresses.');
+  appendLog_(ss, 'פיצול כתובות', 'עודכנו ' + updated + ' שורות');
+}
+
+/**
+ * תיקון עמודה Q (מקור הנשק) בשורות קיימות.
+ * אם Q ריק או מכיל "הגנה גזרתית" → מחליף ל"פרטי".
+ * הרץ פעם אחת: Run > fixExistingWeaponSource
+ */
+function fixExistingWeaponSource() {
+  const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+  const dataTab = ss.getSheetByName(DATA_TAB_NAME);
+  if (!dataTab) { Logger.log('Tab not found'); return; }
+
+  const data = dataTab.getDataRange().getValues();
+  let updated = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const qVal = String(data[i][16] || '').trim(); // Q = index 16
+    if (!qVal || /הגנה\s*גזרתית/.test(qVal)) {
+      dataTab.getRange(i + 1, 17).setValue('פרטי'); // Q = column 17 (1-based)
+      updated++;
+    }
+  }
+
+  Logger.log('Fixed ' + updated + ' weapon source values to "פרטי".');
+  appendLog_(ss, 'תיקון מקור נשק', 'עודכנו ' + updated + ' שורות ל"פרטי"');
+}
+
+/**
+ * Debug — מדפיס את כל השדות של טופס אחד כדי לזהות field IDs
+ */
+function debugFields() {
+  const token = PropertiesService.getScriptProperties().getProperty(EASYDO_TOKEN_KEY);
+  if (!token) { Logger.log('No token'); return; }
+
+  const templateId = Object.keys(TEMPLATES)[0]; // first template
+  const response = callEasyDoAPI_(token, 'POST', '/templates/' + templateId + '/data-table', {
+    page: 1, per_page: 1, sort_by: 'created_at', sort_direction: 'desc'
+  });
+
+  if (!response || !response.data || !response.data[0]) {
+    Logger.log('No data found');
+    return;
+  }
+
+  const item = response.data[0];
+  const data = item.data || {};
+  Logger.log('=== Form ID: ' + item.form.id + ' ===');
+  Logger.log('=== Status: ' + item.form.status + ' ===');
+
+  for (const [key, val] of Object.entries(data)) {
+    // Find known name
+    let label = key;
+    for (const [name, fieldId] of Object.entries(FIELDS)) {
+      if (fieldId === key) { label = name + ' (' + key + ')'; break; }
+    }
+    Logger.log(label + ' = ' + JSON.stringify(val));
+  }
 }
 
 // ========== ניקוי ==========
