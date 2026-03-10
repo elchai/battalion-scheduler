@@ -237,7 +237,7 @@ const WAREHOUSES = CONFIG.warehouses;
 const EQUIPMENT_CATEGORIES = ['נשק', 'אופטיקה', 'קשר', 'לוגיסטיקה', 'אחר'];
 
 const SPECIALIST_TYPES = [
-    { id: 'medic',  name: 'חובשים',  keywords: ['חובש', 'רופא', 'רפוא', 'פרמדיק'] },
+    { id: 'medic',  name: 'חובשים',  keywords: ['חובש', 'רופא', 'רפוא', 'פרמדיק', 'חוג"ד', 'קרפ"ג'] },
     { id: 'sniper', name: 'צלפים',   keywords: ['צלף'] },
     { id: 'driver', name: 'נהגים',   keywords: ['נהג', 'רכב'] },
     { id: 'drone',  name: 'רחפניסטים', keywords: ['רחפן', 'רחפניסט', 'drone', 'מפעיל רחפן'] },
