@@ -239,6 +239,7 @@ const SPECIALIST_TYPES = [
     { id: 'medic',  name: 'חובשים',  keywords: ['חובש', 'רופא', 'רפוא', 'פרמדיק'] },
     { id: 'sniper', name: 'צלפים',   keywords: ['צלף'] },
     { id: 'driver', name: 'נהגים',   keywords: ['נהג', 'רכב'] },
+    { id: 'drone',  name: 'רחפניסטים', keywords: ['רחפן', 'רחפניסט', 'drone', 'מפעיל רחפן'] },
 ];
 const CATEGORY_GROUPS = {
     'נשק': ['נשק'],
