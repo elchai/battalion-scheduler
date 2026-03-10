@@ -496,9 +496,9 @@ function resetEasyDoAndSync() {
     }
   }
 
-  // Delete from bottom up
-  for (let i = rowsToDelete.length - 1; i >= 0; i--) {
-    dataTab.deleteRow(rowsToDelete[i]);
+  // Delete from bottom up (rowsToDelete is already bottom-first from the loop above)
+  for (const rowNum of rowsToDelete) {
+    dataTab.deleteRow(rowNum);
   }
 
   Logger.log('Removed ' + rowsToDelete.length + ' EasyDo rows. Kept Google Forms rows.');
