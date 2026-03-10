@@ -7228,8 +7228,8 @@ function renderSpecialistsPanel() {
 }
 
 function matchesSpecialist(soldier, specType) {
-    const text = ((soldier.role || '') + ' ' + (soldier.rank || '') + ' ' + (soldier.unit || '')).toLowerCase();
-    return specType.keywords.some(kw => text.includes(kw));
+    const role = (soldier.role || '').toLowerCase();
+    return specType.keywords.some(kw => role.includes(kw));
 }
 
 function toggleSpecialistType(typeId) {
