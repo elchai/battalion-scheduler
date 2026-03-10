@@ -859,25 +859,32 @@ function saveState() {
     try {
         localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
     } catch (e) {
-        // localStorage quota exceeded — trim large demo arrays and retry
+        // localStorage quota exceeded — aggressively trim data and retry
         console.warn('localStorage quota exceeded, trimming data...');
-        if (state.personalEquipment.length > 180) state.personalEquipment = state.personalEquipment.slice(0, 180);
-        if (state.weaponsData.length > 260) state.weaponsData = state.weaponsData.slice(0, 260);
-        if (state.training.length > 500) state.training = state.training.slice(0, 500);
-        if (state.shifts.length > 400) {
-            // Keep today's shifts + most recent others
+        // Signatures are heaviest (base64 images) — strip from old equipment entries
+        if (state.personalEquipment && state.personalEquipment.length > 50) {
+            state.personalEquipment = state.personalEquipment.slice(0, 50);
+        }
+        (state.personalEquipment || []).forEach(pe => { if (pe.signature) delete pe.signature; });
+        // Strip old signatureLog entries (base64 heavy)
+        if (state.signatureLog && state.signatureLog.length > 20) state.signatureLog = state.signatureLog.slice(-20);
+        (state.signatureLog || []).forEach(sl => { if (sl.signatureData) delete sl.signatureData; });
+        if (state.weaponsData && state.weaponsData.length > 100) state.weaponsData = state.weaponsData.slice(0, 100);
+        if (state.training && state.training.length > 200) state.training = state.training.slice(0, 200);
+        if (state.shifts && state.shifts.length > 200) {
             const today = localToday();
             const todayShifts = state.shifts.filter(sh => sh.date === today);
-            const others = state.shifts.filter(sh => sh.date !== today).slice(-400 + todayShifts.length);
+            const others = state.shifts.filter(sh => sh.date !== today).slice(-200 + todayShifts.length);
             state.shifts = [...others, ...todayShifts];
         }
-        if (state.trainingExercises && state.trainingExercises.length > 2000) state.trainingExercises = state.trainingExercises.slice(-2000);
-        if (state.shootingResults && state.shootingResults.length > 2000) state.shootingResults = state.shootingResults.slice(-2000);
+        if (state.trainingExercises && state.trainingExercises.length > 500) state.trainingExercises = state.trainingExercises.slice(-500);
+        if (state.shootingResults && state.shootingResults.length > 500) state.shootingResults = state.shootingResults.slice(-500);
+        if (state.leaves && state.leaves.length > 200) state.leaves = state.leaves.slice(-200);
         try {
             localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
+            console.log('localStorage saved after trim');
         } catch (e2) {
             console.error('localStorage still full after trim:', e2);
-            showToast('אזהרה: הזיכרון המקומי מלא - ייתכן אובדן נתונים', 'error');
         }
     }
     if (typeof firebaseSaveState === 'function') firebaseSaveState();
