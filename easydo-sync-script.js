@@ -904,6 +904,37 @@ function debugFields() {
   }
 }
 
+/**
+ * מוחק את כל תיקיות החיילים ב-Drive (תחת "טפסי נשק - EasyDo").
+ * הרץ לפני resetEasyDoAndSync כשצריך להוריד קבצים מחדש עם שמות נכונים.
+ * Run > cleanDriveFiles
+ */
+function cleanDriveFiles() {
+  const rootIter = DriveApp.getFoldersByName(DRIVE_ROOT_FOLDER);
+  if (!rootIter.hasNext()) {
+    Logger.log('Root folder not found: ' + DRIVE_ROOT_FOLDER);
+    return;
+  }
+  const rootFolder = rootIter.next();
+  let deleted = 0;
+
+  // Iterate company folders
+  const companyFolders = rootFolder.getFolders();
+  while (companyFolders.hasNext()) {
+    const companyFolder = companyFolders.next();
+    // Delete all soldier sub-folders inside each company folder
+    const soldierFolders = companyFolder.getFolders();
+    while (soldierFolders.hasNext()) {
+      const sf = soldierFolders.next();
+      sf.setTrashed(true);
+      deleted++;
+    }
+    Logger.log(companyFolder.getName() + ': deleted ' + deleted + ' soldier folders');
+  }
+
+  Logger.log('Total deleted: ' + deleted + ' soldier folders. Now run resetEasyDoAndSync().');
+}
+
 // ========== ניקוי ==========
 
 function removeTrigger() {
