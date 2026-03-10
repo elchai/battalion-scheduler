@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v217';
+    var _cb = 'v218';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -1595,7 +1595,7 @@
             </h3>
             <button class="modal-close" onclick="closeModal('groupWaModal')">&times;</button>
         </div>
-        <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+        <div class="modal-body">
             <div id="groupWaGroups" style="margin-bottom:14px;"></div>
             <div style="margin-bottom:14px;">
                 <label style="font-weight:600;display:block;margin-bottom:6px;">נמענים:</label>
