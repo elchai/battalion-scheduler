@@ -10658,8 +10658,11 @@ function selectGroupWa(group) {
 
     if (group === 'mafap') {
         soldiers = state.soldiers.filter(s => {
-            const r = (s.role || '') + ' ' + (s.rank || '');
-            return (r.includes('מ"פ') || r.includes('מפקד פלוגה')) && !r.includes('סמ"פ') && !r.includes('סגן מפקד');
+            const role = (s.role || '').trim();
+            const rank = (s.rank || '').trim();
+            const r = role + ' ' + rank;
+            if (r.includes('סמ"פ') || r.includes('סגן מפקד') || r.includes('חפ"ק') || r.includes('פינוי')) return false;
+            return role.startsWith('מ"פ') || role.startsWith('מפקד פלוגה');
         });
     } else if (group === 'officers') {
         soldiers = state.soldiers.filter(s => isOfficer(s));
