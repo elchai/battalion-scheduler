@@ -1522,7 +1522,7 @@ function renderDashboard() {
         if (!comp.tasks || comp.tasks.length === 0) return;
         let totalNeeded = 0, totalFilled = 0;
         comp.tasks.forEach(task => {
-            const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
+            const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers + (task.perShift.drivers || 0)) * task.shifts : 0;
             if (needed <= 0) return;
             const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name && sh.date === todayForAlerts)
                 .reduce((sum, sh) => sum + sh.soldiers.length, 0);
@@ -1903,7 +1903,7 @@ function updateNotifications() {
     ALL_COMPANIES.forEach(k => {
         const comp = companyData[k];
         comp.tasks.forEach(task => {
-            const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers) * task.shifts : 0;
+            const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers + (task.perShift.drivers || 0)) * task.shifts : 0;
             if (needed <= 0) return;
             const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name && sh.date === todayStr)
                 .reduce((sum, sh) => sum + sh.soldiers.length, 0);
@@ -2120,26 +2120,30 @@ function renderCompanyTab(compKey) {
                         <th>חיי׳/מש׳</th>
                         <th>מפק׳/מש׳</th>
                         <th>קצי׳/מש׳</th>
+                        <th>נהג׳/מש׳</th>
                         <th title="כמה סבבי משמרות ביממה">סבבים</th>
                         <th>סה״כ חיי׳</th>
                         <th>סה״כ מפק׳</th>
                         <th>סה״כ קצי׳</th>
+                        <th>סה״כ נהג׳</th>
                         <th>משובצים</th>
                     </tr></thead>
                     <tbody>
                         ${comp.tasks.map(t => {
                             const assigned = shifts.filter(s => s.task === t.name).reduce((sum, s) => sum + s.soldiers.length, 0);
-                            const needed = t.soldiers + t.commanders + t.officers;
+                            const needed = t.soldiers + t.commanders + t.officers + (t.drivers || 0);
                             const pct = needed > 0 ? Math.min(100, Math.round(assigned/needed*100)) : 0;
                             return `<tr style="${editShifts ? 'cursor:pointer;' : ''}" ${editShifts ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''}>
                                 <td class="task-name">${esc(t.name)}</td>
                                 <td>${t.perShift.soldiers}</td>
                                 <td>${t.perShift.commanders}</td>
                                 <td>${t.perShift.officers}</td>
+                                <td>${t.perShift.drivers || 0}</td>
                                 <td>${t.shifts || '-'}</td>
                                 <td><strong>${t.soldiers}</strong></td>
                                 <td><strong>${t.commanders}</strong></td>
                                 <td><strong>${t.officers}</strong></td>
+                                <td><strong>${t.drivers || 0}</strong></td>
                                 <td><div style="display:flex;align-items:center;justify-content:center;gap:5px;">
                                     <span>${assigned}/${needed}</span>
                                     <div style="width:35px;height:5px;background:var(--border);border-radius:3px;">
@@ -2176,7 +2180,7 @@ function renderCompanyTab(compKey) {
                             return sol ? `<a href="#" onclick="event.preventDefault();openSoldierProfile('${sid}')" class="soldier-link">${esc(sol.name)}</a>` : '?';
                         });
                         const taskData = comp.tasks.find(t => t.name === sh.task);
-                        const needed = taskData ? taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers : 0;
+                        const needed = taskData ? taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers + (taskData.perShift.drivers || 0) : 0;
                         const cmdSol = sh.taskCommander && state.soldiers.find(s => s.id === sh.taskCommander);
                         const needsCommander = taskData && taskData.perShift.soldiers >= 4;
                         return `<div class="shift-card">
@@ -3656,7 +3660,7 @@ function updateShiftOptions() {
         taskSel.appendChild(opt);
     } else {
         tasks.forEach(t => {
-            const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers;
+            const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers + (t.perShift.drivers || 0);
             const assigned = state.shifts.filter(sh => sh.company === company && sh.task === t.name && sh.date === date &&
                 sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + sh.soldiers.length, 0);
             const opt = document.createElement('option');
@@ -4053,7 +4057,8 @@ function generateScheduleProposal(compKey, startDate, endDate) {
     // Role classification
     const isOfficer = (s) => ['קצין', 'מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'].some(r => (s.role || '').includes(r));
     const isCommander = (s) => ['מפקד', 'מ"כ', 'מ"מ', 'סמל', 'סמב"צ'].some(r => (s.role || '').includes(r));
-    const isSoldier = (s) => !isOfficer(s) && !isCommander(s);
+    const isDriver = (s) => ['נהג', 'נגמ"ש', 'נגמש'].some(r => (s.role || '').includes(r));
+    const isSoldier = (s) => !isOfficer(s) && !isCommander(s) && !isDriver(s);
 
     // Medic check
     const isMedic = (s) => (s.role || '').includes('חובש') || (s.role || '').includes('רופא');
@@ -4125,6 +4130,7 @@ function generateScheduleProposal(compKey, startDate, endDate) {
             // Role filter
             if (roleFilter === 'officer' && !isOfficer(s)) return false;
             if (roleFilter === 'commander' && !isCommander(s)) return false;
+            if (roleFilter === 'driver' && !isDriver(s)) return false;
             if (roleFilter === 'soldier' && !isSoldier(s)) return false;
             // Officers/commanders not in kitchen
             if (taskName.includes('מטבח') && (isOfficer(s) || isCommander(s))) return false;
@@ -4182,6 +4188,13 @@ function generateScheduleProposal(compKey, startDate, endDate) {
                     const id = pickSoldier(date, shift.start, shift.end, 'commander', task.name);
                     if (id) shiftProposal.soldiers.push(id);
                     else shiftProposal.warnings.push('חסר מפקד');
+                }
+
+                // Pick drivers
+                for (let i = 0; i < (task.perShift?.drivers || 0); i++) {
+                    const id = pickSoldier(date, shift.start, shift.end, 'driver', task.name);
+                    if (id) shiftProposal.soldiers.push(id);
+                    else shiftProposal.warnings.push('חסר נהג');
                 }
 
                 // Pick soldiers
@@ -5558,7 +5571,7 @@ async function saveShift() {
     // Validate: warn if task commander not selected for 4+ soldiers tasks
     const taskData = companyData[company] && companyData[company].tasks.find(t => t.name === task);
     if (taskData) {
-        const needed = taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers;
+        const needed = taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers + (taskData.perShift.drivers || 0);
         const alreadyAssigned = state.shifts.filter(sh => {
             if (sh.id === editId || sh.company !== company || sh.task !== task || sh.date !== date) return false;
             // Handle cross-midnight overlap (same as hasTimeOverlap)
@@ -6210,7 +6223,7 @@ function renderTaskEditor() {
 
     container.innerHTML = `
         <div class="task-edit-row task-edit-header">
-            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span title="כמה סבבי משמרות ביממה (1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה)">סבבים/24ש׳</span><span></span>
+            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>נהגים</span><span title="כמה סבבי משמרות ביממה (1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה)">סבבים/24ש׳</span><span></span>
         </div>
         ${tasks.map((t, i) => `
             <div class="task-edit-row">
@@ -6218,6 +6231,7 @@ function renderTaskEditor() {
                 <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
                 <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
                 <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
                 <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
                 <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
             </div>
@@ -6236,6 +6250,7 @@ function updateTask(compKey, index, field, value) {
         t.soldiers = t.perShift.soldiers * value;
         t.commanders = t.perShift.commanders * value;
         t.officers = t.perShift.officers * value;
+        t.drivers = (t.perShift.drivers || 0) * value;
     } else {
         t.perShift[field] = value;
         t[field] = value * t.shifts;
@@ -6247,8 +6262,8 @@ function updateTask(compKey, index, field, value) {
 
 function addTask(compKey) {
     companyData[compKey].tasks.push({
-        name: 'משימה חדשה', soldiers: 3, commanders: 0, officers: 0, shifts: 3,
-        perShift: { soldiers: 1, commanders: 0, officers: 0 }
+        name: 'משימה חדשה', soldiers: 3, commanders: 0, officers: 0, drivers: 0, shifts: 3,
+        perShift: { soldiers: 1, commanders: 0, officers: 0, drivers: 0 }
     });
     saveTasksToStorage();
     renderTaskEditor();
@@ -6281,7 +6296,7 @@ function loadTasksFromStorage() {
     if (!saved && !CONFIG.isDemo) {
         CONFIG.combatCompanies.forEach(k => {
             if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
-                companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1 } });
+                companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, drivers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1, drivers: 0 } });
             }
         });
     }
@@ -11801,7 +11816,7 @@ function renderTasksPage() {
         if (tasks.length === 0) return;
         const taskCards = [];
         tasks.forEach(t => {
-            const needed = (t.perShift?.soldiers || 0) + (t.perShift?.commanders || 0) + (t.perShift?.officers || 0);
+            const needed = (t.perShift?.soldiers || 0) + (t.perShift?.commanders || 0) + (t.perShift?.officers || 0) + (t.perShift?.drivers || 0);
             const assignedShifts = state.shifts.filter(sh => sh.company === k && sh.task === t.name && sh.date === todayStr);
             const assignedSoldiers = [];
             const assignedIds = new Set();
