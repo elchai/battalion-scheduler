@@ -965,20 +965,17 @@ async function init() {
     // Run equipment migration AFTER Firestore data loaded (prevents overwrite race condition)
     migrateEquipmentSets();
 
-    // One-time seed: import exercise types from Base44 export
-    if (!localStorage.getItem(CONFIG.storagePrefix + 'ExTypeSeedV1')) {
-        if (!settings.exerciseTypes || settings.exerciseTypes.length === 0) {
-            settings.exerciseTypes = [
-                { id: 'extype_b44_0', name: 'תרגיל חוליה יום', category: 'שטח פתוח', trainingForceType: 'team', exerciseCondition: 'dry', description: 'תרגיל חוליה בשטח פתוח ביום' },
-                { id: 'extype_b44_1', name: 'תרגיל מחלקה יום (יבש)', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'dry', description: 'תרגיל מחלקתי בתנאי יבש' },
-                { id: 'extype_b44_2', name: 'תרגיל מחלקה יום (רטוב)', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל מחלקתי בתנאי רטוב' },
-                { id: 'extype_b44_3', name: 'תרמ"ח שטח בנוי יום', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי ביום בתנאי רטוב' },
-                { id: 'extype_b44_4', name: 'תרמ"ח שטח בנוי לילה', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי בלילה בתנאי רטוב' }
-            ];
-            saveSettings();
-            console.log('Seeded 5 exercise types from Base44 export');
-        }
-        localStorage.setItem(CONFIG.storagePrefix + 'ExTypeSeedV1', '1');
+    // Seed exercise types if empty (always re-seed, even if Firestore overwrote with empty array)
+    if (!settings.exerciseTypes || settings.exerciseTypes.length === 0) {
+        settings.exerciseTypes = [
+            { id: 'extype_b44_0', name: 'תרגיל חוליה יום', category: 'שטח פתוח', trainingForceType: 'team', exerciseCondition: 'dry', description: 'תרגיל חוליה בשטח פתוח ביום' },
+            { id: 'extype_b44_1', name: 'תרגיל מחלקה יום (יבש)', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'dry', description: 'תרגיל מחלקתי בתנאי יבש' },
+            { id: 'extype_b44_2', name: 'תרגיל מחלקה יום (רטוב)', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל מחלקתי בתנאי רטוב' },
+            { id: 'extype_b44_3', name: 'תרמ"ח שטח בנוי יום', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי ביום בתנאי רטוב' },
+            { id: 'extype_b44_4', name: 'תרמ"ח שטח בנוי לילה', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי בלילה בתנאי רטוב' }
+        ];
+        saveSettings();
+        console.log('Seeded 5 exercise types');
     }
 
     // Force re-sync if data version changed (multi-sheet support)
