@@ -10613,6 +10613,7 @@ function renderWaSendHistory() {
 let _groupWaSending = false;
 let _groupWaSelectedIds = new Set();
 let _groupWaGroupSoldiers = []; // soldiers matching current group selection
+let _groupWaActiveGroups = new Set(); // active group chips for multi-select
 
 function openGroupWaModal() {
     const compNames = getCompNames();
@@ -10621,7 +10622,8 @@ function openGroupWaModal() {
     // Build group chips
     let groupsHtml = `<label style="font-weight:600;display:block;margin-bottom:8px;">בחר קבוצה:</label>`;
     groupsHtml += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-        <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="background:var(--primary);color:#fff;font-weight:600;">כל המ״פים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="background:var(--primary);color:#fff;font-weight:600;">מ״פים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="mate" onclick="selectGroupWa('mate')" style="background:#37474f;color:#fff;font-weight:600;">מטה</button>
         <button class="btn btn-sm group-wa-chip" data-group="officers" onclick="selectGroupWa('officers')" style="background:#5c6bc0;color:#fff;">כל הקצינים</button>
         <button class="btn btn-sm group-wa-chip" data-group="commanders" onclick="selectGroupWa('commanders')" style="background:#7e57c2;color:#fff;">כל המפקדים</button>
         <button class="btn btn-sm group-wa-chip" data-group="soldiers" onclick="selectGroupWa('soldiers')" style="background:#78909c;color:#fff;">כל החיילים</button>
@@ -10645,6 +10647,8 @@ function openGroupWaModal() {
 
     document.getElementById('groupWaGroups').innerHTML = groupsHtml;
     _groupWaSelectedIds = new Set();
+    _groupWaActiveGroups = new Set();
+    _groupWaGroupSoldiers = [];
     renderGroupWaRecipients();
     document.getElementById('groupWaMessage').value = '';
     document.getElementById('groupWaPreview').textContent = '';
@@ -10652,61 +10656,84 @@ function openGroupWaModal() {
     openModal('groupWaModal');
 }
 
-function selectGroupWa(group) {
-    const compNames = getCompNames();
-    let soldiers = [];
-
+function getGroupWaSoldiers(group) {
     if (group === 'mafap') {
-        soldiers = state.soldiers.filter(s => {
+        return state.soldiers.filter(s => {
             const role = (s.role || '').trim();
-            const rank = (s.rank || '').trim();
-            const r = role + ' ' + rank;
+            const r = role + ' ' + (s.rank || '').trim();
             if (r.includes('סמ"פ') || r.includes('סגן מפקד') || r.includes('חפ"ק') || r.includes('פינוי')) return false;
             return role.startsWith('מ"פ') || role.startsWith('מפקד פלוגה');
         });
+    } else if (group === 'mate') {
+        return state.soldiers.filter(s => s.company === 'hq' || s.company === 'agam');
     } else if (group === 'officers') {
-        soldiers = state.soldiers.filter(s => isOfficer(s));
+        return state.soldiers.filter(s => isOfficer(s));
     } else if (group === 'commanders') {
-        soldiers = state.soldiers.filter(s => isCommander(s));
+        return state.soldiers.filter(s => isCommander(s));
     } else if (group === 'soldiers') {
-        soldiers = state.soldiers.filter(s => !isOfficer(s) && !isCommander(s));
+        return state.soldiers.filter(s => !isOfficer(s) && !isCommander(s));
     } else if (group.startsWith('officers_')) {
         const k = group.replace('officers_', '');
-        soldiers = state.soldiers.filter(s => s.company === k && isOfficer(s));
+        return state.soldiers.filter(s => s.company === k && isOfficer(s));
     } else if (group.startsWith('commanders_')) {
         const k = group.replace('commanders_', '');
-        soldiers = state.soldiers.filter(s => s.company === k && isCommander(s));
+        return state.soldiers.filter(s => s.company === k && isCommander(s));
     } else if (group.startsWith('soldiers_')) {
         const k = group.replace('soldiers_', '');
-        soldiers = state.soldiers.filter(s => s.company === k && !isOfficer(s) && !isCommander(s));
+        return state.soldiers.filter(s => s.company === k && !isOfficer(s) && !isCommander(s));
+    }
+    return [];
+}
+
+function selectGroupWa(group) {
+    // Toggle group in active set
+    if (_groupWaActiveGroups.has(group)) {
+        _groupWaActiveGroups.delete(group);
+    } else {
+        _groupWaActiveGroups.add(group);
     }
 
-    // Store group soldiers and select all with phone
-    _groupWaGroupSoldiers = soldiers;
-    const withPhone = soldiers.filter(s => s.phone);
+    // Merge soldiers from all active groups (dedup by id)
+    const seen = new Set();
+    _groupWaGroupSoldiers = [];
+    for (const g of _groupWaActiveGroups) {
+        for (const s of getGroupWaSoldiers(g)) {
+            if (!seen.has(s.id)) {
+                seen.add(s.id);
+                _groupWaGroupSoldiers.push(s);
+            }
+        }
+    }
+
+    // Select all with phone
+    const withPhone = _groupWaGroupSoldiers.filter(s => s.phone);
     _groupWaSelectedIds = new Set(withPhone.map(s => s.id));
 
-    // Highlight active chip
+    // Highlight active chips
     document.querySelectorAll('.group-wa-chip').forEach(b => {
-        const isActive = b.dataset.group === group;
+        const isActive = _groupWaActiveGroups.has(b.dataset.group);
         const chipColor = b.dataset.color || b.style.backgroundColor || 'var(--primary)';
         if (isActive) {
             b.style.background = chipColor || b.style.borderColor;
             b.style.color = '#fff';
             b.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
         } else {
-            // Restore per-company chips to outline
             if (b.dataset.color) {
                 b.style.background = 'transparent';
                 b.style.color = b.dataset.color;
+            } else {
+                b.style.opacity = '0.6';
             }
             b.style.boxShadow = 'none';
         }
+        b.style.opacity = isActive ? '1' : '';
     });
 
     renderGroupWaRecipients();
     updateGroupWaPreview();
-    showToast(`${withPhone.length} נמענים נבחרו${soldiers.length - withPhone.length > 0 ? ` (${soldiers.length - withPhone.length} ללא טלפון)` : ''}`, 'info');
+    const total = _groupWaGroupSoldiers.length;
+    const noPhone = total - withPhone.length;
+    showToast(`${withPhone.length} נמענים נבחרו${noPhone > 0 ? ` (${noPhone} ללא טלפון)` : ''}`, 'info');
 }
 
 function renderGroupWaRecipients() {
