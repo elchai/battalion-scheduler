@@ -1327,7 +1327,6 @@ function renderOverview() {
         const total = (key === 'hq' || key === 'palsam') ? regCount : comp.totals.soldiers + comp.totals.commanders + comp.totals.officers;
         const onLeave = state.leaves.filter(l => l.company === key && isCurrentlyOnLeave(l)).length;
         const notArrivedCount = state.soldiers.filter(s => s.company === key && s.notArrived).length;
-        const homeCount = onLeave + notArrivedCount;
         const card = document.createElement('div');
         card.className = `company-card ${comp.colorClass}`;
         if (canView(key)) {
@@ -1358,7 +1357,7 @@ function renderOverview() {
                 </div>` : ''}
                 <div style="display:flex;justify-content:space-between;font-size:0.82em;color:var(--text-light);">
                     <span>${comp.tasks.length} משימות</span>
-                    <span>${homeCount > 0 ? homeCount + ' בבית' : 'כולם בבסיס'}</span>
+                    <span>${onLeave > 0 ? onLeave + ' ביציאה' : ''}${onLeave > 0 && notArrivedCount > 0 ? ' | ' : ''}${notArrivedCount > 0 ? notArrivedCount + ' לא גויסו' : ''}${onLeave === 0 && notArrivedCount === 0 ? 'כולם בבסיס' : ''}</span>
                 </div>
             </div>`;
         grid.appendChild(card);
