@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v224';
+    var _cb = 'v225';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -523,6 +523,7 @@
             <div class="icon" style="background:#e3f2fd;color:var(--primary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
             ייצוא דוחות
         </div>
+        <div id="reportCompanyFilter" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;"></div>
         <div class="reports-grid">
             <div class="report-card">
                 <div class="report-icon" style="background:#e3f2fd;color:#1565c0;">

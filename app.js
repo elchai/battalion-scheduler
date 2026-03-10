@@ -3081,7 +3081,7 @@ function switchTab(tab) {
         renderCompanyTab(tab);
     }
     if (tab === 'calendar') renderCalendar();
-    if (tab === 'reports') { /* Static tab, no render needed */ }
+    if (tab === 'reports') renderReportCompanyFilter();
     if (tab === 'morningreport') generateMorningReport();
     if (tab === 'rollcall') renderReport1();
     if (tab === 'announcements') renderAnnouncements();
@@ -7875,6 +7875,32 @@ function generateLeavesReport() {
     document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ==================== REPORT COMPANY FILTER ====================
+let reportCompanyFilter = 'all';
+
+function renderReportCompanyFilter() {
+    const container = document.getElementById('reportCompanyFilter');
+    if (!container) return;
+    const compNames = getCompNames();
+    const colors = {a:'#C62828',b:'#2E7D32',c:'#1565C0',d:'#F9A825',hq:'#546E7A',agam:'#00796B',palsam:'#6A1B9A'};
+    const companies = ALL_COMPANIES.filter(k => companyData[k] && state.soldiers.some(s => s.company === k));
+    const allActive = reportCompanyFilter === 'all';
+    let html = `<button class="btn btn-sm" onclick="setReportCompany('all')" style="background:${allActive ? 'var(--primary)' : 'transparent'};color:${allActive ? '#fff' : 'var(--primary)'};border:2px solid var(--primary);font-weight:600;">גדודי (הכל)</button>`;
+    companies.forEach(k => {
+        const c = colors[k] || '#546E7A';
+        const active = reportCompanyFilter === k;
+        const txtC = (k === 'd' && active) ? '#333' : active ? '#fff' : c;
+        html += `<button class="btn btn-sm" onclick="setReportCompany('${k}')" style="background:${active ? c : 'transparent'};color:${txtC};border:2px solid ${c};font-weight:600;">${compNames[k]}</button>`;
+    });
+    container.innerHTML = html;
+}
+
+function setReportCompany(key) {
+    reportCompanyFilter = key;
+    renderReportCompanyFilter();
+    document.getElementById('reportPreviewOutput').innerHTML = '';
+}
+
 // ==================== REPORT PREVIEW ====================
 function previewReport(type) {
     const html = buildReportHTML(type);
@@ -7943,6 +7969,10 @@ function exportReportPDF(type) {
 function buildReportHTML(type) {
     const todayStr = localToday();
     const dateStr = getReportDateStr();
+    const filterComp = reportCompanyFilter || 'all';
+    const reportCompanies = filterComp === 'all' ? ALL_COMPANIES : [filterComp];
+    const compNames = getCompNames();
+    const filterLabel = filterComp === 'all' ? 'גדודי' : compNames[filterComp];
     let html = '';
 
     if (type === 'daily') {
@@ -7950,17 +7980,19 @@ function buildReportHTML(type) {
         const todayShifts = state.shifts.filter(sh => sh.date === todayStr);
         const assignedToday = new Set();
         todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedToday.add(sid)));
+        const filteredSoldiers = state.soldiers.filter(s => reportCompanies.includes(s.company));
 
-        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח מצב יומי</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח מצב יומי — ${filterLabel}</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
         html += `<table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:12px;">
-            <tr><td><strong>סה"כ חיילים</strong></td><td>${state.soldiers.length}</td></tr>
-            <tr><td><strong>ביציאה היום</strong></td><td>${activeLeaves.length}</td></tr>
-            <tr><td><strong>משובצים היום</strong></td><td>${assignedToday.size}</td></tr>
-            <tr><td><strong>משמרות פעילות</strong></td><td>${todayShifts.length}</td></tr></table>`;
+            <tr><td><strong>סה"כ חיילים</strong></td><td>${filteredSoldiers.length}</td></tr>
+            <tr><td><strong>ביציאה היום</strong></td><td>${activeLeaves.filter(l => reportCompanies.includes(l.company)).length}</td></tr>
+            <tr><td><strong>משובצים היום</strong></td><td>${todayShifts.filter(sh => reportCompanies.includes(sh.company)).reduce((sum, sh) => sum + sh.soldiers.length, 0)}</td></tr>
+            <tr><td><strong>משמרות פעילות</strong></td><td>${todayShifts.filter(sh => reportCompanies.includes(sh.company)).length}</td></tr></table>`;
         html += `<h3>מצב לפי פלוגה</h3><table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;">
             <tr style="background:#1a3a5c;color:white;"><th>פלוגה</th><th>רשומים</th><th>ביציאה</th><th>משובצים</th><th>בין משמרות</th></tr>`;
-        ALL_COMPANIES.forEach(k => {
+        reportCompanies.forEach(k => {
             const comp = companyData[k];
+            if (!comp) return;
             const reg = state.soldiers.filter(s => s.company === k).length;
             const lv = activeLeaves.filter(l => l.company === k).length;
             const asg = todayShifts.filter(sh => sh.company === k).reduce((sum, sh) => sum + sh.soldiers.length, 0);
@@ -7968,8 +8000,8 @@ function buildReportHTML(type) {
         });
         html += '</table>';
     } else if (type === 'company') {
-        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח פלוגות - כוח אדם</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
-        ALL_COMPANIES.forEach(k => {
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח פלוגות — ${filterLabel}</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        reportCompanies.forEach(k => {
             const soldiers = state.soldiers.filter(s => s.company === k);
             html += `<h3>${companyData[k].name} - ${soldiers.length} חיילים</h3>`;
             if (soldiers.length > 0) {
@@ -7980,8 +8012,8 @@ function buildReportHTML(type) {
             }
         });
     } else if (type === 'shifts') {
-        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח שיבוצים</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
-        ALL_COMPANIES.forEach(k => {
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח שיבוצים — ${filterLabel}</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        reportCompanies.forEach(k => {
             const shifts = state.shifts.filter(sh => sh.company === k && sh.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date));
             if (!shifts.length) return;
             html += `<h3>${companyData[k].name} - ${shifts.length} שיבוצים</h3>`;
@@ -7995,8 +8027,8 @@ function buildReportHTML(type) {
         });
     } else if (type === 'leaves') {
         const activeLeaves = state.leaves.filter(l => l.endDate >= todayStr).sort((a,b) => a.startDate.localeCompare(b.startDate));
-        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח יציאות</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
-        ALL_COMPANIES.forEach(k => {
+        html = `<h2 style="text-align:center;margin-bottom:4px;">דו"ח יציאות — ${filterLabel}</h2><p style="text-align:center;color:#666;margin-bottom:16px;">${dateStr}</p>`;
+        reportCompanies.forEach(k => {
             const leaves = activeLeaves.filter(l => l.company === k);
             if (!leaves.length) return;
             html += `<h3>${companyData[k].name} - ${leaves.length} יציאות</h3>`;
@@ -8017,33 +8049,37 @@ function exportReportExcel(type) {
     const todayStr = localToday();
     const wb = XLSX.utils.book_new();
     const titles = { daily: 'דוח_יומי', company: 'דוח_פלוגות', shifts: 'דוח_שיבוצים', leaves: 'דוח_יציאות' };
+    const filterComp = reportCompanyFilter || 'all';
+    const reportCompanies = filterComp === 'all' ? ALL_COMPANIES : [filterComp];
+    const compNames = getCompNames();
+    const filterLabel = filterComp === 'all' ? 'גדודי' : compNames[filterComp];
 
     if (type === 'daily') {
-        const activeLeaves = state.leaves.filter(l => l.startDate <= todayStr && l.endDate >= todayStr);
-        const todayShifts = state.shifts.filter(sh => sh.date === todayStr);
-        const assignedToday = new Set();
-        todayShifts.forEach(sh => sh.soldiers.forEach(sid => assignedToday.add(sid)));
+        const activeLeaves = state.leaves.filter(l => l.startDate <= todayStr && l.endDate >= todayStr && reportCompanies.includes(l.company));
+        const todayShifts = state.shifts.filter(sh => sh.date === todayStr && reportCompanies.includes(sh.company));
+        const filteredSoldiers = state.soldiers.filter(s => reportCompanies.includes(s.company));
 
-        // Summary sheet
         const summary = [
-            ['דו"ח מצב יומי', getReportDateStr()], [],
-            ['סה"כ חיילים', state.soldiers.length],
+            [`דו"ח מצב יומי — ${filterLabel}`, getReportDateStr()], [],
+            ['סה"כ חיילים', filteredSoldiers.length],
             ['ביציאה היום', activeLeaves.length],
-            ['משובצים היום', assignedToday.size],
+            ['משובצים היום', todayShifts.reduce((sum, sh) => sum + sh.soldiers.length, 0)],
             ['משמרות פעילות', todayShifts.length],
             [], ['פלוגה', 'רשומים', 'ביציאה', 'משובצים', 'בין משמרות']
         ];
-        ALL_COMPANIES.forEach(k => {
+        reportCompanies.forEach(k => {
+            if (!companyData[k]) return;
             const reg = state.soldiers.filter(s => s.company === k).length;
-            const lv = activeLeaves.filter(l => l.company === k).length;
-            const asg = todayShifts.filter(sh => sh.company === k).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+            const lv = state.leaves.filter(l => l.company === k && l.startDate <= todayStr && l.endDate >= todayStr).length;
+            const asg = state.shifts.filter(sh => sh.company === k && sh.date === todayStr).reduce((sum, sh) => sum + sh.soldiers.length, 0);
             summary.push([companyData[k].name, reg, lv, asg, Math.max(0,reg-lv-asg)]);
         });
         const ws = XLSX.utils.aoa_to_sheet(summary);
         ws['!cols'] = [{wch:20},{wch:12},{wch:12},{wch:12},{wch:12}];
         XLSX.utils.book_append_sheet(wb, ws, 'סיכום');
     } else if (type === 'company') {
-        ALL_COMPANIES.forEach(k => {
+        reportCompanies.forEach(k => {
+            if (!companyData[k]) return;
             const soldiers = state.soldiers.filter(s => s.company === k);
             const data = [['שם', 'דרגה', 'תפקיד', 'מ.א.', 'טלפון']];
             soldiers.forEach(s => data.push([s.name, s.rank, s.role, s.personalId||'', s.phone||'']));
@@ -8053,7 +8089,8 @@ function exportReportExcel(type) {
         });
     } else if (type === 'shifts') {
         const data = [['פלוגה', 'תאריך', 'משימה', 'משמרת', 'שעות', 'חיילים']];
-        ALL_COMPANIES.forEach(k => {
+        reportCompanies.forEach(k => {
+            if (!companyData[k]) return;
             state.shifts.filter(sh => sh.company === k && sh.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date)).forEach(sh => {
                 const names = sh.soldiers.map(sid => { const s = state.soldiers.find(x => x.id === sid); return s ? s.name : '?'; }).join(', ');
                 data.push([companyData[k].name, formatDate(sh.date), sh.task, sh.shiftName||'', `${sh.startTime}-${sh.endTime}`, names]);
@@ -8064,7 +8101,7 @@ function exportReportExcel(type) {
         XLSX.utils.book_append_sheet(wb, ws, 'שיבוצים');
     } else if (type === 'leaves') {
         const data = [['פלוגה', 'חייל', 'יציאה', 'שעה', 'חזרה', 'שעה', 'הערות']];
-        const activeLeaves = state.leaves.filter(l => l.endDate >= todayStr).sort((a,b) => a.startDate.localeCompare(b.startDate));
+        const activeLeaves = state.leaves.filter(l => l.endDate >= todayStr && reportCompanies.includes(l.company)).sort((a,b) => a.startDate.localeCompare(b.startDate));
         activeLeaves.forEach(l => {
             const sol = state.soldiers.find(s => s.id === l.soldierId);
             const compName = companyData[l.company] ? companyData[l.company].name : l.company;
@@ -8075,7 +8112,7 @@ function exportReportExcel(type) {
         XLSX.utils.book_append_sheet(wb, ws, 'יציאות');
     }
 
-    XLSX.writeFile(wb, `${titles[type]||'דוח'}_${todayStr}.xlsx`);
+    XLSX.writeFile(wb, `${titles[type]||'דוח'}_${filterLabel}_${todayStr}.xlsx`);
     showToast('Excel נוצר בהצלחה');
 }
 
