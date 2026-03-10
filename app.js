@@ -7155,7 +7155,7 @@ function renderReport1() {
 
     // Day strip / calendar grid
     if (days.length > 1) {
-        if (range === 'operation') {
+        if (range === 'operation' || range === 'month') {
             // Calendar grid view for operation period
             html += '<div class="r1-calendar-grid">';
             html += '<div class="r1-cal-header"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div>';
