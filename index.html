@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v221';
+    var _cb = 'v222';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -572,7 +572,7 @@
         <!-- Sub-tab navigation -->
         <div class="pakal-subtabs" id="equipmentSubTabs">
             <button class="subtab-btn active" onclick="switchEquipmentSubTab('items')">צל"מ וציוד</button>
-            <button class="subtab-btn" onclick="switchEquipmentSubTab('dashboard')">דשבורד פלס"ם</button>
+
             <button class="subtab-btn" onclick="switchEquipmentSubTab('reports')">דוחות ציוד</button>
             <button class="subtab-btn" onclick="switchEquipmentSubTab('transfer')">החלפת חתימות</button>
         </div>
@@ -636,10 +636,8 @@
             </div>
         </div>
 
-        <!-- Sub-tab: Palsam Dashboard -->
-        <div class="equip-subtab" id="subtab-dashboard" style="display:none;">
-            <div id="palsamDashboardContent"></div>
-        </div>
+
+
 
         <!-- Sub-tab: Equipment Reports -->
         <div class="equip-subtab" id="subtab-reports" style="display:none;">
