@@ -7140,7 +7140,7 @@ function renderReport1() {
 
     // Info header
     html += `<div class="r1-info-header">
-        <span class="r1-info-company">${isNispachim ? 'נספחים' : compNames[compKey]}</span>
+        <span class="r1-info-company">${isAll ? 'גדודי' : isNispachim ? 'נספחים' : compNames[compKey]}</span>
         <span class="r1-info-date">${focusLabel}${isClosed ? ' (שמ"פ סגור)' : ''}</span>
         <span class="r1-info-count">${total} חיילים</span>
         ${isAdmin() || currentUser.unit === 'gdudi' ? `<button class="r1-closed-toggle ${isClosed ? 'is-closed' : ''}" onclick="toggleClosedDay('${focusDateStr}')">
@@ -7148,29 +7148,65 @@ function renderReport1() {
         </button>` : ''}
     </div>`;
 
-    // Day strip (only for multi-day ranges)
+    // Day strip / calendar grid
     if (days.length > 1) {
-        html += '<div class="r1-day-strip">';
-        days.forEach((d, i) => {
-            const ds = d.toISOString().split('T')[0];
-            const isToday = ds === todayStr;
-            const isSelected = ds === focusDateStr;
-            const isWeekend = d.getDay() === 5 || d.getDay() === 6;
-            const sum = dailySummaries[i];
-            const barTotal = sum.active + sum.base + sum.home + sum.notserving;
-            const barW = (n) => barTotal > 0 ? Math.max(n / barTotal * 100, n > 0 ? 8 : 0) : 0;
-
-            html += `<div class="r1-day-chip ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}" onclick="report1SelectDay('${ds}')">
-                <div class="r1-chip-day">${hebDays[d.getDay()]}</div>
-                <div class="r1-chip-date">${d.getDate()}/${d.getMonth()+1}</div>
-                <div class="r1-chip-bar">
-                    <span style="width:${barW(sum.active)}%;background:#1565c0;"></span>
-                    <span style="width:${barW(sum.base)}%;background:#2e7d32;"></span>
-                    <span style="width:${barW(sum.home)}%;background:#e65100;"></span>
-                </div>
+        if (range === 'operation') {
+            // Calendar grid view for operation period
+            html += '<div class="r1-calendar-grid">';
+            html += '<div class="r1-cal-header"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div>';
+            // Pad start to align with day of week
+            const firstDow = days[0].getDay();
+            let cellIdx = 0;
+            html += '<div class="r1-cal-row">';
+            for (let pad = 0; pad < firstDow; pad++) { html += '<div class="r1-cal-cell empty"></div>'; cellIdx++; }
+            days.forEach((d, i) => {
+                if (cellIdx > 0 && cellIdx % 7 === 0) html += '</div><div class="r1-cal-row">';
+                const ds = d.toISOString().split('T')[0];
+                const isToday = ds === todayStr;
+                const isSelected = ds === focusDateStr;
+                const sum = dailySummaries[i];
+                const dominant = sum.outOfOp ? 'outofop' : sum.active >= sum.base && sum.active >= sum.home ? 'active' : sum.base >= sum.home ? 'base' : 'home';
+                const activePct = total > 0 ? Math.round(sum.active / total * 100) : 0;
+                html += `<div class="r1-cal-cell ${dominant} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" onclick="report1SelectDay('${ds}')" title="${d.getDate()}/${d.getMonth()+1} — ${sum.active} בפעילות, ${sum.base} בבסיס, ${sum.home} בבית">
+                    <div class="r1-cal-date">${d.getDate()}</div>
+                    ${!sum.outOfOp ? `<div class="r1-cal-pct">${activePct}%</div>` : ''}
+                </div>`;
+                cellIdx++;
+            });
+            // Pad end
+            while (cellIdx % 7 !== 0) { html += '<div class="r1-cal-cell empty"></div>'; cellIdx++; }
+            html += '</div></div>';
+            // Legend
+            html += `<div class="r1-cal-legend">
+                <span><span class="r1-cal-dot" style="background:#1565c0;"></span> בפעילות</span>
+                <span><span class="r1-cal-dot" style="background:#2e7d32;"></span> בבסיס</span>
+                <span><span class="r1-cal-dot" style="background:#e65100;"></span> בבית</span>
+                <span><span class="r1-cal-dot" style="background:#e0e0e0;"></span> מחוץ לתקופה</span>
             </div>`;
-        });
-        html += '</div>';
+        } else {
+            // Regular day strip for week/month
+            html += '<div class="r1-day-strip">';
+            days.forEach((d, i) => {
+                const ds = d.toISOString().split('T')[0];
+                const isToday = ds === todayStr;
+                const isSelected = ds === focusDateStr;
+                const isWeekend = d.getDay() === 5 || d.getDay() === 6;
+                const sum = dailySummaries[i];
+                const barTotal = sum.active + sum.base + sum.home + sum.notserving;
+                const barW = (n) => barTotal > 0 ? Math.max(n / barTotal * 100, n > 0 ? 8 : 0) : 0;
+
+                html += `<div class="r1-day-chip ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}" onclick="report1SelectDay('${ds}')">
+                    <div class="r1-chip-day">${hebDays[d.getDay()]}</div>
+                    <div class="r1-chip-date">${d.getDate()}/${d.getMonth()+1}</div>
+                    <div class="r1-chip-bar">
+                        <span style="width:${barW(sum.active)}%;background:#1565c0;"></span>
+                        <span style="width:${barW(sum.base)}%;background:#2e7d32;"></span>
+                        <span style="width:${barW(sum.home)}%;background:#e65100;"></span>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+        }
     }
 
     // Summary cards
