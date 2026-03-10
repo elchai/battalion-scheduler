@@ -9990,6 +9990,10 @@ function renderWeaponsTab() {
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
     let soldiers = [...state.soldiers];
+    // Apply company filter
+    const compSelect = document.getElementById('weaponsSendCompany');
+    const compFilter = compSelect ? compSelect.value : 'all';
+    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
     if (query) soldiers = soldiers.filter(s => s.name.toLowerCase().includes(query));
 
     // Apply filter
