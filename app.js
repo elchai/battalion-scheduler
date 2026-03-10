@@ -38,7 +38,8 @@ const DEFAULT_SETTINGS = {
                 { name: 'חוסם עורקים CAT', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'מצנפת לקסדה', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
                 { name: 'ברכיות', quantity: 2, category: 'לוגיסטיקה', requiresSerial: false },
-                { name: 'חגורה צבאית', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false }
+                { name: 'חגורה צבאית', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false },
+                { name: 'משקפי מגן', quantity: 1, category: 'לוגיסטיקה', requiresSerial: false }
             ]
         },
         roleSets: [{
@@ -89,12 +90,12 @@ function migrateEquipmentSets() {
     settings.equipmentSets.baseSet = settings.equipmentSets.baseSet || defaults.equipmentSets.baseSet;
     if (!settings.equipmentSets.baseSet.items) settings.equipmentSets.baseSet.items = defaults.equipmentSets.baseSet.items;
 
-    // Migration v22: move 624, מדונה, מע"ד, אמר"ל עכבר, סוללות from baseSet to commanderSet
-    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 22) {
+    // Migration v23: add משקפי מגן to baseSet
+    if (!settings.equipmentSets._baseSetVer || settings.equipmentSets._baseSetVer < 23) {
         settings.equipmentSets.baseSet = JSON.parse(JSON.stringify(defaults.equipmentSets.baseSet));
         settings.equipmentSets.roleSets = JSON.parse(JSON.stringify(defaults.equipmentSets.roleSets));
-        settings.equipmentSets._baseSetVer = 22;
-        settings.equipmentSets._roleSetVer = 22;
+        settings.equipmentSets._baseSetVer = 23;
+        settings.equipmentSets._roleSetVer = 23;
     }
     // Always clean up: remove empty/broken roleSets
     if (settings.equipmentSets.roleSets) {
