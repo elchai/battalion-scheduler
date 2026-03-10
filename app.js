@@ -2884,7 +2884,13 @@ function renderWhatsAppCenter() {
             <div class="icon" style="background:#e8f5e9;color:#25D366;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </div>
-            מרכז התראות WhatsApp
+            הודעות WhatsApp
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <button class="btn" style="background:#25D366;color:#fff;display:flex;align-items:center;gap:6px;font-size:0.92em;" onclick="openGroupWaModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                שליחה לקבוצה
+            </button>
         </div>
         <div class="info-box">
             <span class="info-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
@@ -10602,6 +10608,263 @@ function renderWaSendHistory() {
             <span style="color:var(--text-light);font-size:11px;white-space:nowrap;">${dateStr}</span>
         </div>`;
     }).join('');
+}
+
+// ==================== GROUP WHATSAPP ====================
+let _groupWaSending = false;
+let _groupWaSelectedIds = new Set();
+
+function openGroupWaModal() {
+    const compNames = getCompNames();
+    const colors = {a:'#C62828',b:'#2E7D32',c:'#1565C0',d:'#F9A825',hq:'#546E7A',agam:'#00796B',palsam:'#6A1B9A'};
+
+    // Build group chips
+    let groupsHtml = `<label style="font-weight:600;display:block;margin-bottom:8px;">בחר קבוצה:</label>`;
+    groupsHtml += `<div style="margin-bottom:10px;">
+        <div style="font-size:0.8em;font-weight:600;color:var(--text-light);margin-bottom:6px;">גדודי</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל המ״פים</button>
+            <button class="btn btn-sm group-wa-chip" data-group="officers" onclick="selectGroupWa('officers')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל הקצינים</button>
+            <button class="btn btn-sm group-wa-chip" data-group="commanders" onclick="selectGroupWa('commanders')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל המפקדים</button>
+            <button class="btn btn-sm group-wa-chip" data-group="soldiers" onclick="selectGroupWa('soldiers')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל החיילים</button>
+        </div>
+    </div>`;
+
+    // Per-company groups
+    const companies = ALL_COMPANIES.filter(k => companyData[k] && state.soldiers.some(s => s.company === k));
+    companies.forEach(k => {
+        const c = colors[k] || '#546E7A';
+        const textColor = k === 'd' ? '#333' : c;
+        groupsHtml += `<div style="margin-bottom:8px;">
+            <div style="font-size:0.8em;font-weight:600;color:${textColor};margin-bottom:4px;">${compNames[k]}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-sm group-wa-chip" data-group="officers_${k}" onclick="selectGroupWa('officers_${k}')" style="border:2px solid ${c};background:transparent;color:${textColor};font-size:0.78em;">קצינים</button>
+                <button class="btn btn-sm group-wa-chip" data-group="commanders_${k}" onclick="selectGroupWa('commanders_${k}')" style="border:2px solid ${c};background:transparent;color:${textColor};font-size:0.78em;">מפקדים</button>
+                <button class="btn btn-sm group-wa-chip" data-group="soldiers_${k}" onclick="selectGroupWa('soldiers_${k}')" style="border:2px solid ${c};background:transparent;color:${textColor};font-size:0.78em;">חיילים</button>
+            </div>
+        </div>`;
+    });
+
+    document.getElementById('groupWaGroups').innerHTML = groupsHtml;
+    _groupWaSelectedIds = new Set();
+    renderGroupWaRecipients();
+    document.getElementById('groupWaMessage').value = '';
+    document.getElementById('groupWaPreview').textContent = '';
+    document.getElementById('groupWaProgress').textContent = '';
+    openModal('groupWaModal');
+}
+
+function selectGroupWa(group) {
+    const compNames = getCompNames();
+    let soldiers = [];
+
+    if (group === 'mafap') {
+        soldiers = state.soldiers.filter(s => (s.role || '').includes('מ"פ') && !(s.role || '').includes('סמ"פ'));
+    } else if (group === 'officers') {
+        soldiers = state.soldiers.filter(s => isOfficer(s));
+    } else if (group === 'commanders') {
+        soldiers = state.soldiers.filter(s => isCommander(s));
+    } else if (group === 'soldiers') {
+        soldiers = state.soldiers.filter(s => !isOfficer(s) && !isCommander(s));
+    } else if (group.startsWith('officers_')) {
+        const k = group.replace('officers_', '');
+        soldiers = state.soldiers.filter(s => s.company === k && isOfficer(s));
+    } else if (group.startsWith('commanders_')) {
+        const k = group.replace('commanders_', '');
+        soldiers = state.soldiers.filter(s => s.company === k && isCommander(s));
+    } else if (group.startsWith('soldiers_')) {
+        const k = group.replace('soldiers_', '');
+        soldiers = state.soldiers.filter(s => s.company === k && !isOfficer(s) && !isCommander(s));
+    }
+
+    // Filter only those with phone
+    const withPhone = soldiers.filter(s => s.phone);
+    _groupWaSelectedIds = new Set(withPhone.map(s => s.id));
+
+    // Highlight active chip
+    document.querySelectorAll('.group-wa-chip').forEach(b => {
+        if (b.dataset.group === group) {
+            b.style.background = b.style.borderColor;
+            b.style.color = '#fff';
+        } else {
+            b.style.background = 'transparent';
+            b.style.color = b.style.borderColor;
+        }
+    });
+
+    renderGroupWaRecipients();
+    updateGroupWaPreview();
+    showToast(`${withPhone.length} נמענים נבחרו${soldiers.length - withPhone.length > 0 ? ` (${soldiers.length - withPhone.length} ללא טלפון)` : ''}`, 'info');
+}
+
+function renderGroupWaRecipients() {
+    const container = document.getElementById('groupWaRecipients');
+    const compNames = getCompNames();
+    const allWithPhone = state.soldiers.filter(s => s.phone);
+
+    if (allWithPhone.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);">אין חיילים עם מספר טלפון</div>';
+        return;
+    }
+
+    container.innerHTML = allWithPhone.map(s => {
+        const checked = _groupWaSelectedIds.has(s.id) ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.88em;cursor:pointer;">
+            <input type="checkbox" ${checked} data-sol-id="${s.id}" onchange="toggleGroupWaRecipient('${s.id}',this.checked)">
+            <strong>${esc(s.name)}</strong>
+            <span style="color:var(--text-light);font-size:0.82em;">${compNames[s.company] || ''} | ${s.phone}</span>
+        </label>`;
+    }).join('');
+
+    const countEl = document.getElementById('groupWaCount');
+    if (countEl) countEl.textContent = `${_groupWaSelectedIds.size} נבחרו מתוך ${allWithPhone.length}`;
+}
+
+function toggleGroupWaRecipient(id, checked) {
+    if (checked) _groupWaSelectedIds.add(id);
+    else _groupWaSelectedIds.delete(id);
+    const countEl = document.getElementById('groupWaCount');
+    if (countEl) countEl.textContent = `${_groupWaSelectedIds.size} נבחרו`;
+}
+
+function groupWaSelectAll(checked) {
+    state.soldiers.filter(s => s.phone).forEach(s => {
+        if (checked) _groupWaSelectedIds.add(s.id);
+        else _groupWaSelectedIds.delete(s.id);
+    });
+    renderGroupWaRecipients();
+}
+
+function insertGroupWaVar(varName) {
+    const ta = document.getElementById('groupWaMessage');
+    const pos = ta.selectionStart;
+    const text = ta.value;
+    ta.value = text.slice(0, pos) + varName + text.slice(pos);
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = pos + varName.length;
+    updateGroupWaPreview();
+}
+
+function buildGroupWaMsg(soldier) {
+    const tpl = document.getElementById('groupWaMessage').value;
+    const compNames = getCompNames();
+    const firstName = soldier.name.split(' ')[0];
+    return tpl
+        .replace(/\{שם\}/g, firstName)
+        .replace(/\{פלוגה\}/g, compNames[soldier.company] || '')
+        .replace(/\{תפקיד\}/g, soldier.role || '');
+}
+
+function updateGroupWaPreview() {
+    const preview = document.getElementById('groupWaPreview');
+    const firstId = [..._groupWaSelectedIds][0];
+    const sol = firstId ? state.soldiers.find(s => s.id === firstId) : null;
+    if (sol) {
+        preview.textContent = buildGroupWaMsg(sol);
+    } else {
+        preview.textContent = document.getElementById('groupWaMessage').value || 'בחר קבוצה וכתוב הודעה...';
+    }
+}
+
+async function sendGroupWaTest() {
+    const msg = document.getElementById('groupWaMessage').value;
+    if (!msg.trim()) { showToast('כתוב הודעה קודם', 'error'); return; }
+
+    // Find current user's soldier record and phone
+    const mySoldier = currentUser.soldierId ? state.soldiers.find(s => s.id === currentUser.soldierId) : null;
+    const myPhone = mySoldier ? mySoldier.phone : null;
+
+    if (!myPhone) { showToast('לא נמצא מספר טלפון למשתמש המחובר', 'error'); return; }
+
+    const testMsg = buildGroupWaMsg(mySoldier);
+    const phone = normalizePhone(myPhone);
+
+    if (!CONFIG.greenApi) {
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(testMsg)}`, '_blank');
+        showToast('נפתח WhatsApp עם הודעת ניסיון');
+        return;
+    }
+
+    try {
+        const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
+        const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: phone + '@c.us', message: testMsg })
+        });
+        const data = await resp.json();
+        if (data.idMessage) {
+            showToast(`הודעת ניסיון נשלחה ל-${myPhone}`, 'success');
+        } else {
+            showToast('שליחת ניסיון נכשלה', 'error');
+        }
+    } catch (err) {
+        showToast('שגיאה בשליחה: ' + err.message, 'error');
+    }
+}
+
+async function sendGroupWa() {
+    if (_groupWaSending) return;
+    const msg = document.getElementById('groupWaMessage').value;
+    if (!msg.trim()) { showToast('כתוב הודעה קודם', 'error'); return; }
+
+    const recipients = state.soldiers.filter(s => _groupWaSelectedIds.has(s.id) && s.phone);
+    if (!recipients.length) { showToast('לא נבחרו נמענים', 'error'); return; }
+
+    if (!CONFIG.greenApi) {
+        showToast('Green API לא מוגדר ב-config.js', 'error');
+        return;
+    }
+
+    if (!confirm(`לשלוח הודעה ל-${recipients.length} נמענים?`)) return;
+
+    _groupWaSending = true;
+    const btn = document.getElementById('btnGroupWaSend');
+    if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
+    const progressEl = document.getElementById('groupWaProgress');
+    const delay = parseInt(document.getElementById('groupWaDelay').value) || 3;
+
+    let sent = 0, failed = 0;
+    if (!state.waSendLog) state.waSendLog = [];
+
+    for (let i = 0; i < recipients.length; i++) {
+        const s = recipients[i];
+        const personalMsg = buildGroupWaMsg(s);
+        const phone = normalizePhone(s.phone);
+        progressEl.textContent = `שולח ${i + 1} / ${recipients.length} — ${s.name}...`;
+
+        try {
+            const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
+            const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatId: phone + '@c.us', message: personalMsg })
+            });
+            const data = await resp.json();
+            if (data.idMessage) {
+                sent++;
+                state.waSendLog.push({ id: 'wa_' + Date.now() + '_' + i, soldierId: s.id, soldierName: s.name, phone: s.phone, message: personalMsg.substring(0, 200), sentAt: new Date().toISOString(), status: 'sent', context: 'group' });
+            } else {
+                failed++;
+                state.waSendLog.push({ id: 'wa_' + Date.now() + '_' + i, soldierId: s.id, soldierName: s.name, phone: s.phone, message: personalMsg.substring(0, 200), sentAt: new Date().toISOString(), status: 'failed', context: 'group' });
+            }
+        } catch (err) {
+            failed++;
+            state.waSendLog.push({ id: 'wa_' + Date.now() + '_' + i, soldierId: s.id, soldierName: s.name, phone: s.phone, message: '', sentAt: new Date().toISOString(), status: 'error', context: 'group' });
+        }
+
+        if (i < recipients.length - 1) {
+            await new Promise(r => setTimeout(r, delay * 1000));
+        }
+    }
+
+    saveState();
+    progressEl.textContent = `הושלם: ${sent} נשלחו${failed ? `, ${failed} נכשלו` : ''}`;
+    showToast(`נשלחו ${sent} הודעות${failed ? ` (${failed} נכשלו)` : ''}`, failed ? 'warning' : 'success');
+    _groupWaSending = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'שלח לכולם'; }
 }
 
 // ==================== PAKAL (PERSONAL EQUIPMENT) SYSTEM ====================
