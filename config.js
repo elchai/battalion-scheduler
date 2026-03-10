@@ -189,7 +189,7 @@ const CONFIG = {
     greenApi: {
         idInstance: '7103258354',
         apiTokenInstance: '4887bbcf63dc43e1a886a8dad54c9c098527765528484934b3',
-        apiUrl: 'https://7103.api.green-api.com'
+        apiUrl: 'https://7103.api.greenapi.com'
     },
 
     // --- קרדיט ---
