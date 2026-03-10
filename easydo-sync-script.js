@@ -589,11 +589,10 @@ function resolveWeaponSource_(rawSource, rawType) {
 }
 
 /**
- * פיצול כתובות קיימות בגיליון.
- * הנתונים המעורבבים נמצאים בעמודה L (מס' הבית) — כוללים מספר + עיר + מיקוד.
- * דוגמאות מעמודה L: "255", "30 מודיעין מכבים רעות 830", "253/1 דולב 7193500",
- *                     "18/10 מודיעין", "36 בת ים", "12 תל אביב"
- * הפונקציה מפצלת: L=מספר בלבד, M=יישוב, N=מיקוד.
+ * פיצול וניקוי כתובות קיימות בגיליון.
+ * שלב 1: פיצול תוכן מעורבב מעמודה L (מס' הבית)
+ * שלב 2: ניקוי עמודה M (יישוב) — ת.ד., דירה, מיקוד מעורבב
+ * שלב 3: אם K (רחוב) ריק — משכפל את שם העיר מ-M
  * הרץ פעם אחת: Run > splitExistingAddresses
  */
 function splitExistingAddresses() {
@@ -605,36 +604,76 @@ function splitExistingAddresses() {
   let updated = 0;
 
   for (let i = 1; i < data.length; i++) {
-    const lVal = String(data[i][11] || '').trim(); // L = index 11 (מס' הבית)
-    const mVal = String(data[i][12] || '').trim(); // M = index 12 (יישוב)
-    const nVal = String(data[i][13] || '').trim(); // N = index 13 (מיקוד)
+    const row = i + 1;
+    let kVal = String(data[i][10] || '').trim(); // K = רחוב
+    let lVal = String(data[i][11] || '').trim(); // L = מס' הבית
+    let mVal = String(data[i][12] || '').trim(); // M = יישוב
+    let nVal = String(data[i][13] || '').trim(); // N = מיקוד
+    let changed = false;
 
-    if (!lVal) continue;
-
-    // If M (city) is already filled, row is already split — skip
-    if (mVal) continue;
-
-    // Check if L contains Hebrew text (= mixed content, not just a number)
-    const hasHebrew = /[\u0590-\u05FF]/.test(lVal);
-    // Check if L contains a zip code (5-7 digit sequence)
-    const hasZip = /\d{5,7}/.test(lVal);
-
-    if (!hasHebrew && !hasZip) continue; // Pure number like "255" — already correct
-
-    // Parse mixed content from L
-    const parsed = parseMixedHouseNumber_(lVal);
-    const row = i + 1; // 1-based
-
-    dataTab.getRange(row, 12).setValue(parsed.number);  // L = מס' בית
-    dataTab.getRange(row, 13).setValue(parsed.city);     // M = יישוב
-    if (parsed.zip) {
-      dataTab.getRange(row, 14).setValue(parsed.zip);    // N = מיקוד
+    // --- שלב 1: פיצול L אם מכיל תוכן מעורבב ---
+    if (lVal && !mVal) {
+      const hasHebrew = /[\u0590-\u05FF]/.test(lVal);
+      const hasZip = /\d{5,7}/.test(lVal);
+      if (hasHebrew || hasZip) {
+        const parsed = parseMixedHouseNumber_(lVal);
+        lVal = parsed.number;
+        mVal = parsed.city;
+        if (parsed.zip) nVal = parsed.zip;
+        changed = true;
+        Logger.log('Row ' + row + ' L split: "' + data[i][11] + '" → L=' + lVal + ', M=' + mVal + ', N=' + nVal);
+      }
     }
-    updated++;
-    Logger.log('Row ' + row + ': "' + lVal + '" → number=' + parsed.number + ', city=' + parsed.city + ', zip=' + parsed.zip);
+
+    // --- שלב 2: ניקוי M אם מכיל תוכן מעורבב ---
+    if (mVal) {
+      // מקרה: "ת.ד. 193 מיקוד: 7319000" או "ת.ד 45"
+      const tdMatch = mVal.match(/ת\.?ד\.?\s*(\d+)/);
+      if (tdMatch) {
+        lVal = 'ת.ד. ' + tdMatch[1]; // ת.ד. → L
+        // חלץ מיקוד אם יש
+        const zipInM = mVal.match(/\b(\d{5,7})\b/);
+        if (zipInM) nVal = zipInM[1];
+        // חלץ שם עיר (מה שנשאר אחרי הסרת ת.ד. ומיקוד)
+        let remaining = mVal
+          .replace(/ת\.?ד\.?\s*\d+/, '')
+          .replace(/מיקוד:?\s*\d+/, '')
+          .replace(/\d{5,7}/, '')
+          .trim();
+        // אם לא נשאר שם עיר, השתמש ב-K
+        mVal = remaining || kVal;
+        changed = true;
+        Logger.log('Row ' + row + ' ת.ד: L=' + lVal + ', M=' + mVal + ', N=' + nVal);
+      }
+
+      // מקרה: "דירה 1 מודיעין מכבים רעות"
+      const diraMatch = mVal.match(/^(דירה\s+\d+)\s+([\u0590-\u05FF].+)$/);
+      if (diraMatch) {
+        lVal = lVal ? lVal + ' ' + diraMatch[1] : diraMatch[1]; // צרף "דירה X" ל-L
+        mVal = diraMatch[2].trim();
+        changed = true;
+        Logger.log('Row ' + row + ' דירה: L=' + lVal + ', M=' + mVal);
+      }
+    }
+
+    // --- שלב 3: אם K ריק — שכפל שם העיר ---
+    if (!kVal && mVal) {
+      kVal = mVal;
+      changed = true;
+      Logger.log('Row ' + row + ' K empty → copied city: K=' + kVal);
+    }
+
+    // כתוב שינויים
+    if (changed) {
+      dataTab.getRange(row, 11).setValue(kVal);  // K = רחוב
+      dataTab.getRange(row, 12).setValue(lVal);  // L = מס' בית
+      dataTab.getRange(row, 13).setValue(mVal);  // M = יישוב
+      dataTab.getRange(row, 14).setValue(nVal);  // N = מיקוד
+      updated++;
+    }
   }
 
-  Logger.log('Split ' + updated + ' addresses.');
+  Logger.log('Fixed ' + updated + ' address rows.');
   appendLog_(ss, 'פיצול כתובות', 'עודכנו ' + updated + ' שורות');
 }
 
