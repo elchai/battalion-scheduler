@@ -2023,6 +2023,13 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .task-edit-header { font-weight: 700; color: var(--text-light); font-size: 0.8em; border-bottom: 2px solid var(--border); }
 .task-edit-header span { text-align: center; }
 .task-edit-header span:first-child { text-align: right; }
+.company-tab-btn.active { color: #fff !important; }
+.company-tab-btn[data-comp="a"].active { background: #C62828 !important; }
+.company-tab-btn[data-comp="b"].active { background: #2E7D32 !important; }
+.company-tab-btn[data-comp="c"].active { background: #1565C0 !important; }
+.company-tab-btn[data-comp="d"].active { background: #F9A825 !important; color: #333 !important; }
+.company-tab-btn[data-comp="hq"].active { background: #546E7A !important; }
+.company-tab-btn[data-comp="palsam"].active { background: #6A1B9A !important; }
 
 /* Login Screen */
 .login-screen {

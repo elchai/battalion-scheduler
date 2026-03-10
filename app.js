@@ -6288,11 +6288,21 @@ function renderSettingsTab() {
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> ניהול משימות לפי פלוגה</h3>
         <div class="form-group" style="margin-bottom:14px;">
             ${taskCompanies.length > 1 ? `
-            <select id="settingsTaskCompany" onchange="renderTaskEditor()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
-                ${taskCompanies.map(k =>
-                    `<option value="${k}">${companyNames[k]}</option>`
-                ).join('')}
-            </select>` : `
+            <input type="hidden" id="settingsTaskCompany" value="${taskCompanies[0]}">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${taskCompanies.map(k => {
+                    const colors = {a:'#C62828',b:'#2E7D32',c:'#1565C0',d:'#F9A825',hq:'#546E7A',palsam:'#6A1B9A'};
+                    const c = colors[k] || '#546E7A';
+                    const textColor = k === 'd' ? '#333' : '#fff';
+                    return `<button class="company-tab-btn" data-comp="${k}" onclick="document.getElementById('settingsTaskCompany').value='${k}';renderTaskEditor();document.querySelectorAll('.company-tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');" style="padding:6px 16px;border-radius:8px;border:2px solid ${c};background:transparent;color:${c};font-family:inherit;font-weight:700;font-size:0.88em;cursor:pointer;transition:all 0.2s;">${companyNames[k]}</button>`;
+                }).join('')}
+            </div>
+            <script>
+                requestAnimationFrame(() => {
+                    const first = document.querySelector('.company-tab-btn');
+                    if (first) first.classList.add('active');
+                });
+            </script>` : `
             <input type="hidden" id="settingsTaskCompany" value="${taskCompanies[0]}">
             <span style="font-weight:600;">${companyNames[taskCompanies[0]]}</span>`}
         </div>
