@@ -7797,7 +7797,7 @@ let DOC_LOGO_BASE64 = '';
         c.getContext('2d').drawImage(img, 0, 0);
         DOC_LOGO_BASE64 = c.toDataURL('image/png');
     };
-    img.src = CONFIG.docLogoPath;
+    img.src = CONFIG.docLogoPath + '?v=' + Date.now();
     img.onerror = function() {
         const fallback = new Image();
         fallback.onload = function() {
@@ -7820,7 +7820,7 @@ let DOC_STAMP_BASE64 = '';
         c.getContext('2d').drawImage(img, 0, 0);
         DOC_STAMP_BASE64 = c.toDataURL('image/png');
     };
-    img.src = CONFIG.stampPath;
+    img.src = CONFIG.stampPath + '?v=' + Date.now();
 })();
 
 // --- Signature Canvas Setup ---
