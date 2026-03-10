@@ -2029,6 +2029,7 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .company-tab-btn[data-comp="c"].active { background: #1565C0 !important; }
 .company-tab-btn[data-comp="d"].active { background: #F9A825 !important; color: #333 !important; }
 .company-tab-btn[data-comp="hq"].active { background: #546E7A !important; }
+.company-tab-btn[data-comp="agam"].active { background: #00796B !important; }
 .company-tab-btn[data-comp="palsam"].active { background: #6A1B9A !important; }
 
 /* Login Screen */

@@ -6291,7 +6291,7 @@ function renderSettingsTab() {
             <input type="hidden" id="settingsTaskCompany" value="${taskCompanies[0]}">
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 ${taskCompanies.map(k => {
-                    const colors = {a:'#C62828',b:'#2E7D32',c:'#1565C0',d:'#F9A825',hq:'#546E7A',palsam:'#6A1B9A'};
+                    const colors = {a:'#C62828',b:'#2E7D32',c:'#1565C0',d:'#F9A825',hq:'#546E7A',agam:'#00796B',palsam:'#6A1B9A'};
                     const c = colors[k] || '#546E7A';
                     const textColor = k === 'd' ? '#333' : '#fff';
                     return `<button class="company-tab-btn" data-comp="${k}" onclick="document.getElementById('settingsTaskCompany').value='${k}';renderTaskEditor();document.querySelectorAll('.company-tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');" style="padding:6px 16px;border-radius:8px;border:2px solid ${c};background:transparent;color:${c};font-family:inherit;font-weight:700;font-size:0.88em;cursor:pointer;transition:all 0.2s;">${companyNames[k]}</button>`;

@@ -977,14 +977,14 @@
             </div>
             <div id="autoSchedPreview"></div>
         </div>
-        <div class="modal-footer" id="autoSchedFooter" style="display:none;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div class="modal-footer" id="autoSchedFooter" style="display:none;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;">
             <div style="display:flex;gap:8px;">
-                <button class="btn btn-success" onclick="approveScheduleProposal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><polyline points="20 6 9 17 4 12"/></svg> אשר נבחרים</button>
+                <button class="btn btn-success" onclick="approveScheduleProposal()" style="font-size:1em;padding:10px 24px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><polyline points="20 6 9 17 4 12"/></svg> אשר נבחרים</button>
                 <button class="btn btn-cancel" onclick="closeModal('autoScheduleModal')">ביטול</button>
             </div>
-            <div style="display:flex;gap:8px;">
-                <button class="btn btn-sm" style="background:var(--bg);color:var(--text);" onclick="toggleAllProposalShifts(true)">בחר הכל</button>
-                <button class="btn btn-sm" style="background:var(--bg);color:var(--text);" onclick="toggleAllProposalShifts(false)">בטל הכל</button>
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-sm" style="background:var(--primary);color:#fff;padding:6px 14px;" onclick="toggleAllProposalShifts(true)">&#10003; סמן הכל</button>
+                <button class="btn btn-sm" style="background:var(--danger);color:#fff;padding:6px 14px;" onclick="toggleAllProposalShifts(false)">&#10005; נקה הכל</button>
             </div>
         </div>
     </div>
@@ -1518,7 +1518,7 @@
             <h3>שליחת הודעת וואטסאפ - טפסי נשקים</h3>
             <button class="modal-close" onclick="closeModal('weaponsWhatsAppModal')">&times;</button>
         </div>
-        <div class="modal-body" style="max-height:85vh;overflow-y:auto;">
+        <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
                 <label style="font-weight:600;">פלוגה:</label>
                 <select id="waCompanyFilter" class="form-select" style="width:auto;min-width:140px;" onchange="updateWaSoldierList()">
@@ -1543,7 +1543,7 @@
                     <span id="waSelectedCount" style="color:var(--text-light);font-size:13px;"></span>
                     <input type="text" id="waSoldierSearch" class="form-control" placeholder="חיפוש חייל..." oninput="filterWaSoldierList()" style="width:180px;margin-right:auto;">
                 </div>
-                <div id="waSoldierList" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+                <div id="waSoldierList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;scrollbar-width:thin;"></div>
             </div>
             <div style="margin-bottom:18px;">
                 <label style="font-weight:600;display:block;margin-bottom:8px;font-size:15px;">תוכן ההודעה:</label>
@@ -1556,7 +1556,7 @@
             </div>
             <div style="margin-bottom:14px;">
                 <label style="font-weight:600;display:block;margin-bottom:8px;font-size:15px;">תצוגה מקדימה:</label>
-                <div id="waPreview" style="background:#dcf8c6;border:1px solid #b5d9a0;border-radius:12px;padding:14px 16px;white-space:pre-wrap;font-size:14px;line-height:1.7;direction:rtl;max-height:140px;overflow-y:auto;color:#111;font-family:inherit;"></div>
+                <div id="waPreview" style="background:#dcf8c6;border:1px solid #b5d9a0;border-radius:12px;padding:14px 16px;white-space:pre-wrap;font-size:14px;line-height:1.7;direction:rtl;color:#111;font-family:inherit;"></div>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                 <label style="display:flex;align-items:center;gap:5px;">
@@ -1567,7 +1567,7 @@
             </div>
             <details style="margin-top:14px;">
                 <summary style="font-weight:600;font-size:14px;cursor:pointer;">היסטוריית שליחות</summary>
-                <div id="waSendHistory" style="max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px;"></div>
+                <div id="waSendHistory" style="border:1px solid var(--border);border-radius:8px;margin-top:8px;"></div>
             </details>
         </div>
         <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;">
