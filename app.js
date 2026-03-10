@@ -10620,30 +10620,28 @@ function openGroupWaModal() {
 
     // Build group chips
     let groupsHtml = `<label style="font-weight:600;display:block;margin-bottom:8px;">בחר קבוצה:</label>`;
-    groupsHtml += `<div style="margin-bottom:10px;">
-        <div style="font-size:0.8em;font-weight:600;color:var(--text-light);margin-bottom:6px;">גדודי</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל המ״פים</button>
-            <button class="btn btn-sm group-wa-chip" data-group="officers" onclick="selectGroupWa('officers')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל הקצינים</button>
-            <button class="btn btn-sm group-wa-chip" data-group="commanders" onclick="selectGroupWa('commanders')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל המפקדים</button>
-            <button class="btn btn-sm group-wa-chip" data-group="soldiers" onclick="selectGroupWa('soldiers')" style="border:2px solid var(--primary);background:transparent;color:var(--primary);">כל החיילים</button>
-        </div>
+    groupsHtml += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="background:var(--primary);color:#fff;font-weight:600;">כל המ״פים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="officers" onclick="selectGroupWa('officers')" style="background:#5c6bc0;color:#fff;">כל הקצינים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="commanders" onclick="selectGroupWa('commanders')" style="background:#7e57c2;color:#fff;">כל המפקדים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="soldiers" onclick="selectGroupWa('soldiers')" style="background:#78909c;color:#fff;">כל החיילים</button>
     </div>`;
 
-    // Per-company groups
+    // Per-company groups — compact table
     const companies = ALL_COMPANIES.filter(k => companyData[k] && state.soldiers.some(s => s.company === k));
+    groupsHtml += `<div style="display:grid;grid-template-columns:90px 1fr;gap:4px 8px;align-items:center;">`;
     companies.forEach(k => {
         const c = colors[k] || '#546E7A';
-        const textColor = k === 'd' ? '#333' : c;
-        groupsHtml += `<div style="margin-bottom:8px;">
-            <div style="font-size:0.8em;font-weight:600;color:${textColor};margin-bottom:4px;">${compNames[k]}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="btn btn-sm group-wa-chip" data-group="officers_${k}" onclick="selectGroupWa('officers_${k}')" style="border:2px solid ${c};background:transparent;color:${textColor};font-size:0.78em;">קצינים</button>
-                <button class="btn btn-sm group-wa-chip" data-group="commanders_${k}" onclick="selectGroupWa('commanders_${k}')" style="border:2px solid ${c};background:transparent;color:${textColor};font-size:0.78em;">מפקדים</button>
-                <button class="btn btn-sm group-wa-chip" data-group="soldiers_${k}" onclick="selectGroupWa('soldiers_${k}')" style="border:2px solid ${c};background:transparent;color:${textColor};font-size:0.78em;">חיילים</button>
-            </div>
-        </div>`;
+        const txtC = k === 'd' ? '#333' : '#fff';
+        groupsHtml += `
+            <div style="background:${c};color:${txtC};padding:4px 10px;border-radius:6px;font-size:0.8em;font-weight:700;text-align:center;">${compNames[k]}</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button class="btn btn-sm group-wa-chip" data-group="officers_${k}" data-color="${c}" onclick="selectGroupWa('officers_${k}')" style="border:2px solid ${c};background:transparent;color:${c};font-size:0.76em;padding:3px 10px;">קצינים</button>
+                <button class="btn btn-sm group-wa-chip" data-group="commanders_${k}" data-color="${c}" onclick="selectGroupWa('commanders_${k}')" style="border:2px solid ${c};background:transparent;color:${c};font-size:0.76em;padding:3px 10px;">מפקדים</button>
+                <button class="btn btn-sm group-wa-chip" data-group="soldiers_${k}" data-color="${c}" onclick="selectGroupWa('soldiers_${k}')" style="border:2px solid ${c};background:transparent;color:${c};font-size:0.76em;padding:3px 10px;">חיילים</button>
+            </div>`;
     });
+    groupsHtml += `</div>`;
 
     document.getElementById('groupWaGroups').innerHTML = groupsHtml;
     _groupWaSelectedIds = new Set();
@@ -10683,12 +10681,19 @@ function selectGroupWa(group) {
 
     // Highlight active chip
     document.querySelectorAll('.group-wa-chip').forEach(b => {
-        if (b.dataset.group === group) {
-            b.style.background = b.style.borderColor;
+        const isActive = b.dataset.group === group;
+        const chipColor = b.dataset.color || b.style.backgroundColor || 'var(--primary)';
+        if (isActive) {
+            b.style.background = chipColor || b.style.borderColor;
             b.style.color = '#fff';
+            b.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
         } else {
-            b.style.background = 'transparent';
-            b.style.color = b.style.borderColor;
+            // Restore per-company chips to outline
+            if (b.dataset.color) {
+                b.style.background = 'transparent';
+                b.style.color = b.dataset.color;
+            }
+            b.style.boxShadow = 'none';
         }
     });
 
