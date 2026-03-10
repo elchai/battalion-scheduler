@@ -185,7 +185,7 @@ const CONFIG = {
         battalion: 'https://app.easydo.co.il/publicForm/36c98175-c3f4-4468-bc55-1d95aeccd2cd',
     },
 
-    // --- Green API (WhatsApp) ---
+    // --- Green API (WhatsApp) — instance של הגדוד להודעות מבצעיות ---
     greenApi: {
         idInstance: '7103258354',
         apiTokenInstance: '4887bbcf63dc43e1a886a8dad54c9c098527765528484934b3',
