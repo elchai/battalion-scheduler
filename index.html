@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v211';
+    var _cb = 'v212';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -970,16 +970,22 @@
             <button class="modal-close" onclick="closeModal('autoScheduleModal')">&times;</button>
         </div>
         <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
-            <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-                <div class="form-group" style="margin:0;"><label style="font-size:0.85em;">מתאריך</label><input type="date" id="autoSchedStart"></div>
-                <div class="form-group" style="margin:0;"><label style="font-size:0.85em;">עד תאריך</label><input type="date" id="autoSchedEnd"></div>
-                <button class="btn btn-primary" onclick="runAutoSchedule()" id="autoSchedRunBtn">הצע שיבוץ</button>
+            <div style="display:flex;gap:16px;align-items:flex-end;justify-content:center;margin-bottom:20px;flex-wrap:wrap;">
+                <div style="display:flex;flex-direction:column;"><label style="font-size:0.82em;font-weight:600;margin-bottom:4px;text-align:right;">מתאריך</label><input type="date" id="autoSchedStart" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;"></div>
+                <div style="display:flex;flex-direction:column;"><label style="font-size:0.82em;font-weight:600;margin-bottom:4px;text-align:right;">עד תאריך</label><input type="date" id="autoSchedEnd" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;"></div>
+                <button class="btn btn-special" onclick="runAutoSchedule()" id="autoSchedRunBtn" style="height:38px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> הצע שיבוץ</button>
             </div>
             <div id="autoSchedPreview"></div>
         </div>
-        <div class="modal-footer" id="autoSchedFooter" style="display:none;">
-            <button class="btn btn-primary" onclick="approveScheduleProposal()">אשר ושמור</button>
-            <button class="btn btn-cancel" onclick="closeModal('autoScheduleModal')">ביטול</button>
+        <div class="modal-footer" id="autoSchedFooter" style="display:none;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-success" onclick="approveScheduleProposal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><polyline points="20 6 9 17 4 12"/></svg> אשר נבחרים</button>
+                <button class="btn btn-cancel" onclick="closeModal('autoScheduleModal')">ביטול</button>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-sm" style="background:var(--bg);color:var(--text);" onclick="toggleAllProposalShifts(true)">בחר הכל</button>
+                <button class="btn btn-sm" style="background:var(--bg);color:var(--text);" onclick="toggleAllProposalShifts(false)">בטל הכל</button>
+            </div>
         </div>
     </div>
 </div>

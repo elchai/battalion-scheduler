@@ -2120,7 +2120,7 @@ function renderCompanyTab(compKey) {
                         <th>חיי׳/מש׳</th>
                         <th>מפק׳/מש׳</th>
                         <th>קצי׳/מש׳</th>
-                        <th>משמרות</th>
+                        <th title="כמה סבבי משמרות ביממה">סבבים</th>
                         <th>סה״כ חיי׳</th>
                         <th>סה״כ מפק׳</th>
                         <th>סה״כ קצי׳</th>
@@ -3986,11 +3986,15 @@ let _autoScheduleCompany = null;
 function openAutoSchedule(compKey) {
     _autoScheduleCompany = compKey;
     _autoScheduleProposal = null;
-    // Default: tomorrow to end of week
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    const endWeek = new Date(tomorrow); endWeek.setDate(endWeek.getDate() + (6 - endWeek.getDay()));
-    document.getElementById('autoSchedStart').value = tomorrow.toISOString().slice(0, 10);
-    document.getElementById('autoSchedEnd').value = endWeek.toISOString().slice(0, 10);
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const endWeek = new Date(today); endWeek.setDate(endWeek.getDate() + (6 - endWeek.getDay()));
+    const startEl = document.getElementById('autoSchedStart');
+    const endEl = document.getElementById('autoSchedEnd');
+    startEl.value = todayStr;
+    startEl.min = todayStr;
+    endEl.value = endWeek.toISOString().slice(0, 10);
+    endEl.min = todayStr;
     document.getElementById('autoSchedPreview').innerHTML = '<div style="text-align:center;color:var(--text-light);padding:40px;">בחר טווח תאריכים ולחץ "הצע שיבוץ"</div>';
     document.getElementById('autoSchedFooter').style.display = 'none';
     document.getElementById('autoScheduleTitle').textContent = `שיבוץ אוטומטי — ${compName(compKey)}`;
@@ -4209,10 +4213,15 @@ function renderScheduleProposal(proposal) {
     let html = '';
     proposal.forEach((day, dayIdx) => {
         html += `<div style="margin-bottom:20px;">
-            <h4 style="margin:0 0 8px;padding:8px 12px;background:var(--primary);color:white;border-radius:var(--radius) var(--radius) 0 0;">${formatDate(day.date)} — ${getDayName(day.date)}</h4>
+            <h4 style="margin:0 0 8px;padding:8px 12px;background:var(--primary);color:white;border-radius:var(--radius) var(--radius) 0 0;display:flex;align-items:center;justify-content:space-between;">
+                <span>${formatDate(day.date)} — ${getDayName(day.date)}</span>
+                <label style="font-size:0.8em;font-weight:400;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="checkbox" checked onchange="toggleDayShifts(${dayIdx},this.checked)" style="cursor:pointer;"> בחר יום
+                </label>
+            </h4>
             <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
-                <thead><tr style="background:var(--bg);"><th style="padding:6px 8px;text-align:right;">משימה</th><th>משמרת</th><th>שעות</th><th>משובצים</th><th>אזהרות</th></tr></thead>
+                <thead><tr style="background:var(--bg);"><th style="width:32px;padding:6px 4px;"></th><th style="padding:6px 8px;text-align:right;">משימה</th><th>משמרת</th><th>שעות</th><th>משובצים</th><th>אזהרות</th></tr></thead>
                 <tbody>`;
 
         day.tasks.forEach((task, taskIdx) => {
@@ -4223,8 +4232,10 @@ function renderScheduleProposal(proposal) {
                 });
                 const warningClass = shift.warnings.length > 0 ? 'background:#fff3e0;' : '';
                 const errorClass = shift.soldiers.length === 0 && (shift.warnings.length > 0) ? 'background:#ffebee;' : '';
+                const shiftId = `proposalCheck_${dayIdx}_${taskIdx}_${shiftIdx}`;
 
                 html += `<tr style="border-bottom:1px solid var(--border);${warningClass}${errorClass}">
+                    <td style="padding:6px 4px;text-align:center;"><input type="checkbox" checked class="proposal-shift-check" data-day="${dayIdx}" data-task="${taskIdx}" data-shift="${shiftIdx}" id="${shiftId}" style="cursor:pointer;"></td>
                     <td style="padding:6px 8px;font-weight:600;">${esc(task.task)}</td>
                     <td style="padding:6px 8px;">${esc(shift.shiftName)}</td>
                     <td style="padding:6px 8px;">${shift.startTime}-${shift.endTime}</td>
@@ -4304,10 +4315,19 @@ function approveScheduleProposal() {
     if (!_autoScheduleProposal || !_autoScheduleCompany) return;
     let count = 0;
 
-    _autoScheduleProposal.forEach(day => {
-        day.tasks.forEach(task => {
-            task.shifts.forEach(shift => {
+    // Collect checked shifts
+    const checked = new Set();
+    document.querySelectorAll('.proposal-shift-check:checked').forEach(cb => {
+        checked.add(`${cb.dataset.day}_${cb.dataset.task}_${cb.dataset.shift}`);
+    });
+
+    if (checked.size === 0) { showToast('לא נבחרו משמרות לאישור', 'error'); return; }
+
+    _autoScheduleProposal.forEach((day, dayIdx) => {
+        day.tasks.forEach((task, taskIdx) => {
+            task.shifts.forEach((shift, shiftIdx) => {
                 if (shift.soldiers.length === 0) return;
+                if (!checked.has(`${dayIdx}_${taskIdx}_${shiftIdx}`)) return;
                 const shiftObj = {
                     id: 'sh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                     company: _autoScheduleCompany,
@@ -4342,6 +4362,14 @@ function approveScheduleProposal() {
     renderCompanyTab(_autoScheduleCompany);
     showToast(`${count} שיבוצים נשמרו בהצלחה`, 'success');
     _autoScheduleProposal = null;
+}
+
+function toggleAllProposalShifts(checked) {
+    document.querySelectorAll('.proposal-shift-check').forEach(cb => { cb.checked = checked; });
+}
+
+function toggleDayShifts(dayIdx, checked) {
+    document.querySelectorAll(`.proposal-shift-check[data-day="${dayIdx}"]`).forEach(cb => { cb.checked = checked; });
 }
 
 // ==================== INITIATIVE TEAMS (צוות יזומות) ====================
@@ -6182,7 +6210,7 @@ function renderTaskEditor() {
 
     container.innerHTML = `
         <div class="task-edit-row task-edit-header">
-            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>משמרות</span><span></span>
+            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span title="כמה סבבי משמרות ביממה (1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה)">סבבים/24ש׳</span><span></span>
         </div>
         ${tasks.map((t, i) => `
             <div class="task-edit-row">
