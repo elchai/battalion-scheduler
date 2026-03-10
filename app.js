@@ -241,6 +241,7 @@ const SPECIALIST_TYPES = [
     { id: 'sniper', name: 'צלפים',   keywords: ['צלף'] },
     { id: 'driver', name: 'נהגים',   keywords: ['נהג', 'רכב'] },
     { id: 'drone',  name: 'רחפניסטים', keywords: ['רחפן', 'רחפניסט', 'drone', 'מפעיל רחפן'] },
+    { id: 'marksman', name: 'קלעים', keywords: ['קלע', 'קלעי'] },
 ];
 const CATEGORY_GROUPS = {
     'נשק': ['נשק'],
