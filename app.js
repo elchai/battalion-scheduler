@@ -7594,6 +7594,22 @@ function generateLeavesReport() {
     document.getElementById('reportOutput').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ==================== REPORT PREVIEW ====================
+function previewReport(type) {
+    const html = buildReportHTML(type);
+    if (!html) { showToast('אין נתונים להצגה', 'error'); return; }
+    const titles = { company: 'דו"ח פלוגות', shifts: 'דו"ח שיבוצים', leaves: 'דו"ח יציאות', daily: 'דו"ח יומי' };
+    const container = document.getElementById('reportPreviewOutput');
+    container.innerHTML = `
+        <div class="report-header">
+            <span style="flex:1;font-weight:600;">${titles[type] || 'דו"ח'}</span>
+            <button onclick="document.getElementById('reportPreviewOutput').innerHTML=''" style="background:none;border:none;color:white;cursor:pointer;font-size:18px;">✕</button>
+        </div>
+        <div style="padding:16px;direction:rtl;overflow-x:auto;">${html}</div>
+    `;
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
 // ==================== PDF / EXCEL EXPORT ====================
 function exportReportPDF(type) {
     const todayStr = localToday();

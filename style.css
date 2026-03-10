@@ -1939,8 +1939,10 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
 .report-card h3 { font-size: 1em; margin-bottom: 6px; }
 .report-card p { font-size: 0.78em; color: var(--text-light); line-height: 1.4; margin: 0; }
 .report-export-btns { display: flex; gap: 6px; margin-top: 10px; }
-.btn-pdf { background: #c62828 !important; color: white !important; }
-.btn-excel { background: #2e7d32 !important; color: white !important; }
+.btn-pdf { background: #c62828 !important; color: white !important; border-color: #c62828 !important; }
+.btn-pdf:hover { background: #b71c1c !important; }
+.btn-excel { background: #2e7d32 !important; color: white !important; border-color: #2e7d32 !important; }
+.btn-excel:hover { background: #1b5e20 !important; }
 .report-output {
     background: var(--card);
     border-radius: var(--radius);
