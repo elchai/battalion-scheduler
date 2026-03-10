@@ -10622,11 +10622,11 @@ function openGroupWaModal() {
     // Build group chips
     let groupsHtml = `<label style="font-weight:600;display:block;margin-bottom:8px;">בחר קבוצה:</label>`;
     groupsHtml += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-        <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="background:var(--primary);color:#fff;font-weight:600;">מ״פים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="mafap" onclick="selectGroupWa('mafap')" style="background:#1a3a5c;color:#fff;font-weight:600;">מ״פים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="officers" onclick="selectGroupWa('officers')" style="background:#e65100;color:#fff;">כל הקצינים</button>
         <button class="btn btn-sm group-wa-chip" data-group="mate" onclick="selectGroupWa('mate')" style="background:#37474f;color:#fff;font-weight:600;">מטה</button>
-        <button class="btn btn-sm group-wa-chip" data-group="officers" onclick="selectGroupWa('officers')" style="background:#5c6bc0;color:#fff;">כל הקצינים</button>
         <button class="btn btn-sm group-wa-chip" data-group="commanders" onclick="selectGroupWa('commanders')" style="background:#7e57c2;color:#fff;">כל המפקדים</button>
-        <button class="btn btn-sm group-wa-chip" data-group="soldiers" onclick="selectGroupWa('soldiers')" style="background:#78909c;color:#fff;">כל החיילים</button>
+        <button class="btn btn-sm group-wa-chip" data-group="soldiers" onclick="selectGroupWa('soldiers')" style="background:#00897b;color:#fff;">כל החיילים</button>
     </div>`;
 
     // Per-company groups — compact table
