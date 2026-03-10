@@ -7061,11 +7061,14 @@ function renderReport1() {
     if (!container) return;
 
     const compSelect = document.getElementById('report1Company');
-    const compKey = compSelect ? compSelect.value : 'a';
+    const compKey = compSelect ? compSelect.value : 'all';
     const compNames = getCompNames();
     const isNispachim = compKey === 'nispachim';
+    const isAll = compKey === 'all';
     const soldiers = isNispachim
         ? state.soldiers.filter(s => s.nispach)
+        : isAll
+        ? state.soldiers.filter(s => !s.nispach)
         : state.soldiers.filter(s => s.company === compKey && !s.nispach);
     const days = getReport1Days();
     const todayStr = localToday();
@@ -7231,17 +7234,20 @@ function renderReport1() {
 
 function copyReport1Text() {
     const compSelect = document.getElementById('report1Company');
-    const compKey = compSelect ? compSelect.value : 'a';
+    const compKey = compSelect ? compSelect.value : 'all';
     const compNames = getCompNames();
     const isNispachim = compKey === 'nispachim';
+    const isAll = compKey === 'all';
     const soldiers = isNispachim
         ? state.soldiers.filter(s => s.nispach)
+        : isAll
+        ? state.soldiers.filter(s => !s.nispach)
         : state.soldiers.filter(s => s.company === compKey && !s.nispach);
     const days = getReport1Days();
     const hebDays = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
     const todayStr = localToday();
 
-    let text = `*דו"ח 1 - ${isNispachim ? 'נספחים' : compNames[compKey]}*\n`;
+    let text = `*דו"ח 1 - ${isAll ? 'גדודי' : isNispachim ? 'נספחים' : compNames[compKey]}*\n`;
 
     if (settings.operationStartDate || settings.operationEndDate) {
         const s = settings.operationStartDate ? formatDate(settings.operationStartDate) : '?';
