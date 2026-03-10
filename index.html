@@ -282,7 +282,7 @@
         <p class="confirm-msg" id="confirmMsg"></p>
         <div class="confirm-actions">
             <button class="btn btn-danger" id="confirmYes">אישור</button>
-            <button class="btn btn-secondary" id="confirmNo">ביטול</button>
+            <button class="btn btn-cancel" id="confirmNo">ביטול</button>
         </div>
     </div>
 </div>
@@ -306,7 +306,7 @@
         <input type="text" id="deleteConfirmInput" autocomplete="off" placeholder='הקלד "מחק" כאן' style="width:100%;padding:10px 12px;border:2px solid #ccc;border-radius:8px;font-size:1rem;text-align:center;margin:8px 0 12px;direction:rtl" />
         <div class="confirm-actions">
             <button class="btn btn-danger" id="deleteConfirmYes" disabled>מחק</button>
-            <button class="btn btn-secondary" id="deleteConfirmNo">ביטול</button>
+            <button class="btn btn-cancel" id="deleteConfirmNo">ביטול</button>
         </div>
     </div>
 </div>
@@ -347,7 +347,7 @@
                 <div class="icon" style="background:#e3f2fd;color:var(--primary);"><i data-lucide="users"></i></div>
                 סקירת פלוגות
             </div>
-            <button class="btn btn-primary sync-sheets-btn" onclick="syncFromGoogleSheets(false)"><i data-lucide="refresh-cw"></i> סנכרון מגוגל שיטס</button>
+            <button class="btn btn-sync sync-sheets-btn" onclick="syncFromGoogleSheets(false)"><i data-lucide="refresh-cw"></i> סנכרון מגוגל שיטס</button>
         </div>
         <div class="companies-grid" id="companiesGrid"></div>
     </div>
@@ -394,7 +394,7 @@
                 <option value="hq">חפ"ק מג"ד</option>
                 <option value="palsam">פלס"ם</option>
             </select>
-            <button class="btn btn-primary" onclick="exportCalendarToPDF()" title="הורד לוח שבועי כ-PDF">
+            <button class="btn btn-export" onclick="exportCalendarToPDF()" title="הורד לוח שבועי כ-PDF">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
                 PDF
             </button>
@@ -411,7 +411,7 @@
             <h2>לוח הודעות</h2>
         </div>
         <div class="action-bar" style="margin-bottom:16px;">
-            <button class="btn btn-primary" onclick="openNewAnnouncement()">+ הודעה חדשה</button>
+            <button class="btn btn-add" onclick="openNewAnnouncement()">+ הודעה חדשה</button>
         </div>
         <div id="announcementsContent"></div>
     </div>
@@ -481,8 +481,8 @@
                     <button class="btn btn-sm" onclick="report1Nav(1)" title="הבא">&larr;</button>
                 </div>
                 <div class="r1-export-btns">
-                    <button class="btn btn-secondary btn-sm" onclick="copyReport1Text()">📋 העתק</button>
-                    <button class="btn btn-excel btn-sm" onclick="exportShavtzak()">📊 Excel</button>
+                    <button class="btn btn-export btn-sm" onclick="copyReport1Text()">📋 העתק</button>
+                    <button class="btn btn-export btn-sm" onclick="exportShavtzak()">📊 Excel</button>
                 </div>
             </div>
         </div>
@@ -504,8 +504,8 @@
         <div id="morningSubReport">
             <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-primary" onclick="generateMorningReport()">הפק דוח גדודי</button>
-                <button class="btn btn-secondary" onclick="copyMorningReportText()">העתק לוואטסאפ</button>
-                <button class="btn btn-secondary" onclick="exportMorningReportPDF()">ייצא PDF</button>
+                <button class="btn btn-whatsapp" onclick="copyMorningReportText()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> העתק לוואטסאפ</button>
+                <button class="btn btn-export" onclick="exportMorningReportPDF()">ייצא PDF</button>
             </div>
             <div id="morningReportContent"></div>
         </div>
@@ -530,8 +530,8 @@
                 <h3>דו"ח פלוגות</h3>
                 <p>רשימת כוח אדם לכל פלוגה</p>
                 <div class="report-export-btns">
-                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('company')">ייצוא PDF</button>
-                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('company')">ייצוא Excel</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportPDF('company')">ייצוא PDF</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportExcel('company')">ייצוא Excel</button>
                 </div>
             </div>
             <div class="report-card">
@@ -541,8 +541,8 @@
                 <h3>דו"ח שיבוצים</h3>
                 <p>שיבוצים פעילים לפי פלוגה ומשימה</p>
                 <div class="report-export-btns">
-                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('shifts')">ייצוא PDF</button>
-                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('shifts')">ייצוא Excel</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportPDF('shifts')">ייצוא PDF</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportExcel('shifts')">ייצוא Excel</button>
                 </div>
             </div>
             <div class="report-card">
@@ -552,8 +552,8 @@
                 <h3>דו"ח יציאות</h3>
                 <p>יציאות פעילות ומתוכננות</p>
                 <div class="report-export-btns">
-                    <button class="btn btn-sm btn-pdf" onclick="exportReportPDF('leaves')">ייצוא PDF</button>
-                    <button class="btn btn-sm btn-excel" onclick="exportReportExcel('leaves')">ייצוא Excel</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportPDF('leaves')">ייצוא PDF</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportExcel('leaves')">ייצוא Excel</button>
                 </div>
             </div>
         </div>
@@ -583,9 +583,9 @@
             <div class="action-bar">
                 <button id="btnSignEquip" class="btn btn-success" onclick="openSignEquipment()"><i data-lucide="pen-line"></i> חתימה על ציוד</button>
                 <button id="btnReturnEquip" class="btn btn-warning" onclick="openReturnEquipment()"><i data-lucide="undo-2"></i> זיכוי</button>
-                <button class="btn btn-primary" onclick="openAddEquipment()"><i data-lucide="plus"></i> הוספת פריטים</button>
-                <button class="btn" style="background:#00BCD4;color:white;" onclick="openImportEquipment()"><i data-lucide="upload"></i> ייבוא</button>
-                <button class="btn" style="background:#5C6BC0;color:white;" onclick="openExportFilter()"><i data-lucide="download"></i> ייצוא</button>
+                <button class="btn btn-add" onclick="openAddEquipment()"><i data-lucide="plus"></i> הוספת פריטים</button>
+                <button class="btn btn-sync" onclick="openImportEquipment()"><i data-lucide="upload"></i> ייבוא</button>
+                <button class="btn btn-export" onclick="openExportFilter()"><i data-lucide="download"></i> ייצוא</button>
             </div>
             <div class="quick-stats" id="equipmentStats"></div>
             <div class="search-bar">
@@ -661,8 +661,8 @@
                         <option value="all">הכל</option>
                     </select>
                 </div>
-                <button class="btn btn-primary btn-sm" onclick="exportReportCSV()" style="height:36px;"><i data-lucide="download"></i> CSV</button>
-                <button class="btn btn-sm" style="background:var(--card);height:36px;" onclick="exportReportPDF()"><i data-lucide="file-down"></i> PDF</button>
+                <button class="btn btn-export btn-sm" onclick="exportReportCSV()" style="height:36px;"><i data-lucide="download"></i> CSV</button>
+                <button class="btn btn-export btn-sm" onclick="exportReportPDF()" style="height:36px;"><i data-lucide="file-down"></i> PDF</button>
             </div>
             <div id="equipmentReportContent"></div>
         </div>
@@ -674,7 +674,7 @@
                 <div><strong>החלפת חתימות:</strong> העברת ציוד מחייל לחייל עם חתימות דיגיטליות.</div>
             </div>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="openTransferEquip()"><i data-lucide="repeat-2"></i> העברת ציוד חדשה</button>
+                <button class="btn btn-add" onclick="openTransferEquip()"><i data-lucide="repeat-2"></i> העברת ציוד חדשה</button>
             </div>
             <div id="transferHistoryContent"></div>
         </div>
@@ -754,11 +754,11 @@
                 <option value="hq">חפ"ק</option>
                 <option value="palsam">פלס"ם</option>
             </select>
-            <button class="btn btn-primary btn-sm" onclick="openWeaponsWhatsAppModal()" id="btnSendWeaponsQ" style="background:#25D366;border-color:#25D366;">
+            <button class="btn btn-whatsapp btn-sm" onclick="openWeaponsWhatsAppModal()" id="btnSendWeaponsQ">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 שליחה מרוכזת
             </button>
-            <button class="btn btn-outline btn-sm" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
+            <button class="btn btn-sync btn-sm" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
                 סנכרן
             </button>
@@ -920,7 +920,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveSoldier()">שמור</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('addSoldierModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('addSoldierModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -975,7 +975,7 @@
         </div>
         <div class="modal-footer" id="autoSchedFooter" style="display:none;">
             <button class="btn btn-primary" onclick="approveScheduleProposal()">אשר ושמור</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('autoScheduleModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('autoScheduleModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1049,7 +1049,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveShift()">שמור משמרת</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('addShiftModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('addShiftModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1112,7 +1112,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-warning" onclick="saveLeave()">שמור יציאה</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('addLeaveModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('addLeaveModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1220,7 +1220,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveEquipment()">שמור פריט</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('addEquipmentModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('addEquipmentModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1267,8 +1267,8 @@
             <div id="importSummary" style="display:none;text-align:center;padding:10px;font-weight:600;"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-primary" id="importConfirmBtn" style="display:none;" onclick="confirmImportEquipment()"><i data-lucide="check"></i> ייבא ציוד</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('importEquipmentModal')">ביטול</button>
+            <button class="btn btn-sync" id="importConfirmBtn" style="display:none;" onclick="confirmImportEquipment()"><i data-lucide="check"></i> ייבא ציוד</button>
+            <button class="btn btn-cancel" onclick="closeModal('importEquipmentModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1287,7 +1287,7 @@
         <div class="modal-footer" id="transferFooter">
             <button class="btn" style="background:var(--bg)" id="transferPrevBtn" onclick="transferPrevStep()">חזרה</button>
             <button class="btn btn-primary" id="transferNextBtn" onclick="transferNextStep()">הבא</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('transferEquipModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('transferEquipModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1342,9 +1342,9 @@
             <div id="exportPreviewCount" style="text-align:center;padding:12px;font-weight:600;font-size:1.1em;color:var(--primary);"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-primary" onclick="doFilteredExportCSV()"><i data-lucide="download"></i> CSV</button>
-            <button class="btn" style="background:var(--card);border:1px solid var(--border);" onclick="doFilteredExportPDF()"><i data-lucide="file-down"></i> PDF</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('exportFilterModal')">ביטול</button>
+            <button class="btn btn-export" onclick="doFilteredExportCSV()"><i data-lucide="download"></i> CSV</button>
+            <button class="btn btn-export" onclick="doFilteredExportPDF()"><i data-lucide="file-down"></i> PDF</button>
+            <button class="btn btn-cancel" onclick="closeModal('exportFilterModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1373,7 +1373,7 @@
                 <select id="signSoldier" onchange="onSignSoldierSelect()" style="padding:8px 12px;font-size:0.9em;flex:1;">
                     <option value="">-- בחר חייל --</option>
                 </select>
-                <button class="btn btn-sm btn-primary" onclick="openAddSoldierFromSign()" style="white-space:nowrap;padding:8px 10px;" title="הוסף חייל חדש">+ חדש</button>
+                <button class="btn btn-sm btn-add" onclick="openAddSoldierFromSign()" style="white-space:nowrap;padding:8px 10px;" title="הוסף חייל חדש">+ חדש</button>
             </div>
             <div id="signSoldierInfo" style="display:none;background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;"></div>
 
@@ -1396,7 +1396,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-success" onclick="confirmSignEquipment()">אשר חתימה והדפס</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('signEquipmentModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('signEquipmentModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1442,7 +1442,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-warning" onclick="confirmReturnEquipment()">אשר זיכוי</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('returnEquipmentModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('returnEquipmentModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1481,8 +1481,8 @@
             <div id="transferWarnings" style="display:none;background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:12px;margin-top:10px;color:#e65100;font-size:0.9em;"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-primary" style="background:#9C27B0;" onclick="confirmTransferSoldier()">אשר העברה</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('transferSoldierModal')">ביטול</button>
+            <button class="btn btn-special" onclick="confirmTransferSoldier()">אשר העברה</button>
+            <button class="btn btn-cancel" onclick="closeModal('transferSoldierModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1563,8 +1563,8 @@
         <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;">
             <div id="waSendProgress" style="font-size:13px;color:var(--text-light);"></div>
             <div style="display:flex;gap:10px;">
-                <button class="btn btn-outline" onclick="closeModal('weaponsWhatsAppModal')">ביטול</button>
-                <button class="btn" id="btnWaSend" onclick="sendWeaponsWhatsApp()" style="background:#25D366;color:white;border-color:#25D366;">
+                <button class="btn btn-cancel" onclick="closeModal('weaponsWhatsAppModal')">ביטול</button>
+                <button class="btn btn-whatsapp" id="btnWaSend" onclick="sendWeaponsWhatsApp()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     שלח עכשיו
                 </button>
@@ -1644,7 +1644,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveTrainingEvent()">שמור</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('trainingEventModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('trainingEventModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1659,7 +1659,7 @@
         <div class="modal-body" style="padding:16px;" id="exerciseTypeContent"></div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="addExerciseType()">+ הוסף סוג</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('exerciseTypeModal')">סגור</button>
+            <button class="btn btn-cancel" onclick="closeModal('exerciseTypeModal')">סגור</button>
         </div>
     </div>
 </div>
@@ -1720,7 +1720,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveShootingDrill()">שמור</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('shootingDrillModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('shootingDrillModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1767,7 +1767,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" onclick="saveShootingExecution()">שמור</button>
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('shootingExecutionModal')">ביטול</button>
+            <button class="btn btn-cancel" onclick="closeModal('shootingExecutionModal')">ביטול</button>
         </div>
     </div>
 </div>
@@ -1781,7 +1781,7 @@
         </div>
         <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto;" id="shootingResultsContent"></div>
         <div class="modal-footer">
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('shootingResultsModal')">סגור</button>
+            <button class="btn btn-cancel" onclick="closeModal('shootingResultsModal')">סגור</button>
         </div>
     </div>
 </div>
@@ -1795,7 +1795,7 @@
         </div>
         <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto;" id="soldierRatingContent"></div>
         <div class="modal-footer">
-            <button class="btn" style="background:var(--bg)" onclick="closeModal('soldierRatingModal')">סגור</button>
+            <button class="btn btn-cancel" onclick="closeModal('soldierRatingModal')">סגור</button>
         </div>
     </div>
 </div>
