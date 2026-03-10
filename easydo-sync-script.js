@@ -282,8 +282,8 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
       signedDate,        // U - מועד אישור רפואי בטופס הבקשה
       rank,              // V - דרגה נוכחית בצה"ל
       isFighter,         // W - האם הוסמכת כלוחם?
-      doctorUrl,         // X - נא לצרף אישור רופא חתום
-      idPhotoUrl,        // Y - נא לצרף צילום תעודת זהות
+      idPhotoUrl,        // X - נא לצרף אישור רופא חתום (בפועל: צילום ת.ז)
+      doctorUrl,         // Y - נא לצרף צילום תעודת זהות (בפועל: אישור רופא)
     ]);
 
     processedIds.add(idNumber);
