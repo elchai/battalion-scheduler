@@ -10657,7 +10657,10 @@ function selectGroupWa(group) {
     let soldiers = [];
 
     if (group === 'mafap') {
-        soldiers = state.soldiers.filter(s => (s.role || '').includes('מ"פ') && !(s.role || '').includes('סמ"פ'));
+        soldiers = state.soldiers.filter(s => {
+            const r = (s.role || '') + ' ' + (s.rank || '');
+            return (r.includes('מ"פ') || r.includes('מפקד פלוגה')) && !r.includes('סמ"פ') && !r.includes('סגן מפקד');
+        });
     } else if (group === 'officers') {
         soldiers = state.soldiers.filter(s => isOfficer(s));
     } else if (group === 'commanders') {
@@ -10705,24 +10708,30 @@ function selectGroupWa(group) {
 function renderGroupWaRecipients() {
     const container = document.getElementById('groupWaRecipients');
     const compNames = getCompNames();
-    const allWithPhone = state.soldiers.filter(s => s.phone);
+    // Show only selected soldiers (not all)
+    const selected = state.soldiers.filter(s => _groupWaSelectedIds.has(s.id));
 
-    if (allWithPhone.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);">אין חיילים עם מספר טלפון</div>';
+    if (_groupWaSelectedIds.size === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);">בחר קבוצה למעלה</div>';
+        document.getElementById('groupWaCount').textContent = '';
         return;
     }
 
-    container.innerHTML = allWithPhone.map(s => {
-        const checked = _groupWaSelectedIds.has(s.id) ? 'checked' : '';
+    const withPhone = selected.filter(s => s.phone);
+    const noPhone = selected.filter(s => !s.phone);
+
+    container.innerHTML = withPhone.map(s => {
         return `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.88em;cursor:pointer;">
-            <input type="checkbox" ${checked} data-sol-id="${s.id}" onchange="toggleGroupWaRecipient('${s.id}',this.checked)">
+            <input type="checkbox" checked data-sol-id="${s.id}" onchange="toggleGroupWaRecipient('${s.id}',this.checked)">
             <strong>${esc(s.name)}</strong>
-            <span style="color:var(--text-light);font-size:0.82em;">${compNames[s.company] || ''} | ${s.phone}</span>
+            <span style="color:var(--text-light);font-size:0.82em;">${compNames[s.company] || ''} | ${s.phone} | ${esc(s.role || '')}</span>
         </label>`;
-    }).join('');
+    }).join('') + (noPhone.length > 0 ? `<div style="margin-top:8px;padding:6px 8px;background:#fff3e0;border-radius:6px;font-size:0.82em;color:#e65100;">
+        ⚠ ${noPhone.length} ללא טלפון: ${noPhone.map(s => esc(s.name)).join(', ')}
+    </div>` : '');
 
     const countEl = document.getElementById('groupWaCount');
-    if (countEl) countEl.textContent = `${_groupWaSelectedIds.size} נבחרו מתוך ${allWithPhone.length}`;
+    if (countEl) countEl.textContent = `${withPhone.length} נמענים עם טלפון`;
 }
 
 function toggleGroupWaRecipient(id, checked) {
@@ -10733,11 +10742,13 @@ function toggleGroupWaRecipient(id, checked) {
 }
 
 function groupWaSelectAll(checked) {
-    state.soldiers.filter(s => s.phone).forEach(s => {
-        if (checked) _groupWaSelectedIds.add(s.id);
-        else _groupWaSelectedIds.delete(s.id);
-    });
-    renderGroupWaRecipients();
+    if (checked) {
+        // Re-select all from current group
+        renderGroupWaRecipients();
+    } else {
+        _groupWaSelectedIds.clear();
+        renderGroupWaRecipients();
+    }
 }
 
 function insertGroupWaVar(varName) {
