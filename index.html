@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v195';
+    var _cb = 'v196';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -497,12 +497,21 @@
             <div class="icon" style="background:#e3f2fd;color:#1a3a5c;"><i data-lucide="shield"></i></div>
             <h2>דוח גדודי</h2>
         </div>
-        <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="generateMorningReport()">הפק דוח גדודי</button>
-            <button class="btn btn-secondary" onclick="copyMorningReportText()">העתק לוואטסאפ</button>
-            <button class="btn btn-secondary" onclick="exportMorningReportPDF()">ייצא PDF</button>
+        <div class="sub-tabs" style="display:flex;gap:4px;margin-bottom:16px;">
+            <button class="btn btn-primary" id="morningSubBtnReport" onclick="switchMorningSubTab('report')">דוח גדודי</button>
+            <button class="btn btn-secondary" id="morningSubBtnSpecialists" onclick="switchMorningSubTab('specialists')">איתור פק"ליסטים</button>
         </div>
-        <div id="morningReportContent"></div>
+        <div id="morningSubReport">
+            <div class="action-bar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="generateMorningReport()">הפק דוח גדודי</button>
+                <button class="btn btn-secondary" onclick="copyMorningReportText()">העתק לוואטסאפ</button>
+                <button class="btn btn-secondary" onclick="exportMorningReportPDF()">ייצא PDF</button>
+            </div>
+            <div id="morningReportContent"></div>
+        </div>
+        <div id="morningSubSpecialists" style="display:none;">
+            <div id="specialistsPanel"></div>
+        </div>
     </div>
 </div>
 

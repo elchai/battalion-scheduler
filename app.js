@@ -234,6 +234,15 @@ function canEditTasks(compKey) {
 const SIGNING_ROLES = CONFIG.signingRoles;
 const WAREHOUSES = CONFIG.warehouses;
 const EQUIPMENT_CATEGORIES = ['נשק', 'אופטיקה', 'קשר', 'לוגיסטיקה', 'אחר'];
+
+const SPECIALIST_TYPES = [
+    { id: 'medic',  name: 'חובשים',  keywords: ['חובש', 'רופא', 'רפוא', 'פרמדיק'] },
+    { id: 'sniper', name: 'צלפים',   keywords: ['צלף'] },
+    { id: 'driver', name: 'נהגים',   keywords: ['נהג', 'רכב'] },
+    { id: 'comms',  name: 'קשרים',   keywords: ['קשר'] },
+    { id: 'cook',   name: 'טבחים',   keywords: ['טבח', 'מטבח', 'כשרות'] },
+    { id: 'mech',   name: 'טנ"א',    keywords: ['טנ"א', 'מכונאי'] },
+];
 const CATEGORY_GROUPS = {
     'נשק': ['נשק'],
     'אופטיקה': ['אופטיקה', 'תצפית'],
@@ -1287,18 +1296,21 @@ function parseCSVLine(line) {
     return result;
 }
 
+function isOfficer(s) {
+    const r = (s.role || '') + ' ' + (s.rank || '');
+    return ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ', 'סגן', 'סג"מ', 'סרן', 'רס"ן', 'סא"ל', 'אל"מ', 'תא"ל'].some(k => r.includes(k));
+}
+function isCommander(s) {
+    if (isOfficer(s)) return false;
+    const r = (s.role || '') + ' ' + (s.rank || '');
+    return ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ', 'סמ"ח', 'רס"ל', 'רס"ר', 'רס"מ', 'סמ"ר'].some(k => r.includes(k));
+}
 function updateCompanyTotals() {
     ALL_COMPANIES.forEach(key => {
         const soldiers = state.soldiers.filter(s => s.company === key);
-        if (key === 'hq' || key === 'palsam') {
-            companyData[key].totals = { soldiers: soldiers.length, commanders: 0, officers: 0 };
-        } else {
-            const officerRoles = ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'];
-            const cmdRoles = ['מ"כ', 'מ"מ', 'סמל', 'סמב"צ'];
-            const officers = soldiers.filter(s => officerRoles.some(r => (s.role || '').includes(r))).length;
-            const commanders = soldiers.filter(s => cmdRoles.some(r => (s.role || '').includes(r))).length;
-            companyData[key].totals = { soldiers: soldiers.length - officers - commanders, commanders, officers };
-        }
+        const officers = soldiers.filter(s => isOfficer(s)).length;
+        const commanders = soldiers.filter(s => isCommander(s)).length;
+        companyData[key].totals = { soldiers: soldiers.length - officers - commanders, commanders, officers };
     });
 }
 
@@ -2001,6 +2013,21 @@ function getFilteredSoldiers(compKey) {
     }
 
     return soldiers;
+}
+
+function getSoldierRealtimeStatus(soldier) {
+    const leaves = state.leaves.filter(l => l.company === soldier.company);
+    const shifts = state.shifts.filter(s => s.company === soldier.company);
+    const isNotArrived = soldier.notArrived === true;
+    const onLeave = !isNotArrived && leaves.some(l => l.soldierId === soldier.id && isCurrentlyOnLeave(l));
+    const rotGroup = getRotationGroupForSoldier(soldier.id);
+    const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
+    const isHome = isNotArrived || onLeave || (rotStatus && !rotStatus.inBase);
+    const isAssigned = !isHome && shifts.some(sh => sh.soldiers.includes(soldier.id));
+    const text = isNotArrived ? 'לא הגיע' : onLeave ? 'בבית' : (rotStatus && !rotStatus.inBase) ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
+    const cls = isHome ? 'on-leave' : isAssigned ? 'on-duty' : 'unassigned';
+    const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
+    return { text, cls, badge, isHome, isAssigned };
 }
 
 function renderSoldiersGrid(compKey) {
@@ -5930,9 +5957,12 @@ function updateGlobalStats() {
         }
     });
 
-    const totalLeave = manualLeaveCount + rotLeaveCount;
+    const notArrivedCount = state.soldiers.filter(s => filterCompanies.includes(s.company) && s.notArrived).length;
+    const totalLeave = manualLeaveCount + rotLeaveCount + notArrivedCount;
+    const totalPersonnel = state.soldiers.filter(s => filterCompanies.includes(s.company)).length;
+    const totalOnBase = totalPersonnel - totalLeave;
 
-    document.getElementById('totalOnDuty').textContent = assignedIds.size;
+    document.getElementById('totalOnDuty').textContent = totalOnBase;
     document.getElementById('totalOnLeave').textContent = totalLeave;
 
     const statAssigned = document.getElementById('statAssigned');
@@ -7125,6 +7155,87 @@ function exportShavtzak() {
 
     XLSX.writeFile(wb, `שבצק_ודמח_${todayStr}.xlsx`);
     showToast('שבצ"ק ודמ"ח יוצא לאקסל');
+}
+
+// ==================== SPECIALISTS PANEL ====================
+let activeSpecialistType = null;
+
+function switchMorningSubTab(sub) {
+    const reportDiv = document.getElementById('morningSubReport');
+    const specDiv = document.getElementById('morningSubSpecialists');
+    const btnReport = document.getElementById('morningSubBtnReport');
+    const btnSpec = document.getElementById('morningSubBtnSpecialists');
+    if (!reportDiv || !specDiv) return;
+    if (sub === 'specialists') {
+        reportDiv.style.display = 'none';
+        specDiv.style.display = '';
+        btnReport.className = 'btn btn-secondary';
+        btnSpec.className = 'btn btn-primary';
+        renderSpecialistsPanel();
+    } else {
+        reportDiv.style.display = '';
+        specDiv.style.display = 'none';
+        btnReport.className = 'btn btn-primary';
+        btnSpec.className = 'btn btn-secondary';
+    }
+}
+
+function renderSpecialistsPanel() {
+    const panel = document.getElementById('specialistsPanel');
+    if (!panel) return;
+    const buttonsHtml = SPECIALIST_TYPES.map(t => {
+        const isActive = activeSpecialistType === t.id;
+        const count = state.soldiers.filter(s => matchesSpecialist(s, t)).length;
+        return `<button class="btn ${isActive ? 'btn-primary' : 'btn-secondary'}" onclick="toggleSpecialistType('${t.id}')" style="min-width:90px;">${esc(t.name)} <span style="opacity:0.7;font-size:0.85em;">(${count})</span></button>`;
+    }).join('');
+
+    let tableHtml = '';
+    if (activeSpecialistType) {
+        const spec = SPECIALIST_TYPES.find(t => t.id === activeSpecialistType);
+        if (spec) {
+            const soldiers = state.soldiers.filter(s => matchesSpecialist(s, spec));
+            if (soldiers.length === 0) {
+                tableHtml = '<div class="empty-state" style="margin-top:16px;"><p>לא נמצאו ' + esc(spec.name) + '</p></div>';
+            } else {
+                const rows = soldiers.map(s => {
+                    const status = getSoldierRealtimeStatus(s);
+                    const compName = companyData[s.company]?.name || s.company;
+                    const phone = s.phone || '';
+                    const phoneClean = phone.replace(/\D/g, '');
+                    const waLink = phoneClean ? `https://wa.me/972${phoneClean.startsWith('0') ? phoneClean.slice(1) : phoneClean}` : '';
+                    return `<tr>
+                        <td><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a></td>
+                        <td>${esc(compName)}</td>
+                        <td>${esc(s.personalId || '-')}</td>
+                        <td>${esc(s.role || '-')}</td>
+                        <td>${phone ? esc(phone) : '-'}</td>
+                        <td><span class="person-status ${status.badge}">${status.text}</span></td>
+                        <td>${waLink ? `<a href="${waLink}" target="_blank" title="WhatsApp" style="color:#25d366;font-size:1.2em;">&#128172;</a>` : ''}</td>
+                    </tr>`;
+                }).join('');
+                tableHtml = `<div style="overflow-x:auto;margin-top:16px;">
+                    <table class="data-table" style="width:100%;">
+                        <thead><tr>
+                            <th>שם</th><th>פלוגה</th><th>מ.א.</th><th>תפקיד</th><th>טלפון</th><th>סטטוס</th><th>WA</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+            }
+        }
+    }
+
+    panel.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">${buttonsHtml}</div>${tableHtml}`;
+}
+
+function matchesSpecialist(soldier, specType) {
+    const text = ((soldier.role || '') + ' ' + (soldier.rank || '') + ' ' + (soldier.unit || '')).toLowerCase();
+    return specType.keywords.some(kw => text.includes(kw));
+}
+
+function toggleSpecialistType(typeId) {
+    activeSpecialistType = activeSpecialistType === typeId ? null : typeId;
+    renderSpecialistsPanel();
 }
 
 // ==================== MORNING REPORT ====================
