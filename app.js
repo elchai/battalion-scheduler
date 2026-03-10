@@ -1522,6 +1522,7 @@ function renderDashboard() {
         if (!comp.tasks || comp.tasks.length === 0) return;
         let totalNeeded = 0, totalFilled = 0;
         comp.tasks.forEach(task => {
+            if (task.linkedTo) return; // shared manpower — don't double-count
             const needed = task.perShift ? (task.perShift.soldiers + task.perShift.commanders + task.perShift.officers + (task.perShift.drivers || 0)) * task.shifts : 0;
             if (needed <= 0) return;
             const assigned = state.shifts.filter(sh => sh.company === k && sh.task === task.name && sh.date === todayForAlerts)
@@ -2134,10 +2135,9 @@ function renderCompanyTab(compKey) {
                             const needed = t.soldiers + t.commanders + t.officers + (t.drivers || 0);
                             const pct = needed > 0 ? Math.min(100, Math.round(assigned/needed*100)) : 0;
                             const isLinked = !!t.linkedTo;
-                            return `<tr style="${editShifts ? 'cursor:pointer;' : ''}${isLinked ? 'opacity:0.7;font-style:italic;' : ''}" ${editShifts && !isLinked ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''} ${isLinked ? `title="אוטומטי מ-${esc(t.linkedTo)}"` : ''}>
-                                <td class="task-name">${esc(t.name)}${isLinked ? ' <span style="font-size:0.75em;color:var(--success);">🔗</span>' : ''}</td>
-                                ${isLinked ? '<td colspan="9" style="text-align:center;font-size:0.82em;color:var(--success);">אוטומטי מ-' + esc(t.linkedTo) + ' (כ״א מהיורדים)</td>' :
-                                `<td>${t.perShift.soldiers}</td>
+                            return `<tr style="${editShifts ? 'cursor:pointer;' : ''}" ${editShifts ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''}>
+                                <td class="task-name">${esc(t.name)}${isLinked ? ' <span style="font-size:0.7em;color:var(--success);" title="כ״א משותף עם ' + esc(t.linkedTo) + '">🔗 ' + esc(t.linkedTo) + '</span>' : ''}</td>
+                                <td>${t.perShift.soldiers}</td>
                                 <td>${t.perShift.commanders}</td>
                                 <td>${t.perShift.officers}</td>
                                 <td>${t.perShift.drivers || 0}</td>
@@ -2145,13 +2145,13 @@ function renderCompanyTab(compKey) {
                                 <td><strong>${t.soldiers}</strong></td>
                                 <td><strong>${t.commanders}</strong></td>
                                 <td><strong>${t.officers}</strong></td>
-                                <td><strong>${t.drivers || 0}</strong></td>`}
-                                ${isLinked ? '' : `<td><div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+                                <td><strong>${t.drivers || 0}</strong></td>
+                                <td><div style="display:flex;align-items:center;justify-content:center;gap:5px;">
                                     <span>${assigned}/${needed}</span>
                                     <div style="width:35px;height:5px;background:var(--border);border-radius:3px;">
                                         <div style="width:${pct}%;height:100%;background:${pct>=100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)'};border-radius:3px;"></div>
                                     </div>
-                                </div></td>`}
+                                </div></td>
                             </tr>`;
                         }).join('')}
                         <tr class="total-row">
@@ -3664,7 +3664,7 @@ function updateShiftOptions() {
         opt.value = 'כללי'; opt.textContent = 'כללי';
         taskSel.appendChild(opt);
     } else {
-        tasks.filter(t => !t.linkedTo).forEach(t => {
+        tasks.forEach(t => {
             const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers + (t.perShift.drivers || 0);
             const assigned = state.shifts.filter(sh => sh.company === company && sh.task === t.name && sh.date === date &&
                 sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + sh.soldiers.length, 0);
@@ -6312,7 +6312,6 @@ function renderTaskEditor() {
     const tasks = companyData[compKey] ? companyData[compKey].tasks : [];
     if (!tasks) return;
 
-    const otherTasks = tasks.map(t => t.name);
     container.innerHTML = `
         <div class="task-edit-row task-edit-header">
             <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>נהגים</span><span title="כמה סבבי משמרות ביממה (1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה)">סבבים/24ש׳</span><span></span>
@@ -6320,26 +6319,22 @@ function renderTaskEditor() {
         ${tasks.map((t, i) => `
             <div class="task-edit-row">
                 <input value="${esc(t.name)}" onchange="updateTask('${compKey}',${i},'name',this.value)">
-                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))" ${t.linkedTo ? 'disabled title="אוטומטי — כ״א ממשימה מקושרת"' : ''}>
-                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
-                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
-                <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
-                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
+                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
+                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
                 <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
             </div>
             ${t.linkedTo ? `<div style="padding:2px 8px 6px;font-size:0.78em;color:var(--success);display:flex;align-items:center;gap:4px;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                אוטומטי מ-${esc(t.linkedTo)} (כ״א מהמשימה המקושרת)
+                כ״א משותף עם ${esc(t.linkedTo)} (לא נספר פעמיים)
                 <button style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.85em;padding:0 4px;" onclick="unlinkTask('${compKey}',${i})" title="נתק קישור">✕</button>
-            </div>` : `<div style="padding:2px 8px 6px;">
-                <select style="font-size:0.75em;padding:2px 6px;border:1px solid var(--border);border-radius:4px;color:var(--text-light);background:var(--bg);" onchange="linkTask('${compKey}',${i},this.value)">
-                    <option value="">קשר למשימה...</option>
-                    ${otherTasks.filter(name => name !== t.name).map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('')}
-                </select>
-            </div>`}
+            </div>` : ''}
         `).join('')}
-        <div style="margin-top:10px;">
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
             <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
+            <button class="btn btn-sm" style="background:var(--success);color:#fff;font-size:0.78em;" onclick="openLinkTasksModal('${compKey}')">🔗 קישור כ״א משותף</button>
         </div>`;
 }
 
@@ -6378,16 +6373,14 @@ async function deleteTask(compKey, index) {
     renderTaskEditor();
 }
 
-function linkTask(compKey, index, sourceTaskName) {
+function linkTask(compKey, taskIndex, sourceTaskName) {
     if (!sourceTaskName) return;
-    const t = companyData[compKey].tasks[index];
+    const t = companyData[compKey].tasks[taskIndex];
     t.linkedTo = sourceTaskName;
-    // Zero out manpower — auto-filled from source
-    t.perShift = { soldiers: 0, commanders: 0, officers: 0, drivers: 0 };
-    t.soldiers = 0; t.commanders = 0; t.officers = 0; t.drivers = 0;
+    // Keep manpower as-is — just mark as shared (not counted twice)
     saveTasksToStorage();
     renderTaskEditor();
-    showToast(`${t.name} מקושרת ל-${sourceTaskName} — כ"א ישובץ אוטומטית מהיורדים`, 'success');
+    showToast(`${t.name} — כ״א משותף עם ${sourceTaskName} (לא נספר פעמיים)`, 'success');
 }
 
 function unlinkTask(compKey, index) {
@@ -6395,7 +6388,48 @@ function unlinkTask(compKey, index) {
     delete t.linkedTo;
     saveTasksToStorage();
     renderTaskEditor();
-    showToast(`קישור ${t.name} בוטל — יש להגדיר כ"א ידנית`);
+    showToast(`קישור ${t.name} בוטל`);
+}
+
+function openLinkTasksModal(compKey) {
+    const tasks = companyData[compKey] ? companyData[compKey].tasks : [];
+    if (tasks.length < 2) { showToast('צריך לפחות 2 משימות כדי לקשר', 'error'); return; }
+
+    const html = `
+        <h3 style="margin-bottom:12px;">🔗 קישור כ״א משותף בין משימות</h3>
+        <p style="font-size:0.82em;color:var(--text-light);margin-bottom:12px;">
+            כ״א משותף = אותם חיילים ממלאים שתי משימות (למשל: יורדים מסיור → נכנסים לכוננות, קצין מוצב = קצין ביזומות).<br>
+            המשימה המקושרת לא תיספר כצורך כ״א נוסף.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            ${tasks.map((t, i) => `
+                <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border-radius:8px;border:1px solid ${t.linkedTo ? 'var(--success)' : 'var(--border)'};">
+                    <strong style="min-width:100px;">${esc(t.name)}</strong>
+                    <span style="color:var(--text-light);font-size:0.82em;">כ״א משותף עם:</span>
+                    <select style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;" onchange="linkTask('${compKey}',${i},this.value);openLinkTasksModal('${compKey}');">
+                        <option value="">— ללא —</option>
+                        ${tasks.filter((_, j) => j !== i).map(other => `<option value="${esc(other.name)}" ${t.linkedTo === other.name ? 'selected' : ''}>${esc(other.name)}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('')}
+        </div>
+        <div style="margin-top:14px;text-align:left;">
+            <button class="btn btn-primary" onclick="closeModal('genericModal')">סגור</button>
+        </div>
+    `;
+
+    // Use generic modal
+    let modal = document.getElementById('genericModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'genericModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = '<div class="modal" style="max-width:500px;"><div class="modal-body" id="genericModalBody"></div></div>';
+        modal.onclick = e => { if (e.target === modal) closeModal('genericModal'); };
+        document.body.appendChild(modal);
+    }
+    document.getElementById('genericModalBody').innerHTML = html;
+    openModal('genericModal');
 }
 
 function notifyLinkedTasks(company, taskName) {
