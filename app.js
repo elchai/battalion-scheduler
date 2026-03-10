@@ -5463,7 +5463,7 @@ function exportDrillSummaryPDF() {
             </div>`;
     });
 
-    htmlContent += `<div style="text-align:center;font-size:0.8em;color:#999;margin-top:30px;">הופק מתוך מערכת גדוד יהודה — ${new Date().toLocaleDateString('he-IL')}</div></div>`;
+    htmlContent += `<div style="text-align:center;font-size:0.8em;color:#999;margin-top:30px;">הופק ממערכת לניהול גדוד שפותחה ע"י ${CONFIG.developerName} ${CONFIG.developerPhoneDisplay} — ${new Date().toLocaleDateString('he-IL')}</div></div>`;
     downloadPDF(htmlContent, 'מקצי_ירי_סיכום.pdf');
 }
 
@@ -9132,7 +9132,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:14px 0 6px;">
         <div style="text-align:center;font-size:0.68em;color:#aaa;">
-            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}
+            ${pdfTxt(`הופק ממערכת לניהול גדוד שפותחה ע"י ${CONFIG.developerName} ${CONFIG.developerPhoneDisplay}`)}
             <br>${dateStr}\u00A0${timeStr}\u00A0\u00A0www.daghazahav.com
         </div>
     </div>`;
@@ -9216,7 +9216,7 @@ function generateReturnPDF(logEntry, eq) {
 
         <hr style="border:none;border-top:1px solid #e0e0e0;margin:22px 0 10px;">
         <div style="text-align:center;font-size:0.72em;color:#aaa;">
-            ${pdfTxt('מסמך זה הופק אוטומטית ממערכת ניהול גדודי')}
+            ${pdfTxt(`הופק ממערכת לניהול גדוד שפותחה ע"י ${CONFIG.developerName} ${CONFIG.developerPhoneDisplay}`)}
             <br>${dateStr}\u00A0${timeStr}\u00A0\u00A0www.daghazahav.com
         </div>
     </div>`;
@@ -10821,7 +10821,7 @@ function exportReportPDF() {
             <thead><tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr></thead>
             <tbody>${rows.map(r => `<tr>${headers.map(h => `<td style="${tdStyle}">${r[h] || ''}</td>`).join('')}</tr>`).join('')}</tbody>
         </table>
-        <div style="text-align:center;margin-top:16px;font-size:0.72em;color:#aaa;">מערכת ניהול גדודי | ${dateStr}</div>
+        <div style="text-align:center;margin-top:16px;font-size:0.72em;color:#aaa;">הופק ממערכת לניהול גדוד שפותחה ע"י ${CONFIG.developerName} ${CONFIG.developerPhoneDisplay} | ${dateStr}</div>
     </div>`;
     downloadPDF(html, `דוח_ציוד_${reportType}_${dateStr.replace(/\./g, '-')}`);
 }
