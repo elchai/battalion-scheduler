@@ -2101,13 +2101,13 @@ function renderCompanyTab(compKey) {
     const editConstraints = canEditConstraints(compKey);
     container.innerHTML = `
         <div class="action-bar">
-            ${editSoldiers ? `<button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>` : ''}
+            ${editSoldiers ? `<button class="btn btn-add" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>` : ''}
             ${editShifts ? `<button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
             <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>
-            <button class="btn" style="background:#7c4dff;color:white;" onclick="openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
-            ${editConstraints ? `<button class="btn" style="background:#e53935;color:white;" onclick="openConstraints('${compKey}')">אילוצים</button>` : ''}
-            <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
-            <button class="btn" style="background:#7B1FA2;color:white;" onclick="toggleCompanyView('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> תצוגת מ"פ</button>
+            <button class="btn btn-special" onclick="openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
+            ${editConstraints ? `<button class="btn btn-danger" onclick="openConstraints('${compKey}')">אילוצים</button>` : ''}
+            <button class="btn btn-export" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
+            <button class="btn btn-special" onclick="toggleCompanyView('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> תצוגת מ"פ</button>
         </div>
 
         <!-- Force Table -->
@@ -2344,7 +2344,7 @@ function renderRotationGroups() {
         container.innerHTML = `<div class="empty-state">
             <div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
             <p>טרם נוצרו קבוצות רוטציה</p>
-            ${canManage ? '<button class="btn btn-primary" style="margin-top:10px;" onclick="openModal(\'addRotationGroupModal\')">+ צור קבוצה ראשונה</button>' : '<p style="font-size:0.83em;color:var(--text-light);">הקבוצות ייצרו ע"י הגדודי</p>'}
+            ${canManage ? '<button class="btn btn-add" style="margin-top:10px;" onclick="openModal(\'addRotationGroupModal\')">+ צור קבוצה ראשונה</button>' : '<p style="font-size:0.83em;color:var(--text-light);">הקבוצות ייצרו ע"י הגדודי</p>'}
         </div>`;
         return;
     }
@@ -2841,8 +2841,8 @@ function renderCommanderDashboard(targetCompKey) {
         <div class="action-bar" style="margin-top:20px;">
             <button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ חדש</button>
             <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה</button>
-            <button class="btn btn-primary" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
-            <button class="btn" style="background:var(--bg)" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
+            <button class="btn btn-add" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>
+            <button class="btn btn-export" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
         </div>
     `;
 }
@@ -2858,8 +2858,8 @@ function cmdSoldierCard(s, status) {
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
             <span class="person-status ${badge}">${txt}</span>
-            ${s.phone ? `<a href="https://wa.me/972${s.phone.replace(/^0/,'')}" target="_blank" class="btn btn-icon btn-sm" style="background:#25D366;color:white;" title="WhatsApp">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            ${s.phone ? `<a href="https://wa.me/972${s.phone.replace(/^0/,'')}" target="_blank" class="btn btn-icon btn-whatsapp btn-sm" title="WhatsApp">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </a>` : ''}
         </div>
     </div>`;
@@ -2895,8 +2895,8 @@ function renderWhatsAppCenter() {
                 <button class="filter-btn ${whatsappFilterType==='leave'?'active':''}" onclick="filterWhatsApp('leave')">יציאות (${counts.leave})</button>
                 <button class="filter-btn ${whatsappFilterType==='rotation'?'active':''}" onclick="filterWhatsApp('rotation')">רוטציה (${counts.rotation})</button>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="toggleWhatsAppCompose()" id="waComposeBtn" style="background:#25D366;border-color:#25D366;display:flex;align-items:center;gap:6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <button class="btn btn-whatsapp btn-sm" onclick="toggleWhatsAppCompose()" id="waComposeBtn" style="display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 כתיבת הודעה
             </button>
         </div>
@@ -2915,9 +2915,9 @@ function renderWhatsAppCenter() {
             <textarea id="waComposeMsg" rows="3" dir="rtl" placeholder="כתוב את ההודעה..."
                 style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:0.85em;resize:vertical;box-sizing:border-box;"></textarea>
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
-                <button class="btn btn-sm" onclick="toggleWhatsAppCompose()" style="background:var(--bg);">ביטול</button>
-                <button class="btn btn-sm" onclick="sendWhatsAppCompose()" style="background:#25D366;color:white;border-color:#25D366;display:flex;align-items:center;gap:6px;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg>
+                <button class="btn btn-cancel btn-sm" onclick="toggleWhatsAppCompose()">ביטול</button>
+                <button class="btn btn-whatsapp btn-sm" onclick="sendWhatsAppCompose()" style="display:flex;align-items:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     שלח ב-WhatsApp
                 </button>
             </div>
@@ -3039,8 +3039,8 @@ function renderWhatsAppCard(n) {
             <div style="font-size:0.82em;color:var(--text-light);">${esc(n.desc)}</div>
             <div style="font-size:0.78em;color:var(--text-light);margin-top:2px;">${esc(n.phone)}</div>
         </div>
-        <a href="${waLink}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#25D366;color:white;border-radius:8px;text-decoration:none;font-size:0.85em;font-weight:600;white-space:nowrap;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+        <a href="${waLink}" target="_blank" class="btn btn-whatsapp btn-sm" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             שלח
         </a>
     </div>`;
@@ -3329,7 +3329,7 @@ function openSoldierProfile(id) {
 
     html += `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="closeModal('soldierProfileModal');openEditSoldier('${id}')">&#9998; ערוך</button>
-        ${sol.phone ? `<a class="btn btn-sm" style="background:#25D366;color:white;text-decoration:none;" href="https://wa.me/${sol.phone.replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank">WhatsApp</a>` : ''}
+        ${sol.phone ? `<a class="btn btn-whatsapp btn-sm" style="text-decoration:none;" href="https://wa.me/${sol.phone.replace(/[^0-9]/g,'').replace(/^0/,'972')}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</a>` : ''}
         ${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="closeModal('soldierProfileModal');deleteSoldier('${id}')">&#10005; מחק חייל</button>` : ''}
     </div>`;
 
@@ -4538,7 +4538,7 @@ function renderTrainingEventsTab() {
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
                 ${isFull ? `<button class="btn" style="background:#1565c0;color:white;font-size:0.82em;" onclick="openExerciseTypeManager()">ניהול סוגי תרגילים</button>` : ''}
-                ${canCreate ? `<button class="btn btn-primary" onclick="openTrainingEventModal()">+ הוסף תרגיל</button>` : ''}
+                ${canCreate ? `<button class="btn btn-add" onclick="openTrainingEventModal()">+ הוסף תרגיל</button>` : ''}
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
@@ -4975,7 +4975,7 @@ function renderShootingTab() {
                 מקצי ירי
             </div>
             <div style="display:flex;gap:6px;">
-                ${isFull ? '<button class="btn" style="font-size:0.82em;background:#ffebee;color:#b71c1c;" onclick="exportDrillSummaryPDF()">ייצוא PDF מקצי ירי</button>' : ''}
+                ${isFull ? '<button class="btn btn-export" style="font-size:0.82em;" onclick="exportDrillSummaryPDF()">ייצוא PDF מקצי ירי</button>' : ''}
             </div>
         </div>
         <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
@@ -4998,7 +4998,7 @@ function renderShootingDrillsView() {
 
     let html = '';
     if (isFull) {
-        html += `<div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="openShootingDrillModal()">+ הוסף מקצה ירי</button></div>`;
+        html += `<div style="margin-bottom:16px;"><button class="btn btn-add" onclick="openShootingDrillModal()">+ הוסף מקצה ירי</button></div>`;
     }
 
     if (drills.length === 0) {
@@ -5056,7 +5056,7 @@ function renderShootingExecutionsView() {
                 <option value="all" ${shootingCompanyFilter === 'all' ? 'selected' : ''}>כל הגדוד</option>
                 ${allCompanyKeys().map(k => `<option value="${k}" ${shootingCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
             </select>
-            ${canCreate ? `<button class="btn btn-primary" onclick="openShootingExecutionModal()">+ ביצוע חדש</button>` : ''}
+            ${canCreate ? `<button class="btn btn-add" onclick="openShootingExecutionModal()">+ ביצוע חדש</button>` : ''}
         </div>`;
 
     if (executions.length === 0) {
@@ -6108,7 +6108,7 @@ function renderSettingsTab() {
         </div>
         <p style="font-size:0.78em;color:var(--text-light);">פלוגות א׳-ד׳, חפ"ק, אגם, פלח"ם מסונכרנים מהגיליונות.</p>
         <div class="settings-actions">
-            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
+            <button class="btn btn-sync" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
         </div>
         ` : `
         <div class="settings-field">
@@ -6116,7 +6116,7 @@ function renderSettingsTab() {
             <input type="text" value="${esc(settings.sheetId)}" style="direction:ltr;font-family:monospace;font-size:0.8em;" onchange="settings.sheetId=this.value.trim();saveSettings();showToast('מזהה גיליון עודכן');">
         </div>
         <div class="settings-actions">
-            <button class="btn btn-primary" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
+            <button class="btn btn-sync" onclick="syncFromGoogleSheets(false)">סנכרון מחדש</button>
         </div>
         `}
     </div>
@@ -6137,8 +6137,8 @@ function renderSettingsTab() {
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> ניהול נתונים</h3>
         <div class="settings-actions">
-            <button class="btn btn-primary" onclick="exportAllData()">ייצוא נתונים (Excel)</button>
-            <button class="btn btn-warning" onclick="document.getElementById('importFile').click();">ייבוא נתונים (Excel)</button>
+            <button class="btn btn-export" onclick="exportAllData()">ייצוא נתונים (Excel)</button>
+            <button class="btn btn-sync" onclick="document.getElementById('importFile').click();">ייבוא נתונים (Excel)</button>
             <input type="file" id="importFile" accept=".xlsx,.xls,.json" style="display:none" onchange="importAllData(this)">
             ${isAdmin() ? '<button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>' : ''}
         </div>
@@ -6198,7 +6198,7 @@ function renderTaskEditor() {
             </div>
         `).join('')}
         <div style="margin-top:10px;">
-            <button class="btn btn-success btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
+            <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
         </div>`;
 }
 
@@ -7217,7 +7217,7 @@ function renderSpecialistsPanel() {
                         <td>${esc(s.role || '-')}</td>
                         <td>${phone ? esc(phone) : '-'}</td>
                         <td><span class="person-status ${status.badge}">${status.text}</span></td>
-                        <td>${waLink ? `<a href="${waLink}" target="_blank" title="WhatsApp" style="display:inline-flex;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>` : ''}</td>
+                        <td>${waLink ? `<a href="${waLink}" target="_blank" title="WhatsApp" class="btn btn-icon btn-whatsapp btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>` : ''}</td>
                     </tr>`;
                 }).join('');
                 tableHtml = `<div style="overflow-x:auto;margin-top:16px;">
@@ -8957,7 +8957,7 @@ function renderSignatureHistory() {
             <div class="sig-actions">
                 ${log.signatureImg ? `<img class="sig-preview" src="${log.signatureImg}" alt="חתימה">` : ''}
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    ${!isDelete ? `<button class="btn btn-primary btn-sm" onclick="redownloadPDF('${log.id}')">PDF</button>` : ''}
+                    ${!isDelete ? `<button class="btn btn-export btn-sm" onclick="redownloadPDF('${log.id}')">PDF</button>` : ''}
                     ${!isReturn && !isDelete ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="עריכה">עריכה</button>` : ''}
                     <button class="btn btn-danger btn-sm" onclick="deleteSignatureLog('${log.id}')" title="מחיקה">מחק</button>
                 </div>
@@ -10360,7 +10360,7 @@ function renderEquipmentSetsSettings() {
                 </tr>`).join('')}
             </tbody>
         </table></div>
-        <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="addBaseSetItem()">+ הוסף פריט</button>
+        <button class="btn btn-sm btn-add" style="margin-top:8px;" onclick="addBaseSetItem()">+ הוסף פריט</button>
     </div>`;
 
     // Commander roleSet
@@ -11093,9 +11093,9 @@ function renderPakalSubTab() {
 
     container.innerHTML = `
         <div class="action-bar">
-            <button class="btn btn-primary" onclick="openGeneratePakalModal()">+ הנפקת ציוד לחייל</button>
+            <button class="btn btn-add" onclick="openGeneratePakalModal()">+ הנפקת ציוד לחייל</button>
             <button class="btn btn-success" onclick="openBulkGeneratePakalModal()">הנפקת ציוד לפלוגה</button>
-            <button class="btn" style="background:var(--bg)" onclick="exportPakalCSV()">ייצוא CSV</button>
+            <button class="btn btn-export" onclick="exportPakalCSV()">ייצוא CSV</button>
         </div>
         <div class="quick-stats" style="margin-bottom:14px;">
             <div class="quick-stat"><div class="value">${stats.total}</div><div class="label">סה"כ חתימות על ציוד</div></div>
@@ -11162,9 +11162,9 @@ function renderPakalCard(pe) {
         </details>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
             ${!isSigned ? `<button class="btn btn-success btn-sm" onclick="openBulkSignModal('${pe.soldierId}')">&#9998; חתימה</button>` : ''}
-            <button class="btn btn-sm" style="background:#7B1FA2;color:#fff;" onclick="openAddExtraItemModal('${pe.soldierId}')">+ פריט</button>
+            <button class="btn btn-special btn-sm" onclick="openAddExtraItemModal('${pe.soldierId}')">+ פריט</button>
             ${issuedItems > 0 ? `<button class="btn btn-warning btn-sm" onclick="openReturnPakalModal('${pe.soldierId}')">&#8634; החזרה</button>` : ''}
-            <button class="btn btn-sm" style="background:var(--bg)" onclick="generatePakalPDF('${pe.soldierId}')">PDF</button>
+            <button class="btn btn-export btn-sm" onclick="generatePakalPDF('${pe.soldierId}')">PDF</button>
             <button class="btn btn-danger btn-sm" onclick="deletePakal('${pe.soldierId}')">&#10005;</button>
         </div>
     </div>`;
@@ -11562,7 +11562,7 @@ function renderPalsamDashboard() {
                         <td style="text-align:center;">${s.pe.items.length}</td>
                         <td style="display:flex;gap:4px;">
                             <button class="btn btn-success btn-sm" onclick="openBulkSignModal('${s.id}')">חתימה</button>
-                            ${s.phone ? `<a class="btn btn-sm" style="background:#25D366;color:#fff;" href="https://wa.me/972${s.phone.replace(/^0/,'').replace(/-/g,'')}?text=${encodeURIComponent('שלום ' + s.name + ', יש ציוד שממתין לחתימתך במערכת הגדודית. נא להגיע לפלס"ם לחתום.')}" target="_blank">WhatsApp</a>` : ''}
+                            ${s.phone ? `<a class="btn btn-whatsapp btn-sm" style="text-decoration:none;" href="https://wa.me/972${s.phone.replace(/^0/,'').replace(/-/g,'')}?text=${encodeURIComponent('שלום ' + s.name + ', יש ציוד שממתין לחתימתך במערכת הגדודית. נא להגיע לפלס"ם לחתום.')}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</a>` : ''}
                         </td>
                     </tr>`).join('')}
                 </tbody>
