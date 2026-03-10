@@ -22,6 +22,20 @@
     --pluga-hq: #90a4ae;
     --pluga-agam: #26a69a;
     --pluga-palsam: #ab47bc;
+    /* Semantic button colors */
+    --whatsapp: #25D366;
+    --whatsapp-hover: #1da851;
+    --export: #5c6bc0;
+    --export-hover: #3f51b5;
+    --add: #00897b;
+    --add-hover: #00695c;
+    --sync: #7e57c2;
+    --sync-hover: #5e35b1;
+    --special: #7c4dff;
+    --special-hover: #651fff;
+    --cancel-bg: #eceff1;
+    --cancel-text: #546e6f;
+    --cancel-hover: #cfd8dc;
 }
 
 /* Lucide icons */
@@ -54,6 +68,18 @@
     --pluga-hq: #b0bec5;
     --pluga-agam: #4db6ac;
     --pluga-palsam: #ce93d8;
+    /* Semantic button colors — dark mode */
+    --export: #7986cb;
+    --export-hover: #5c6bc0;
+    --add: #26a69a;
+    --add-hover: #00897b;
+    --sync: #9575cd;
+    --sync-hover: #7e57c2;
+    --special: #b388ff;
+    --special-hover: #7c4dff;
+    --cancel-bg: #2a2a4a;
+    --cancel-text: #8899aa;
+    --cancel-hover: #3a3a5a;
 }
 [data-theme="dark"] body { background: var(--bg); color: var(--text); }
 [data-theme="dark"] .login-screen { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #0d2240 100%); }
@@ -1077,6 +1103,19 @@ tbody tr:hover { background: #f8f9ff; }
 .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
 .btn-outline:hover { background: var(--primary); color: white; }
 .btn-icon { width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+/* Semantic button types */
+.btn-whatsapp { background: var(--whatsapp); color: white; border-color: var(--whatsapp); }
+.btn-whatsapp:hover { background: var(--whatsapp-hover); border-color: var(--whatsapp-hover); }
+.btn-export { background: var(--export); color: white; border-color: var(--export); }
+.btn-export:hover { background: var(--export-hover); border-color: var(--export-hover); }
+.btn-add { background: var(--add); color: white; border-color: var(--add); }
+.btn-add:hover { background: var(--add-hover); border-color: var(--add-hover); }
+.btn-sync { background: var(--sync); color: white; border-color: var(--sync); }
+.btn-sync:hover { background: var(--sync-hover); border-color: var(--sync-hover); }
+.btn-special { background: var(--special); color: white; border-color: var(--special); }
+.btn-special:hover { background: var(--special-hover); border-color: var(--special-hover); }
+.btn-cancel { background: var(--cancel-bg); color: var(--cancel-text); border-color: var(--border); }
+.btn-cancel:hover { background: var(--cancel-hover); }
 
 /* Data tables (equipment reports, import preview) */
 .data-table { border-collapse: collapse; }
