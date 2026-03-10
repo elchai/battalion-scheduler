@@ -590,7 +590,10 @@ function resolveWeaponSource_(rawSource, rawType) {
 
 /**
  * פיצול כתובות קיימות בגיליון.
- * עובר על כל השורות — אם K מכיל כתובת מלאה ו-L,M,N ריקים, מפצל.
+ * הנתונים המעורבבים נמצאים בעמודה L (מס' הבית) — כוללים מספר + עיר + מיקוד.
+ * דוגמאות מעמודה L: "255", "30 מודיעין מכבים רעות 830", "253/1 דולב 7193500",
+ *                     "18/10 מודיעין", "36 בת ים", "12 תל אביב"
+ * הפונקציה מפצלת: L=מספר בלבד, M=יישוב, N=מיקוד.
  * הרץ פעם אחת: Run > splitExistingAddresses
  */
 function splitExistingAddresses() {
@@ -602,28 +605,77 @@ function splitExistingAddresses() {
   let updated = 0;
 
   for (let i = 1; i < data.length; i++) {
-    const streetVal = String(data[i][10] || '').trim(); // K = index 10
-    const numberVal = String(data[i][11] || '').trim(); // L = index 11
-    const cityVal   = String(data[i][12] || '').trim(); // M = index 12
-    const zipVal    = String(data[i][13] || '').trim(); // N = index 13
+    const lVal = String(data[i][11] || '').trim(); // L = index 11 (מס' הבית)
+    const mVal = String(data[i][12] || '').trim(); // M = index 12 (יישוב)
+    const nVal = String(data[i][13] || '').trim(); // N = index 13 (מיקוד)
 
-    // Only split if K has content and L,M,N are empty (not already split)
-    if (streetVal && !numberVal && !cityVal && !zipVal) {
-      const addr = parseAddress_(streetVal);
-      // Only update if we actually parsed something useful
-      if (addr.city || addr.number || addr.zip) {
-        const row = i + 1; // 1-based
-        dataTab.getRange(row, 11).setValue(addr.street);  // K
-        dataTab.getRange(row, 12).setValue(addr.number);   // L
-        dataTab.getRange(row, 13).setValue(addr.city);     // M
-        dataTab.getRange(row, 14).setValue(addr.zip);      // N
-        updated++;
-      }
+    if (!lVal) continue;
+
+    // If M (city) is already filled, row is already split — skip
+    if (mVal) continue;
+
+    // Check if L contains Hebrew text (= mixed content, not just a number)
+    const hasHebrew = /[\u0590-\u05FF]/.test(lVal);
+    // Check if L contains a zip code (5-7 digit sequence)
+    const hasZip = /\d{5,7}/.test(lVal);
+
+    if (!hasHebrew && !hasZip) continue; // Pure number like "255" — already correct
+
+    // Parse mixed content from L
+    const parsed = parseMixedHouseNumber_(lVal);
+    const row = i + 1; // 1-based
+
+    dataTab.getRange(row, 12).setValue(parsed.number);  // L = מס' בית
+    dataTab.getRange(row, 13).setValue(parsed.city);     // M = יישוב
+    if (parsed.zip) {
+      dataTab.getRange(row, 14).setValue(parsed.zip);    // N = מיקוד
     }
+    updated++;
+    Logger.log('Row ' + row + ': "' + lVal + '" → number=' + parsed.number + ', city=' + parsed.city + ', zip=' + parsed.zip);
   }
 
   Logger.log('Split ' + updated + ' addresses.');
   appendLog_(ss, 'פיצול כתובות', 'עודכנו ' + updated + ' שורות');
+}
+
+/**
+ * מנתח תוכן מעורבב מעמודה L (מס' הבית).
+ * דוגמאות:
+ *   "30 מודיעין מכבים רעות 830" → { number: "30", city: "מודיעין מכבים רעות", zip: "" }
+ *   "253/1 דולב 7193500"        → { number: "253/1", city: "דולב", zip: "7193500" }
+ *   "18/10 מודיעין"             → { number: "18/10", city: "מודיעין", zip: "" }
+ *   "36 בת ים"                  → { number: "36", city: "בת ים", zip: "" }
+ *   "12 תל אביב"               → { number: "12", city: "תל אביב", zip: "" }
+ *   "השלום"                     → { number: "", city: "השלום", zip: "" }
+ */
+function parseMixedHouseNumber_(val) {
+  let number = '', city = '', zip = '';
+
+  // Extract zip code (5-7 digits at end or standalone)
+  const zipMatch = val.match(/\b(\d{5,7})\b/);
+  if (zipMatch) {
+    zip = zipMatch[1];
+    val = val.replace(zipMatch[0], '').trim();
+  }
+
+  // Try to split: leading number/fraction + Hebrew city name
+  // Pattern: optional number (like 30, 253/1, 18/10) followed by Hebrew text
+  const m = val.match(/^(\d+(?:[\/\-]\d+)?)\s+([\u0590-\u05FF].*)$/);
+  if (m) {
+    number = m[1];
+    city = m[2].trim();
+  } else if (/^[\u0590-\u05FF]/.test(val)) {
+    // Starts with Hebrew — it's all city name (like "השלום")
+    city = val;
+  } else if (/^\d+(?:[\/\-]\d+)?$/.test(val)) {
+    // Pure number remaining after zip extraction
+    number = val;
+  } else {
+    // Fallback — put everything in city
+    city = val;
+  }
+
+  return { number: number.trim(), city: city.trim(), zip: zip.trim() };
 }
 
 /**
