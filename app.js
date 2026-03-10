@@ -6272,7 +6272,7 @@ function renderSettingsTab() {
             ${isAdmin() ? '<button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>' : ''}
         </div>
         <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
-            סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} משמרות | ${state.leaves.length} יציאות | ${state.rotationGroups.length} קבוצות רוטציה
+            סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} שיבוצים | ${state.leaves.length} יציאות
         </div>
     </div>`;
 
