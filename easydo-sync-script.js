@@ -69,8 +69,8 @@ const FIELDS = {
   isFighter:     'custom_field_699b2cd099f34',   // האם הוסמכת כלוחם
   unit:          'custom_field_699b2cd099f3b',
   signedDate:    'custom_field_699b2cd099f47',
-  doctorFile:    'custom_field_699b2cd099f77',   // file ID - אישור רופא
-  idPhotoFile:   'custom_field_699b2cd099f6e',   // file ID - צילום תעודת זהות
+  doctorFile:    'custom_field_699b2cd099f77',   // file ID - אישור רופא (f77 מכיל בפועל את אישור הרופא)
+  idPhotoFile:   'custom_field_699b2cd099f6e',   // file ID - צילום תעודת זהות (f6e מכיל בפועל את צילום הת.ז)
 };
 
 // ========== הגדרה ראשונית ==========
