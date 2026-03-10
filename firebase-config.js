@@ -85,6 +85,7 @@ async function firebaseLoadSettings() {
             const remote = doc.data();
             // Deep merge: preserve local equipmentSets if migration ran (more items = newer)
             const localES = settings.equipmentSets;
+            const localExTypes = settings.exerciseTypes;
             settings = { ...settings, ...remote };
             if (remote.shiftPresets) settings.shiftPresets = { ...settings.shiftPresets, ...remote.shiftPresets };
             // Restore local equipmentSets if it has more baseSet items (migration ran locally)
@@ -94,6 +95,10 @@ async function firebaseLoadSettings() {
                 if (localCount > remoteCount) {
                     settings.equipmentSets = localES;
                 }
+            }
+            // Preserve local exerciseTypes if remote is empty but local has data
+            if (localExTypes && localExTypes.length > 0 && (!settings.exerciseTypes || settings.exerciseTypes.length === 0)) {
+                settings.exerciseTypes = localExTypes;
             }
             localStorage.setItem(CONFIG.storagePrefix + 'Settings', JSON.stringify(settings));
             return true;
@@ -205,6 +210,7 @@ function setupRealtimeListeners() {
             if (localJSON !== remoteJSON) {
                 // Preserve local equipmentSets if migration gave it more items
                 const localES = settings.equipmentSets;
+                const localExTypes = settings.exerciseTypes;
                 settings = { ...settings, ...remote };
                 if (remote.shiftPresets) settings.shiftPresets = { ...settings.shiftPresets, ...remote.shiftPresets };
                 if (localES && localES.baseSet && remote.equipmentSets && remote.equipmentSets.baseSet) {
@@ -213,6 +219,9 @@ function setupRealtimeListeners() {
                     if (localCount > remoteCount) {
                         settings.equipmentSets = localES;
                     }
+                }
+                if (localExTypes && localExTypes.length > 0 && (!settings.exerciseTypes || settings.exerciseTypes.length === 0)) {
+                    settings.exerciseTypes = localExTypes;
                 }
                 localStorage.setItem(CONFIG.storagePrefix + 'Settings', JSON.stringify(settings));
             }

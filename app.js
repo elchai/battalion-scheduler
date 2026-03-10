@@ -972,10 +972,18 @@ async function init() {
             { id: 'extype_b44_1', name: 'תרגיל מחלקה יום (יבש)', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'dry', description: 'תרגיל מחלקתי בתנאי יבש' },
             { id: 'extype_b44_2', name: 'תרגיל מחלקה יום (רטוב)', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל מחלקתי בתנאי רטוב' },
             { id: 'extype_b44_3', name: 'תרמ"ח שטח בנוי יום', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי ביום בתנאי רטוב' },
-            { id: 'extype_b44_4', name: 'תרמ"ח שטח בנוי לילה', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי בלילה בתנאי רטוב' }
+            { id: 'extype_b44_4', name: 'תרמ"ח שטח בנוי לילה', category: 'שטח בנוי', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל תרמ"ח בשטח בנוי בלילה בתנאי רטוב' },
+            { id: 'extype_b44_5', name: 'תרגיל כיתה יום', category: 'שטח פתוח', trainingForceType: 'team', exerciseCondition: 'dry', description: 'תרגיל כיתתי ביום בשטח פתוח' },
+            { id: 'extype_b44_6', name: 'תרגיל כיתה לילה', category: 'שטח פתוח', trainingForceType: 'team', exerciseCondition: 'dry', description: 'תרגיל כיתתי בלילה בשטח פתוח' },
+            { id: 'extype_b44_7', name: 'תרגיל מחלקה לילה', category: 'שטח פתוח', trainingForceType: 'squad', exerciseCondition: 'wet', description: 'תרגיל מחלקתי בלילה' },
+            { id: 'extype_b44_8', name: 'תרגיל פלוגתי', category: 'שטח פתוח', trainingForceType: 'company', exerciseCondition: 'wet', description: 'תרגיל ברמת פלוגה' },
+            { id: 'extype_b44_9', name: 'ניווט יום', category: 'ניווט', trainingForceType: 'individual', exerciseCondition: 'dry', description: 'ניווט אישי ביום' },
+            { id: 'extype_b44_10', name: 'ניווט לילה', category: 'ניווט', trainingForceType: 'individual', exerciseCondition: 'dry', description: 'ניווט אישי בלילה' },
+            { id: 'extype_b44_11', name: 'עזרה ראשונה', category: 'רפואה', trainingForceType: 'individual', exerciseCondition: 'dry', description: 'הכשרת עזרה ראשונה בשדה הקרב' },
+            { id: 'extype_b44_12', name: 'כושר קרבי', category: 'כושר', trainingForceType: 'individual', exerciseCondition: 'dry', description: 'אימון כושר קרבי' }
         ];
         saveSettings();
-        console.log('Seeded 5 exercise types');
+        console.log('Seeded exercise types');
     }
 
     // Force re-sync if data version changed (multi-sheet support)
