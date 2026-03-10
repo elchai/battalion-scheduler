@@ -10773,12 +10773,24 @@ function toggleGroupWaRecipient(id, checked) {
 
 function groupWaSelectAll(checked) {
     if (checked) {
-        // Re-select all from current group
-        renderGroupWaRecipients();
+        // Re-select all with phone from current group
+        const withPhone = _groupWaGroupSoldiers.filter(s => s.phone);
+        _groupWaSelectedIds = new Set(withPhone.map(s => s.id));
     } else {
+        // Clear everything — groups, soldiers, selections, chips
         _groupWaSelectedIds.clear();
-        renderGroupWaRecipients();
+        _groupWaActiveGroups.clear();
+        _groupWaGroupSoldiers = [];
+        document.querySelectorAll('.group-wa-chip').forEach(b => {
+            if (b.dataset.color) {
+                b.style.background = 'transparent';
+                b.style.color = b.dataset.color;
+            }
+            b.style.boxShadow = 'none';
+            b.style.opacity = '';
+        });
     }
+    renderGroupWaRecipients();
 }
 
 function insertGroupWaVar(varName) {
