@@ -2133,9 +2133,11 @@ function renderCompanyTab(compKey) {
                             const assigned = shifts.filter(s => s.task === t.name).reduce((sum, s) => sum + s.soldiers.length, 0);
                             const needed = t.soldiers + t.commanders + t.officers + (t.drivers || 0);
                             const pct = needed > 0 ? Math.min(100, Math.round(assigned/needed*100)) : 0;
-                            return `<tr style="${editShifts ? 'cursor:pointer;' : ''}" ${editShifts ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''}>
-                                <td class="task-name">${esc(t.name)}</td>
-                                <td>${t.perShift.soldiers}</td>
+                            const isLinked = !!t.linkedTo;
+                            return `<tr style="${editShifts ? 'cursor:pointer;' : ''}${isLinked ? 'opacity:0.7;font-style:italic;' : ''}" ${editShifts && !isLinked ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''} ${isLinked ? `title="אוטומטי מ-${esc(t.linkedTo)}"` : ''}>
+                                <td class="task-name">${esc(t.name)}${isLinked ? ' <span style="font-size:0.75em;color:var(--success);">🔗</span>' : ''}</td>
+                                ${isLinked ? '<td colspan="9" style="text-align:center;font-size:0.82em;color:var(--success);">אוטומטי מ-' + esc(t.linkedTo) + ' (כ״א מהיורדים)</td>' :
+                                `<td>${t.perShift.soldiers}</td>
                                 <td>${t.perShift.commanders}</td>
                                 <td>${t.perShift.officers}</td>
                                 <td>${t.perShift.drivers || 0}</td>
@@ -2143,13 +2145,13 @@ function renderCompanyTab(compKey) {
                                 <td><strong>${t.soldiers}</strong></td>
                                 <td><strong>${t.commanders}</strong></td>
                                 <td><strong>${t.officers}</strong></td>
-                                <td><strong>${t.drivers || 0}</strong></td>
-                                <td><div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+                                <td><strong>${t.drivers || 0}</strong></td>`}
+                                ${isLinked ? '' : `<td><div style="display:flex;align-items:center;justify-content:center;gap:5px;">
                                     <span>${assigned}/${needed}</span>
                                     <div style="width:35px;height:5px;background:var(--border);border-radius:3px;">
                                         <div style="width:${pct}%;height:100%;background:${pct>=100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)'};border-radius:3px;"></div>
                                     </div>
-                                </div></td>
+                                </div></td>`}
                             </tr>`;
                         }).join('')}
                         <tr class="total-row">
@@ -2183,9 +2185,9 @@ function renderCompanyTab(compKey) {
                         const needed = taskData ? taskData.perShift.soldiers + taskData.perShift.commanders + taskData.perShift.officers + (taskData.perShift.drivers || 0) : 0;
                         const cmdSol = sh.taskCommander && state.soldiers.find(s => s.id === sh.taskCommander);
                         const needsCommander = taskData && taskData.perShift.soldiers >= 4;
-                        return `<div class="shift-card">
+                        return `<div class="shift-card" ${sh.autoLinked ? 'style="border-right:3px solid var(--success);opacity:0.85;"' : ''}>
                             <div class="shift-card-header">
-                                <h4>${esc(sh.task)}${sh.shiftName ? ' - '+esc(sh.shiftName) : ''}</h4>
+                                <h4>${sh.autoLinked ? '🔗 ' : ''}${esc(sh.task)}${sh.shiftName ? ' - '+esc(sh.shiftName) : ''}</h4>
                                 <span class="shift-time">${sh.startTime} - ${sh.endTime}</span>
                             </div>
                             <div class="shift-card-body">
@@ -3652,14 +3654,17 @@ function updateShiftOptions() {
     // Tasks dropdown with capacity info
     const taskSel = document.getElementById('shiftTask');
     taskSel.innerHTML = '';
-    taskSel.onchange = updateTaskCommanderSelect;
+    taskSel.onchange = function() {
+        updateTaskCommanderSelect();
+        notifyLinkedTasks(company, this.value.replace(/\s*\(\d+\/\d+\)$/, ''));
+    };
     const tasks = (companyData[company] && companyData[company].tasks) || [];
     if (tasks.length === 0) {
         const opt = document.createElement('option');
         opt.value = 'כללי'; opt.textContent = 'כללי';
         taskSel.appendChild(opt);
     } else {
-        tasks.forEach(t => {
+        tasks.filter(t => !t.linkedTo).forEach(t => {
             const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers + (t.perShift.drivers || 0);
             const assigned = state.shifts.filter(sh => sh.company === company && sh.task === t.name && sh.date === date &&
                 sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + sh.soldiers.length, 0);
@@ -4353,6 +4358,9 @@ function approveScheduleProposal() {
                     taskCommander: shift.soldiers[0] || ''
                 };
                 state.shifts.push(shiftObj);
+
+                // Auto-create linked shifts
+                createLinkedShifts(_autoScheduleCompany, task.task, day.date, shift.startTime, shift.endTime, shift.soldiers);
 
                 // Record history
                 if (!state.shiftHistory) state.shiftHistory = [];
@@ -5607,6 +5615,8 @@ async function saveShift() {
         // Update existing shift
         const sh = state.shifts.find(s => s.id === editId);
         if (sh) {
+            // Remove old linked auto-shifts before updating
+            state.shifts = state.shifts.filter(s => s.linkedSourceId !== editId && !(s.autoLinked && s.shiftName === `אוטומטי מ-${sh.task}` && s.date === sh.date && s.company === sh.company && JSON.stringify(s.soldiers) === JSON.stringify(sh.soldiers)));
             sh.company = company;
             sh.task = task;
             sh.date = date;
@@ -5615,6 +5625,8 @@ async function saveShift() {
             sh.endTime = endTime;
             sh.soldiers = soldiers;
             sh.taskCommander = taskCommander;
+            // Re-create linked shifts with updated data
+            createLinkedShifts(company, task, date, startTime, endTime, soldiers);
             saveState();
             closeModal('addShiftModal');
             renderCompanyTab(company);
@@ -5627,11 +5639,15 @@ async function saveShift() {
             id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
             company, task, date, shiftName, startTime, endTime, soldiers, taskCommander
         });
+
+        // Auto-create linked shifts (e.g., כוננות from סיור)
+        const linkedCount = createLinkedShifts(company, task, date, startTime, endTime, soldiers);
+
         saveState();
         closeModal('addShiftModal');
         renderCompanyTab(company);
         updateGlobalStats();
-        showToast(`משמרת ${task} נוצרה עם ${soldiers.length} חיילים`);
+        showToast(`משמרת ${task} נוצרה עם ${soldiers.length} חיילים${linkedCount ? ` + ${linkedCount} כוננות אוטומטית` : ''}`);
     }
 }
 
@@ -5641,9 +5657,84 @@ async function deleteShift(id) {
     if (!await customConfirm('למחוק משמרת?')) return;
     state.shifts = state.shifts.filter(s => s.id !== id);
     saveState();
-    if (sh) renderCompanyTab(sh.company);
+    // Also delete linked auto-shifts
+    if (sh) {
+        state.shifts = state.shifts.filter(s => s.linkedSourceId !== id);
+        renderCompanyTab(sh.company);
+    }
     updateGlobalStats();
     showToast('משמרת נמחקה');
+}
+
+function createLinkedShifts(company, sourceTask, date, startTime, endTime, soldiers) {
+    const comp = companyData[company];
+    if (!comp || !comp.tasks) return 0;
+
+    // Find tasks linked to this source task
+    const linkedTasks = comp.tasks.filter(t => t.linkedTo === sourceTask);
+    if (linkedTasks.length === 0) return 0;
+
+    let count = 0;
+    const sourceShifts = getTaskShiftTimes(comp.tasks.find(t => t.name === sourceTask));
+
+    linkedTasks.forEach(linkedTask => {
+        // Linked shift starts when source ends, ends when next source shift starts
+        const nextStart = getNextShiftStart(sourceShifts, endTime);
+        const linkedDate = endTime > nextStart ? getNextDay(date) : date; // handle cross-midnight
+        const linkedStartDate = endTime <= startTime ? getNextDay(date) : date; // source crosses midnight
+
+        state.shifts.push({
+            id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_linked',
+            company,
+            task: linkedTask.name,
+            date: linkedStartDate,
+            shiftName: `אוטומטי מ-${sourceTask}`,
+            startTime: endTime,
+            endTime: nextStart,
+            soldiers: [...soldiers],
+            taskCommander: soldiers[0] || '',
+            linkedSourceId: null, // will be set after source is saved
+            autoLinked: true
+        });
+        count++;
+    });
+
+    return count;
+}
+
+function getTaskShiftTimes(task) {
+    if (!task) return [{ start: '06:00', end: '22:00' }];
+    const shiftDefs = {
+        3: [
+            { start: '06:00', end: '14:00' },
+            { start: '14:00', end: '22:00' },
+            { start: '22:00', end: '06:00' }
+        ],
+        2: [
+            { start: '06:00', end: '18:00' },
+            { start: '18:00', end: '06:00' }
+        ],
+        1: [
+            { start: '06:00', end: '22:00' }
+        ]
+    };
+    return shiftDefs[task.shifts] || shiftDefs[1];
+}
+
+function getNextShiftStart(shiftTimes, afterTime) {
+    // Find the next shift that starts after afterTime
+    const sorted = [...shiftTimes].sort((a, b) => a.start.localeCompare(b.start));
+    for (const s of sorted) {
+        if (s.start > afterTime) return s.start;
+    }
+    // Wrap around — return first shift of next day
+    return sorted[0].start;
+}
+
+function getNextDay(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
 }
 
 // ==================== LEAVE ====================
@@ -6221,6 +6312,7 @@ function renderTaskEditor() {
     const tasks = companyData[compKey] ? companyData[compKey].tasks : [];
     if (!tasks) return;
 
+    const otherTasks = tasks.map(t => t.name);
     container.innerHTML = `
         <div class="task-edit-row task-edit-header">
             <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>נהגים</span><span title="כמה סבבי משמרות ביממה (1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה)">סבבים/24ש׳</span><span></span>
@@ -6228,13 +6320,23 @@ function renderTaskEditor() {
         ${tasks.map((t, i) => `
             <div class="task-edit-row">
                 <input value="${esc(t.name)}" onchange="updateTask('${compKey}',${i},'name',this.value)">
-                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
-                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
+                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))" ${t.linkedTo ? 'disabled title="אוטומטי — כ״א ממשימה מקושרת"' : ''}>
+                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
+                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
+                <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
+                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))" ${t.linkedTo ? 'disabled' : ''}>
                 <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
             </div>
+            ${t.linkedTo ? `<div style="padding:2px 8px 6px;font-size:0.78em;color:var(--success);display:flex;align-items:center;gap:4px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                אוטומטי מ-${esc(t.linkedTo)} (כ״א מהמשימה המקושרת)
+                <button style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.85em;padding:0 4px;" onclick="unlinkTask('${compKey}',${i})" title="נתק קישור">✕</button>
+            </div>` : `<div style="padding:2px 8px 6px;">
+                <select style="font-size:0.75em;padding:2px 6px;border:1px solid var(--border);border-radius:4px;color:var(--text-light);background:var(--bg);" onchange="linkTask('${compKey}',${i},this.value)">
+                    <option value="">קשר למשימה...</option>
+                    ${otherTasks.filter(name => name !== t.name).map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('')}
+                </select>
+            </div>`}
         `).join('')}
         <div style="margin-top:10px;">
             <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
@@ -6274,6 +6376,36 @@ async function deleteTask(compKey, index) {
     companyData[compKey].tasks.splice(index, 1);
     saveTasksToStorage();
     renderTaskEditor();
+}
+
+function linkTask(compKey, index, sourceTaskName) {
+    if (!sourceTaskName) return;
+    const t = companyData[compKey].tasks[index];
+    t.linkedTo = sourceTaskName;
+    // Zero out manpower — auto-filled from source
+    t.perShift = { soldiers: 0, commanders: 0, officers: 0, drivers: 0 };
+    t.soldiers = 0; t.commanders = 0; t.officers = 0; t.drivers = 0;
+    saveTasksToStorage();
+    renderTaskEditor();
+    showToast(`${t.name} מקושרת ל-${sourceTaskName} — כ"א ישובץ אוטומטית מהיורדים`, 'success');
+}
+
+function unlinkTask(compKey, index) {
+    const t = companyData[compKey].tasks[index];
+    delete t.linkedTo;
+    saveTasksToStorage();
+    renderTaskEditor();
+    showToast(`קישור ${t.name} בוטל — יש להגדיר כ"א ידנית`);
+}
+
+function notifyLinkedTasks(company, taskName) {
+    if (!taskName) return;
+    const comp = companyData[company];
+    if (!comp || !comp.tasks) return;
+    const linkedTasks = comp.tasks.filter(t => t.linkedTo === taskName);
+    if (linkedTasks.length === 0) return;
+    const names = linkedTasks.map(t => t.name).join(', ');
+    showToast(`שים לב: ${names} תשובץ אוטומטית מהיורדים מ-${taskName}`, 'info');
 }
 
 function saveTasksToStorage() {
