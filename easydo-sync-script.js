@@ -465,9 +465,10 @@ function removeDuplicates() {
     }
   }
 
-  // Delete from bottom up to preserve row numbers
-  for (let i = rowsToDelete.length - 1; i >= 0; i--) {
-    dataTab.deleteRow(rowsToDelete[i]);
+  // rowsToDelete is already in descending order (bottom-first from the loop above)
+  // Delete directly — bottom-up preserves row numbers
+  for (const rowNum of rowsToDelete) {
+    dataTab.deleteRow(rowNum);
   }
 
   Logger.log('Removed ' + rowsToDelete.length + ' duplicate rows. Kept latest entry per ID.');

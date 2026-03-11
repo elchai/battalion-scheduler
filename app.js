@@ -2895,7 +2895,7 @@ function renderWhatsAppCenter() {
             הודעות WhatsApp
         </div>
         <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-            <button class="btn" style="background:#25D366;color:#fff;display:flex;align-items:center;gap:6px;font-size:0.92em;" onclick="openGroupWaModal()">
+            <button class="btn btn-whatsapp" style="display:flex;align-items:center;gap:6px;font-size:0.92em;" onclick="openGroupWaModal()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                 שליחה לקבוצה
             </button>
@@ -3915,7 +3915,7 @@ function renderConstraintsList(compKey) {
                 <td style="padding:8px;">${formatDate(c.endDate)}</td>
                 <td style="padding:8px;">${esc(c.reason || '')}</td>
                 <td style="padding:8px;font-size:0.85em;">${esc(c.createdBy || '')}</td>
-                <td style="padding:8px;"><button class="btn btn-sm" style="background:var(--danger);color:white;padding:2px 8px;" onclick="deleteConstraint('${c.id}')">מחק</button></td>
+                <td style="padding:8px;"><button class="btn btn-danger btn-sm" style="padding:2px 8px;" onclick="deleteConstraint('${c.id}')">מחק</button></td>
             </tr>`;
         }).join('')}</tbody>
     </table>`;
@@ -3953,7 +3953,7 @@ function showReplacementSuggestions(affectedShifts, removedSoldierId, soldierNam
         html += `<div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:var(--radius);">
             <div style="font-weight:600;margin-bottom:6px;">${esc(sh.task)} — ${formatDate(sh.date)} ${sh.startTime}-${sh.endTime}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="btn btn-sm" style="background:var(--danger);color:white;" onclick="removeFromShift('${sh.id}','${removedSoldierId}')">הסר בלי מחליף</button>
+                <button class="btn btn-danger btn-sm" onclick="removeFromShift('${sh.id}','${removedSoldierId}')">הסר בלי מחליף</button>
                 ${top3.map(s => `<button class="btn btn-sm" style="background:var(--success);color:white;" onclick="replaceInShift('${sh.id}','${removedSoldierId}','${s.id}')">${esc(s.name)}</button>`).join('')}
             </div>
         </div>`;
@@ -4595,7 +4595,7 @@ function renderTrainingEventsTab() {
                 מערך האימונים
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-                ${isFull ? `<button class="btn" style="background:#1565c0;color:white;font-size:0.82em;" onclick="openExerciseTypeManager()">ניהול סוגי תרגילים</button>` : ''}
+                ${isFull ? `<button class="btn btn-special" style="font-size:0.82em;" onclick="openExerciseTypeManager()">ניהול סוגי תרגילים</button>` : ''}
                 ${canCreate ? `<button class="btn btn-add" onclick="openTrainingEventModal()">+ הוסף תרגיל</button>` : ''}
             </div>
         </div>
@@ -6219,7 +6219,7 @@ function renderSettingsTab() {
                         <option value="boolean" ${t.type === 'boolean' ? 'selected' : ''}>כן/לא</option>
                         <option value="date" ${t.type === 'date' ? 'selected' : ''}>תאריך</option>
                     </select>
-                    <button class="btn btn-sm" style="background:var(--danger);color:white;padding:2px 8px;" onclick="removeTrainingType(${i})">✕</button>
+                    <button class="btn btn-danger btn-sm" style="padding:2px 8px;" onclick="removeTrainingType(${i})">✕</button>
                 </div>
             `).join('')}
         </div>
