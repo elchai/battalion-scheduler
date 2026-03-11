@@ -126,6 +126,23 @@ function setup() {
 // ========== סנכרון ראשי ==========
 
 function syncNewForms() {
+  // Prevent concurrent runs (manual + automatic trigger racing each other)
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    Logger.log('Could not acquire lock — another sync is already running. Skipping.');
+    return;
+  }
+
+  try {
+    syncNewForms_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function syncNewForms_() {
   const token = PropertiesService.getScriptProperties().getProperty(EASYDO_TOKEN_KEY);
   if (!token) {
     Logger.log('No token configured. Run setup() first.');
@@ -248,6 +265,13 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
       }
     }
 
+    // Download the signed form PDF
+    try {
+      downloadSignedFormPDF_(token, form.id, soldierFolder, 'טופס_חתום_' + idNumber);
+    } catch (e) {
+      Logger.log('Error downloading signed PDF for ' + firstName + ' ' + lastName + ': ' + e.message);
+    }
+
     // Timestamp
     const timestamp = form.signed_date ? new Date(form.signed_date) : new Date();
 
@@ -362,6 +386,30 @@ function downloadEasyDoFile_(token, formId, fileId, folder, fileName) {
   }
 
   return folder.createFile(blob);
+}
+
+function downloadSignedFormPDF_(token, formId, folder, fileName) {
+  const fullName = fileName + '.pdf';
+
+  // Skip if already exists
+  const existingFiles = folder.getFilesByName(fullName);
+  if (existingFiles.hasNext()) return;
+
+  const url = EASYDO_API + '/forms/' + formId + '/download';
+  const response = UrlFetchApp.fetch(url, {
+    method: 'get',
+    headers: { 'Authorization': 'Bearer ' + token },
+    muteHttpExceptions: true,
+  });
+
+  if (response.getResponseCode() !== 200) {
+    Logger.log('Signed PDF download failed for form ' + formId + ': HTTP ' + response.getResponseCode());
+    return;
+  }
+
+  const blob = response.getBlob();
+  blob.setName(fullName);
+  folder.createFile(blob);
 }
 
 // ========== עזרים ==========
