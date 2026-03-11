@@ -10718,7 +10718,7 @@ function getGroupWaSoldiers(group) {
             return role.startsWith('מ"פ') || role.startsWith('מפקד פלוגה');
         });
     } else if (group === 'mate') {
-        return state.soldiers.filter(s => s.company === 'hq' || s.company === 'agam');
+        return state.soldiers.filter(s => (s.company === 'hq' || s.company === 'agam') && (isOfficer(s) || isCommander(s)));
     } else if (group === 'officers') {
         return state.soldiers.filter(s => isOfficer(s));
     } else if (group === 'commanders') {
