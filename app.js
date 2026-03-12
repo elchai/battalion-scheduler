@@ -147,7 +147,7 @@ const ROLE_LEVEL_MAP = [
 ];
 
 const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
-const FULL_ACCESS_IDS = ['5242848'];
+const FULL_ACCESS_IDS = ['5242848', '5075570'];
 
 function getUserPermissionLevel() {
     if (!currentUser) return 0;
