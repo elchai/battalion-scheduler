@@ -283,7 +283,7 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
     }
 
     // Send WhatsApp with signed document link (once per soldier, ever)
-    if (phone && signedPdfUrl && !hasWaBeenSent_(idNumber)) {
+    if (phone && signedPdfUrl && !isWaPaused_() && !hasWaBeenSent_(idNumber)) {
       try {
         sendWhatsApp_(phone, firstName + ' ' + lastName, signedPdfUrl);
         markWaSent_(idNumber);
@@ -435,6 +435,23 @@ function downloadSignedFormPDF_(token, formId, folder, fileName) {
 // ========== WhatsApp (Green API) ==========
 
 const WA_SENT_KEY = 'WA_SENT_IDS';
+const WA_PAUSED_KEY = 'WA_PAUSED';
+
+/** הרץ כדי להשהות שליחת WhatsApp אוטומטית */
+function pauseWhatsApp() {
+  PropertiesService.getScriptProperties().setProperty(WA_PAUSED_KEY, 'true');
+  Logger.log('WhatsApp auto-send PAUSED. Run resumeWhatsApp() to resume.');
+}
+
+/** הרץ כדי לחדש שליחת WhatsApp אוטומטית */
+function resumeWhatsApp() {
+  PropertiesService.getScriptProperties().deleteProperty(WA_PAUSED_KEY);
+  Logger.log('WhatsApp auto-send RESUMED.');
+}
+
+function isWaPaused_() {
+  return PropertiesService.getScriptProperties().getProperty(WA_PAUSED_KEY) === 'true';
+}
 
 function hasWaBeenSent_(idNumber) {
   const raw = PropertiesService.getScriptProperties().getProperty(WA_SENT_KEY);
