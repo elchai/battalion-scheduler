@@ -2752,7 +2752,7 @@ function renderCommanderDashboard(targetCompKey) {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
             <h2 style="margin:0;font-size:1.3em;">תצוגת מ"פ - ${comp.name}</h2>
             <div style="display:flex;align-items:center;gap:10px;">
-                <button class="btn btn-sm" onclick="toggleCompanyView('${compKey}')" style="background:var(--primary);color:white;">חזרה לניהול</button>
+                <button class="btn btn-primary btn-sm" onclick="toggleCompanyView('${compKey}')">חזרה לניהול</button>
                 <span style="font-size:0.85em;color:var(--text-light);">${getReportDateStr()}</span>
             </div>
         </div>
@@ -3954,7 +3954,7 @@ function showReplacementSuggestions(affectedShifts, removedSoldierId, soldierNam
             <div style="font-weight:600;margin-bottom:6px;">${esc(sh.task)} — ${formatDate(sh.date)} ${sh.startTime}-${sh.endTime}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 <button class="btn btn-danger btn-sm" onclick="removeFromShift('${sh.id}','${removedSoldierId}')">הסר בלי מחליף</button>
-                ${top3.map(s => `<button class="btn btn-sm" style="background:var(--success);color:white;" onclick="replaceInShift('${sh.id}','${removedSoldierId}','${s.id}')">${esc(s.name)}</button>`).join('')}
+                ${top3.map(s => `<button class="btn btn-success btn-sm" onclick="replaceInShift('${sh.id}','${removedSoldierId}','${s.id}')">${esc(s.name)}</button>`).join('')}
             </div>
         </div>`;
     });
@@ -4325,7 +4325,7 @@ function swapSoldierInProposal(dayIdx, taskIdx, shiftIdx, solIdx) {
     let html = `<div style="margin-bottom:12px;"><strong>החלף את ${esc(currentName)}:</strong></div>`;
     html += `<div style="display:flex;gap:6px;flex-wrap:wrap;">`;
     filtered.slice(0, 8).forEach(s => {
-        html += `<button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="doSwapInProposal(${dayIdx},${taskIdx},${shiftIdx},${solIdx},'${s.id}')">${esc(s.name)}</button>`;
+        html += `<button class="btn btn-primary btn-sm" onclick="doSwapInProposal(${dayIdx},${taskIdx},${shiftIdx},${solIdx},'${s.id}')">${esc(s.name)}</button>`;
     });
     html += `</div>`;
 
@@ -4657,9 +4657,9 @@ function renderTrainingEventsTab() {
                 </div>
                 ${evt.notes ? `<div style="font-size:0.82em;color:var(--text-light);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">${esc(evt.notes)}</div>` : ''}
                 <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
-                    ${canRate ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#e8f5e9;color:#2e7d32;" onclick="openSoldierRating('${evt.id}')">דירוג חיילים</button>` : ''}
+                    ${canRate ? `<button class="btn btn-special" style="font-size:0.8em;padding:4px 12px;" onclick="openSoldierRating('${evt.id}')">דירוג חיילים</button>` : ''}
                     ${canEditThis ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openTrainingEventModal('${evt.id}')">ערוך</button>` : ''}
-                    ${canEditThis ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#ffebee;color:#c62828;" onclick="deleteTrainingEvent('${evt.id}')">מחק</button>` : ''}
+                    ${canEditThis ? `<button class="btn btn-danger" style="font-size:0.8em;padding:4px 12px;" onclick="deleteTrainingEvent('${evt.id}')">מחק</button>` : ''}
                     ${canEditThis && idx > 0 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderTrainingEvent('${evt.id}',-1)">▲</button>` : ''}
                     ${canEditThis && idx < events.length - 1 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderTrainingEvent('${evt.id}',1)">▼</button>` : ''}
                 </div>
@@ -4869,7 +4869,7 @@ function renderSoldierRatingContent(eventId, searchQuery) {
                     onblur="updateSoldierExerciseNotes('${ex.id}',this.value)">` : `<span style="font-size:0.85em;">${esc(ex.notes || '')}</span>`}
             </td>
             ${canRate ? `<td style="padding:6px 8px;text-align:center;">
-                <button class="btn" style="font-size:0.75em;padding:2px 8px;background:#ffebee;color:#c62828;" onclick="removeSoldierFromEvent('${ex.id}','${eventId}')">הסר</button>
+                <button class="btn btn-danger" style="font-size:0.75em;padding:2px 8px;" onclick="removeSoldierFromEvent('${ex.id}','${eventId}')">הסר</button>
             </td>` : ''}
         </tr>`;
     });
@@ -4982,7 +4982,7 @@ function renderExerciseTypeContent() {
                 <label style="font-size:0.78em;">תיאור</label>
                 <input type="text" value="${esc(t.description || '')}" onblur="updateExerciseTypeProp(${idx},'description',this.value)" placeholder="תיאור קצר..." style="padding:4px 8px;font-size:0.88em;">
             </div>
-            <button class="btn" style="font-size:0.78em;padding:3px 10px;background:#ffebee;color:#c62828;margin-top:4px;" onclick="deleteExerciseType(${idx})">מחק סוג</button>
+            <button class="btn btn-danger" style="font-size:0.78em;padding:3px 10px;margin-top:4px;" onclick="deleteExerciseType(${idx})">מחק סוג</button>
         </div>`;
     });
     html += '</div>';
@@ -5083,7 +5083,7 @@ function renderShootingDrillsView() {
             ${d.description ? `<div style="font-size:0.82em;color:var(--text-light);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">${esc(d.description)}</div>` : ''}
             ${isFull ? `<div style="display:flex;gap:6px;margin-top:10px;">
                 <button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openShootingDrillModal('${d.id}')">ערוך</button>
-                <button class="btn" style="font-size:0.8em;padding:4px 12px;background:#ffebee;color:#c62828;" onclick="deleteShootingDrill('${d.id}')">מחק</button>
+                <button class="btn btn-danger" style="font-size:0.8em;padding:4px 12px;" onclick="deleteShootingDrill('${d.id}')">מחק</button>
                 ${idx > 0 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderShootingDrill('${d.id}',-1)">▲</button>` : ''}
                 ${idx < drills.length - 1 ? `<button class="btn" style="font-size:0.8em;padding:4px 8px;" onclick="reorderShootingDrill('${d.id}',1)">▼</button>` : ''}
             </div>` : ''}
@@ -5150,8 +5150,8 @@ function renderShootingExecutionsView() {
                 </div>
             </div>
             <div style="display:flex;gap:6px;margin-top:10px;">
-                ${canEditThis ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#e8f5e9;color:#2e7d32;" onclick="openShootingResults('${exec.id}')">הזנת תוצאות</button>` : `<button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openShootingResults('${exec.id}')">צפה בתוצאות</button>`}
-                ${isFull || (level >= PERM.COMPANY_CMD && exec.company === userUnit) ? `<button class="btn" style="font-size:0.8em;padding:4px 12px;background:#ffebee;color:#c62828;" onclick="deleteShootingExecution('${exec.id}')">מחק</button>` : ''}
+                ${canEditThis ? `<button class="btn btn-special" style="font-size:0.8em;padding:4px 12px;" onclick="openShootingResults('${exec.id}')">הזנת תוצאות</button>` : `<button class="btn" style="font-size:0.8em;padding:4px 12px;" onclick="openShootingResults('${exec.id}')">צפה בתוצאות</button>`}
+                ${isFull || (level >= PERM.COMPANY_CMD && exec.company === userUnit) ? `<button class="btn btn-danger" style="font-size:0.8em;padding:4px 12px;" onclick="deleteShootingExecution('${exec.id}')">מחק</button>` : ''}
             </div>
         </div>`;
     });
@@ -6356,7 +6356,7 @@ function renderTaskEditor() {
         `).join('')}
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
             <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
-            <button class="btn btn-sm" style="background:var(--success);color:#fff;font-size:0.78em;" onclick="openLinkTasksModal('${compKey}')">🔗 קישור כ״א משותף</button>
+            <button class="btn btn-special btn-sm" style="font-size:0.78em;" onclick="openLinkTasksModal('${compKey}')">🔗 קישור כ״א משותף</button>
         </div>`;
 }
 
@@ -6436,7 +6436,7 @@ function openLinkTasksModal(compKey) {
             `).join('')}
         </div>
         <div style="margin-top:14px;text-align:left;">
-            <button class="btn btn-primary" onclick="closeModal('genericModal')">סגור</button>
+            <button class="btn btn-cancel" onclick="closeModal('genericModal')">סגור</button>
         </div>
     `;
 
@@ -7716,11 +7716,11 @@ function reportHeader(title) {
             <div class="report-date">${getReportDateStr()}</div>
         </div>
         <div class="report-actions">
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="window.print()">
+            <button class="btn btn-export btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="window.print()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 הדפסה
             </button>
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="document.getElementById('reportOutput').innerHTML=''">
+            <button class="btn btn-cancel btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="document.getElementById('reportOutput').innerHTML=''">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 סגור
             </button>
@@ -8524,7 +8524,7 @@ function onSignSoldierSelect() {
     container.innerHTML = `
         <div style="display:flex;gap:8px;margin-bottom:10px;">
             <button class="btn btn-primary" onclick="loadSignSetMode(${isCommander})" style="flex:1;padding:10px;">סט ציוד ללוחם</button>
-            <button class="btn" onclick="loadSignManualMode()" style="flex:1;padding:10px;background:#4CAF50;color:white;">בחירת פריטים ידנית</button>
+            <button class="btn btn-success" onclick="loadSignManualMode()" style="flex:1;padding:10px;">בחירת פריטים ידנית</button>
         </div>`;
     document.getElementById('signEquipSection').style.display = '';
     document.getElementById('signSignatureSection').style.display = '';
@@ -8998,8 +8998,8 @@ function onReturnSoldierSelect() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <strong>ציוד מוחזק (${heldItems.length} פריטים)</strong>
             <div style="display:flex;gap:6px;">
-                <button type="button" class="btn btn-sm" style="background:var(--success);color:#fff;font-size:0.8em;" onclick="document.querySelectorAll('.return-equip-cb').forEach(c=>c.checked=true)">בחר הכל</button>
-                <button type="button" class="btn btn-sm" style="background:var(--bg);font-size:0.8em;" onclick="document.querySelectorAll('.return-equip-cb').forEach(c=>c.checked=false)">נקה הכל</button>
+                <button type="button" class="btn btn-success btn-sm" style="font-size:0.8em;" onclick="document.querySelectorAll('.return-equip-cb').forEach(c=>c.checked=true)">בחר הכל</button>
+                <button type="button" class="btn btn-cancel btn-sm" style="font-size:0.8em;" onclick="document.querySelectorAll('.return-equip-cb').forEach(c=>c.checked=false)">נקה הכל</button>
             </div>
         </div>
         <div class="table-scroll">
@@ -9167,7 +9167,7 @@ function renderEquipmentTab() {
             <div id="equipBulkBar" style="display:none;background:#fff3e0;padding:8px 12px;border-radius:6px;margin-bottom:8px;display:none;align-items:center;gap:10px;">
                 <span id="equipSelectedCount" style="font-weight:600;font-size:0.88em;">0 נבחרו</span>
                 <button class="btn btn-danger btn-sm" onclick="deleteSelectedEquipment()" style="font-size:0.82em;">מחק נבחרים</button>
-                <button class="btn btn-sm" onclick="clearEquipSelection()" style="background:var(--bg);font-size:0.82em;">בטל בחירה</button>
+                <button class="btn btn-cancel btn-sm" style="font-size:0.82em;" onclick="clearEquipSelection()">בטל בחירה</button>
             </div>
             <div class="task-table-wrapper"><div class="table-scroll">
                 <table class="equip-table">
@@ -9289,7 +9289,7 @@ function renderSignatureHistory() {
                 ${log.signatureImg ? `<img class="sig-preview" src="${log.signatureImg}" alt="חתימה">` : ''}
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
                     ${!isDelete ? `<button class="btn btn-export btn-sm" onclick="redownloadPDF('${log.id}')">PDF</button>` : ''}
-                    ${!isReturn && !isDelete ? `<button class="btn btn-sm" style="background:var(--card);" onclick="editSignatureLog('${log.id}')" title="עריכה">עריכה</button>` : ''}
+                    ${!isReturn && !isDelete ? `<button class="btn btn-cancel btn-sm" onclick="editSignatureLog('${log.id}')" title="עריכה">עריכה</button>` : ''}
                     <button class="btn btn-danger btn-sm" onclick="deleteSignatureLog('${log.id}')" title="מחיקה">מחק</button>
                 </div>
             </div>
@@ -11558,8 +11558,8 @@ function previewPakalForSoldier() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <strong>${esc(soldier.name)}</strong>
             <div style="display:flex;gap:6px;">
-                <button type="button" class="btn btn-sm" style="background:var(--success);color:#fff;font-size:0.8em;" onclick="toggleAllPakalItems(true)">בחר הכל</button>
-                <button type="button" class="btn btn-sm" style="background:var(--bg);font-size:0.8em;" onclick="toggleAllPakalItems(false)">נקה הכל</button>
+                <button type="button" class="btn btn-success btn-sm" style="font-size:0.8em;" onclick="toggleAllPakalItems(true)">בחר הכל</button>
+                <button type="button" class="btn btn-cancel btn-sm" style="font-size:0.8em;" onclick="toggleAllPakalItems(false)">נקה הכל</button>
             </div>
         </div>
         <div style="max-height:350px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);">
