@@ -39,6 +39,11 @@ const LOG_TAB_NAME = 'לוג סנכרון';
 // Google Drive folder name for attachments
 const DRIVE_ROOT_FOLDER = 'טפסי נשק - EasyDo';
 
+// Green API (WhatsApp) — הודעה אוטומטית לחייל אחרי חתימה
+const GREEN_API_ID = '7103258354';
+const GREEN_API_TOKEN = '4887bbcf63dc43e1a886a8dad54c9c098527765528484934b3';
+const GREEN_API_URL = 'https://7103.api.greenapi.com';
+
 // Template IDs per company
 const TEMPLATES = {
   62549: { company: 'a', name: "פלוגה א'" },
@@ -266,10 +271,24 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
     }
 
     // Download the signed form PDF
+    let signedPdfUrl = '';
     try {
-      downloadSignedFormPDF_(token, form.id, soldierFolder, 'טופס_חתום_' + idNumber);
+      const pdfFile = downloadSignedFormPDF_(token, form.id, soldierFolder, 'טופס_חתום_' + idNumber);
+      if (pdfFile) {
+        pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        signedPdfUrl = pdfFile.getUrl();
+      }
     } catch (e) {
       Logger.log('Error downloading signed PDF for ' + firstName + ' ' + lastName + ': ' + e.message);
+    }
+
+    // Send WhatsApp with signed document link
+    if (phone && signedPdfUrl) {
+      try {
+        sendWhatsApp_(phone, firstName + ' ' + lastName, signedPdfUrl);
+      } catch (e) {
+        Logger.log('Error sending WhatsApp to ' + firstName + ' ' + lastName + ': ' + e.message);
+      }
     }
 
     // Timestamp
@@ -391,9 +410,9 @@ function downloadEasyDoFile_(token, formId, fileId, folder, fileName) {
 function downloadSignedFormPDF_(token, formId, folder, fileName) {
   const fullName = fileName + '.pdf';
 
-  // Skip if already exists
+  // Return existing file if already downloaded
   const existingFiles = folder.getFilesByName(fullName);
-  if (existingFiles.hasNext()) return;
+  if (existingFiles.hasNext()) return existingFiles.next();
 
   const url = EASYDO_API + '/forms/' + formId + '/download';
   const response = UrlFetchApp.fetch(url, {
@@ -404,12 +423,49 @@ function downloadSignedFormPDF_(token, formId, folder, fileName) {
 
   if (response.getResponseCode() !== 200) {
     Logger.log('Signed PDF download failed for form ' + formId + ': HTTP ' + response.getResponseCode());
-    return;
+    return null;
   }
 
   const blob = response.getBlob();
   blob.setName(fullName);
-  folder.createFile(blob);
+  return folder.createFile(blob);
+}
+
+// ========== WhatsApp (Green API) ==========
+
+function sendWhatsApp_(phone, fullName, pdfUrl) {
+  if (!GREEN_API_ID || !GREEN_API_TOKEN) return;
+
+  // Normalize phone: remove spaces/dashes, add 972 prefix
+  let cleanPhone = String(phone).replace(/[\s\-\(\)\+]/g, '');
+  if (cleanPhone.startsWith('0')) cleanPhone = '972' + cleanPhone.slice(1);
+  if (!/^\d{10,15}$/.test(cleanPhone)) {
+    Logger.log('Invalid phone for ' + fullName + ': ' + phone);
+    return;
+  }
+
+  const chatId = cleanPhone + '@c.us';
+  const message = 'שלום ' + fullName + ' 👋\n'
+    + 'הטופס שלך נקלט בהצלחה במערכת הגדודית.\n'
+    + 'קישור למסמך החתום:\n'
+    + pdfUrl + '\n\n'
+    + 'תודה רבה! 🎖️';
+
+  const url = GREEN_API_URL + '/waInstance' + GREEN_API_ID + '/sendMessage/' + GREEN_API_TOKEN;
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ chatId: chatId, message: message }),
+    muteHttpExceptions: true,
+  });
+
+  const code = response.getResponseCode();
+  if (code === 200) {
+    Logger.log('WhatsApp sent to ' + fullName + ' (' + cleanPhone + ')');
+  } else {
+    Logger.log('WhatsApp failed for ' + fullName + ': HTTP ' + code + ' — ' + response.getContentText().substring(0, 200));
+  }
 }
 
 // ========== עזרים ==========
