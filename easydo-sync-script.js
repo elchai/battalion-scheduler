@@ -282,10 +282,11 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
       Logger.log('Error downloading signed PDF for ' + firstName + ' ' + lastName + ': ' + e.message);
     }
 
-    // Send WhatsApp with signed document link
-    if (phone && signedPdfUrl) {
+    // Send WhatsApp with signed document link (once per soldier, ever)
+    if (phone && signedPdfUrl && !hasWaBeenSent_(idNumber)) {
       try {
         sendWhatsApp_(phone, firstName + ' ' + lastName, signedPdfUrl);
+        markWaSent_(idNumber);
       } catch (e) {
         Logger.log('Error sending WhatsApp to ' + firstName + ' ' + lastName + ': ' + e.message);
       }
@@ -432,6 +433,24 @@ function downloadSignedFormPDF_(token, formId, folder, fileName) {
 }
 
 // ========== WhatsApp (Green API) ==========
+
+const WA_SENT_KEY = 'WA_SENT_IDS';
+
+function hasWaBeenSent_(idNumber) {
+  const raw = PropertiesService.getScriptProperties().getProperty(WA_SENT_KEY);
+  if (!raw) return false;
+  const sent = JSON.parse(raw);
+  return sent.includes(idNumber);
+}
+
+function markWaSent_(idNumber) {
+  const raw = PropertiesService.getScriptProperties().getProperty(WA_SENT_KEY);
+  const sent = raw ? JSON.parse(raw) : [];
+  if (!sent.includes(idNumber)) {
+    sent.push(idNumber);
+    PropertiesService.getScriptProperties().setProperty(WA_SENT_KEY, JSON.stringify(sent));
+  }
+}
 
 function sendWhatsApp_(phone, fullName, pdfUrl) {
   if (!GREEN_API_ID || !GREEN_API_TOKEN) return;
