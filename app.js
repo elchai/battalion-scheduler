@@ -10352,7 +10352,13 @@ function renderWeaponsTab() {
     if (statsEl) {
         const total = state.soldiers.length;
         const easyDoSigned = state.soldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; }).length;
-        const easyDoInProgress = state.soldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'in_progress'; }).length;
+        // "בתהליך" = received WA message (weapons context) but didn't complete EasyDo form
+        const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
+        const easyDoInProgress = state.soldiers.filter(s => {
+            const e = getEasyDoStatus(s);
+            if (e && e.status === 'completed') return false; // already signed
+            return waSentIds.has(s.id) || (e && e.status === 'in_progress');
+        }).length;
         const notStarted = total - easyDoSigned - easyDoInProgress;
         statsEl.innerHTML = `
             <div class="quick-stat"><div class="value">${total}</div><div class="label">סה"כ חיילים</div></div>
@@ -10373,15 +10379,18 @@ function renderWeaponsTab() {
     }
 
     let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>תאריך חתימה</th><th></th></tr></thead><tbody>';
+    const waSentIdsSet = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
     soldiers.forEach(s => {
         const easyDo = getEasyDoStatus(s);
         let easyDoHtml, dateHtml;
         if (easyDo && easyDo.status === 'completed') {
             easyDoHtml = `<span class="wp-status-badge wp-status-complete">נחתם</span>`;
             dateHtml = formatEasyDoDate(easyDo.completedAt);
-        } else if (easyDo && easyDo.status === 'in_progress') {
+        } else if ((easyDo && easyDo.status === 'in_progress') || waSentIdsSet.has(s.id)) {
+            const waLog = (state.waSendLog || []).filter(l => l.soldierId === s.id && l.context === 'weapons' && l.status === 'sent').sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
+            const waDate = waLog ? formatEasyDoDate(waLog.sentAt) : '';
             easyDoHtml = `<span class="wp-status-badge" style="background:#fef3c7;color:#92400e;">בתהליך</span>`;
-            dateHtml = '-';
+            dateHtml = waDate ? `<span style="font-size:0.8em;color:var(--text-light);">WA: ${waDate}</span>` : '-';
         } else {
             easyDoHtml = `<span class="wp-status-badge wp-status-none">טרם נחתם</span>`;
             dateHtml = '-';
