@@ -9429,7 +9429,7 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
             ${logoHtml}
             <div style="margin-bottom:4px;font-size:0.82em;color:#7f8c8d;direction:ltr;">${pdfTxt('שובר מס׳')} ${serialNum}</div>
             <h1 style="color:#1a3a5c;margin:4px 0 2px;font-size:1.35em;letter-spacing:0.3px;">${pdfTxt('שובר השאלת אפסנייה')}</h1>
-            <p style="color:#7f8c8d;margin:0;font-size:0.82em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
+            <p style="color:#7f8c8d;margin:0;font-size:0.82em;">${pdfTxt('מערכת ניהול גדודי — צל"מ וציוד')}</p>
         </div>
         <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 14px;">
 
@@ -9517,7 +9517,7 @@ function generateReturnPDF(logEntry, eq) {
         <div style="text-align:center;margin-bottom:22px;">
             ${logoHtml}
             <h1 style="color:#E65100;margin:6px 0 2px;font-size:1.45em;">${pdfTxt('טופס זיכוי / החזרת ציוד')}</h1>
-            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
+            <p style="color:#7f8c8d;margin:0;font-size:0.85em;">${pdfTxt('מערכת ניהול גדודי — צל"מ וציוד')}</p>
         </div>
         <hr style="border:none;border-top:2px solid #E65100;margin:0 0 20px;">
 
