@@ -9404,6 +9404,11 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         ? logEntry.equipItems
         : [{ equipType: logEntry.equipType, equipSerial: logEntry.equipSerial, equipQty: 1 }];
 
+    // Serial number: 01000 + index in signatureLog (issue types only)
+    const issueLogs = (state.signatureLog || []).filter(l => l.type === 'issue');
+    const logIdx = issueLogs.findIndex(l => l.id === logEntry.id);
+    const serialNum = String(1000 + (logIdx >= 0 ? logIdx : issueLogs.length)).padStart(5, '0');
+
     const logoHtml = DOC_LOGO_BASE64
         ? `<img src="${DOC_LOGO_BASE64}" style="max-height:80px;margin-bottom:8px;">`
         : '';
@@ -9422,7 +9427,8 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <!-- Header -->
         <div style="text-align:center;margin-bottom:16px;">
             ${logoHtml}
-            <h1 style="color:#1a3a5c;margin:4px 0 2px;font-size:1.35em;letter-spacing:0.3px;">${pdfTxt('טופס קבלת ציוד מבוקר')}</h1>
+            <div style="margin-bottom:4px;font-size:0.82em;color:#7f8c8d;direction:ltr;">${pdfTxt('שובר מס׳')} ${serialNum}</div>
+            <h1 style="color:#1a3a5c;margin:4px 0 2px;font-size:1.35em;letter-spacing:0.3px;">${pdfTxt('שובר השאלת אפסנייה')}</h1>
             <p style="color:#7f8c8d;margin:0;font-size:0.82em;">${pdfTxt('מערכת ניהול גדודי — צל"מ')}</p>
         </div>
         <hr style="border:none;border-top:2px solid #1a3a5c;margin:0 0 14px;">
