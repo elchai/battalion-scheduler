@@ -1,3 +1,12 @@
+// ==================== DEMO GUARD ====================
+function demoGuard(featureName) {
+    if (CONFIG.isDemo) {
+        showToast(`אפשרות "${featureName}" לא זמינה ב-DEMO — ניתן לתאם זום ולראות את זה בפעולה`, 'info');
+        return true;
+    }
+    return false;
+}
+
 // ==================== SETTINGS ====================
 const DEFAULT_SETTINGS = {
     adminName: CONFIG.adminName,
@@ -2964,6 +2973,7 @@ function waFillPhone() {
 }
 
 function sendWhatsAppCompose() {
+    if (demoGuard('שליחת וואצאפ')) return;
     const phone = document.getElementById('waComposePhone').value.trim().replace(/[^0-9]/g, '');
     const msg = document.getElementById('waComposeMsg').value.trim();
     if (!phone) { showToast('יש להזין מספר טלפון', 'error'); return; }
@@ -10539,6 +10549,7 @@ function abortWaSend() {
 }
 
 async function sendWeaponsWhatsApp() {
+    if (demoGuard('שליחת וואצאפ נשק')) return;
     if (_waSending) return;
     _waAbort = false;
     const checkedBoxes = document.querySelectorAll('#waSoldierList input[type="checkbox"]:checked');
@@ -10620,6 +10631,7 @@ async function sendWeaponsWhatsApp() {
 }
 
 async function sendWeaponsSingleWA(soldierId) {
+    if (demoGuard('שליחת וואצאפ נשק')) return;
     const soldier = state.soldiers.find(s => s.id === soldierId);
     if (!soldier || !soldier.phone) { showToast('לא נמצא טלפון לחייל', 'error'); return; }
 
@@ -10897,6 +10909,7 @@ function updateGroupWaPreview() {
 }
 
 async function sendGroupWaTest() {
+    if (demoGuard('שליחת וואצאפ קבוצתי')) return;
     const msg = document.getElementById('groupWaMessage').value;
     if (!msg.trim()) { showToast('כתוב הודעה קודם', 'error'); return; }
 
@@ -10935,6 +10948,7 @@ async function sendGroupWaTest() {
 }
 
 async function sendGroupWa() {
+    if (demoGuard('שליחת וואצאפ קבוצתי')) return;
     if (_groupWaSending) return;
     _waAbort = false;
     const msg = document.getElementById('groupWaMessage').value;
