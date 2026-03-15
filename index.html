@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v235';
+    var _cb = 'v236';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -850,35 +850,47 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>תפקיד</label>
-                    <select id="soldierRole">
-                        <option value="לוחם">לוחם</option>
-                        <option value="מפקד">מפקד</option>
-                        <option value="קצין">קצין</option>
-                        <option value="נהג">נהג</option>
-                        <option value="קשר">קשר</option>
-                        <option value="מ&quot;פ">מ"פ</option>
-                        <option value="חובש">חובש</option>
-                        <option value="רופא">רופא</option>
-                        <option value="שליש">שליש</option>
-                        <option value="מש&quot;ק משא&quot;ן">מש"ק משא"ן</option>
-                        <option value="רב">רב</option>
-                        <option value="לוגיסטיקה">לוגיסטיקה</option>
-                        <option value="נהג מנהלתי">נהג מנהלתי</option>
-                        <option value="נהג משא">נהג משא</option>
-                        <option value="נהג משא כבד">נהג משא כבד</option>
-                        <option value="מפקד מחלקה">מפקד מחלקה</option>
-                        <option value="מאבחן נשק">מאבחן נשק</option>
-                        <option value="מכונאי">מכונאי</option>
-                        <option value="חשמלאי">חשמלאי</option>
-                        <option value="מנהל עבודה- לוג'">מנהל עבודה- לוג'</option>
-                        <option value="מנהל עבודה- טנ&quot;א">מנהל עבודה- טנ"א</option>
-                        <option value="מנהל מטבח">מנהל מטבח</option>
-                        <option value="טבח">טבח</option>
-                        <option value="ס/רס&quot;פ">ס/רס"פ</option>
-                        <option value="רס&quot;ר">רס"ר</option>
-                        <option value="פרויקטור">פרויקטור</option>
-                    </select>
+                    <label>תפקיד (ניתן לבחור עד 2)</label>
+                    <div id="soldierRoleMulti" class="role-multi-select">
+                        <div class="role-multi-selected" id="roleSelectedTags" onclick="toggleRoleDropdown()">
+                            <span class="role-placeholder">-- בחר תפקיד --</span>
+                        </div>
+                        <div class="role-multi-dropdown" id="roleDropdown" style="display:none;">
+                            <div class="role-group-label">לוחמים</div>
+                            <label class="role-option"><input type="checkbox" value="לוחם"> לוחם</label>
+                            <label class="role-option"><input type="checkbox" value="קלע"> קלע</label>
+                            <label class="role-option"><input type="checkbox" value="צלף"> צלף</label>
+                            <label class="role-option"><input type="checkbox" value="נגביסט"> נגביסט</label>
+                            <label class="role-option"><input type="checkbox" value="מאגיסט"> מאגיסט</label>
+                            <label class="role-option"><input type="checkbox" value="חובש"> חובש</label>
+                            <label class="role-option"><input type="checkbox" value="רחפניסט"> רחפניסט</label>
+                            <label class="role-option"><input type="checkbox" value="קשר"> קשר</label>
+                            <div class="role-group-label">מפקדים</div>
+                            <label class="role-option"><input type="checkbox" value="מפקד חוליה"> מפקד חוליה</label>
+                            <label class="role-option"><input type="checkbox" value="מ&quot;כ"> מ"כ</label>
+                            <label class="role-option"><input type="checkbox" value="סמ&quot;ח"> סמ"ח</label>
+                            <label class="role-option"><input type="checkbox" value="מ&quot;מ"> מ"מ</label>
+                            <label class="role-option"><input type="checkbox" value="סמ&quot;פ"> סמ"פ</label>
+                            <label class="role-option"><input type="checkbox" value="מ&quot;פ"> מ"פ</label>
+                            <div class="role-group-label">מטה / תמיכה</div>
+                            <label class="role-option"><input type="checkbox" value="נהג"> נהג</label>
+                            <label class="role-option"><input type="checkbox" value="רופא"> רופא</label>
+                            <label class="role-option"><input type="checkbox" value="שליש"> שליש</label>
+                            <label class="role-option"><input type="checkbox" value="מש&quot;ק משא&quot;ן"> מש"ק משא"ן</label>
+                            <label class="role-option"><input type="checkbox" value="רב"> רב</label>
+                            <label class="role-option"><input type="checkbox" value="לוגיסטיקה"> לוגיסטיקה</label>
+                            <label class="role-option"><input type="checkbox" value="נהג מנהלתי"> נהג מנהלתי</label>
+                            <label class="role-option"><input type="checkbox" value="נהג משא"> נהג משא</label>
+                            <label class="role-option"><input type="checkbox" value="מאבחן נשק"> מאבחן נשק</label>
+                            <label class="role-option"><input type="checkbox" value="מכונאי"> מכונאי</label>
+                            <label class="role-option"><input type="checkbox" value="חשמלאי"> חשמלאי</label>
+                            <label class="role-option"><input type="checkbox" value="מנהל עבודה"> מנהל עבודה</label>
+                            <label class="role-option"><input type="checkbox" value="מודיעין"> מודיעין</label>
+                            <label class="role-option"><input type="checkbox" value="מטבח"> מטבח</label>
+                            <label class="role-option"><input type="checkbox" value="רפואה"> רפואה</label>
+                            <label class="role-option"><input type="checkbox" value="אג&quot;מ"> אג"מ</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="form-row">

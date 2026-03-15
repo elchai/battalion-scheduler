@@ -150,9 +150,9 @@ const PERM = {
 
 const ROLE_LEVEL_MAP = [
     { level: PERM.COMPANY_CMD, roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'] },
-    { level: PERM.OFFICER,     roles: ['קצין', 'סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ', 'מ"מ', 'מפק"צ'] },
+    { level: PERM.OFFICER,     roles: ['סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ', 'מ"מ', 'מפק"צ'] },
     { level: PERM.SAMAL,       roles: ['סמל', 'סמ"ח'] },
-    { level: PERM.MASHAK,      roles: ['מ"כ'] },
+    { level: PERM.MASHAK,      roles: ['מ"כ', 'מפקד חוליה'] },
 ];
 
 const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
@@ -3159,6 +3159,66 @@ function isSoldierActiveOnDate(soldier, dateStr) {
     });
 }
 
+// ==================== ROLE MULTI-SELECT ====================
+function toggleRoleDropdown() {
+    const dd = document.getElementById('roleDropdown');
+    dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function getSelectedRoles() {
+    const checks = document.querySelectorAll('#roleDropdown input[type="checkbox"]:checked');
+    return Array.from(checks).map(c => c.value);
+}
+
+function setSelectedRoles(roles) {
+    // roles can be string (legacy) or array
+    const arr = Array.isArray(roles) ? roles : (roles ? [roles] : ['לוחם']);
+    document.querySelectorAll('#roleDropdown input[type="checkbox"]').forEach(cb => {
+        cb.checked = arr.includes(cb.value);
+    });
+    updateRoleTags();
+}
+
+function updateRoleTags() {
+    const container = document.getElementById('roleSelectedTags');
+    const selected = getSelectedRoles();
+    if (selected.length === 0) {
+        container.innerHTML = '<span class="role-placeholder">-- בחר תפקיד --</span>';
+    } else {
+        container.innerHTML = selected.map(r =>
+            `<span class="role-tag">${r} <span class="role-tag-remove" onclick="event.stopPropagation(); removeRole('${r.replace(/'/g, "\\'")}')">&times;</span></span>`
+        ).join('');
+    }
+}
+
+function removeRole(role) {
+    const cb = document.querySelector(`#roleDropdown input[value="${role}"]`);
+    if (cb) cb.checked = false;
+    updateRoleTags();
+}
+
+function getRoleValue() {
+    const roles = getSelectedRoles();
+    return roles.join(', ') || 'לוחם';
+}
+
+// Init role checkboxes event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('#roleDropdown input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checked = document.querySelectorAll('#roleDropdown input[type="checkbox"]:checked');
+            if (checked.length > 2) { cb.checked = false; showToast('ניתן לבחור עד 2 תפקידים', 'error'); return; }
+            updateRoleTags();
+        });
+    });
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        const multi = document.getElementById('soldierRoleMulti');
+        const dd = document.getElementById('roleDropdown');
+        if (multi && dd && !multi.contains(e.target)) dd.style.display = 'none';
+    });
+});
+
 // ==================== SOLDIER ====================
 function openAddSoldier(company) {
     document.getElementById('soldierModalTitle').textContent = 'הוספת חייל';
@@ -3170,7 +3230,7 @@ function openAddSoldier(company) {
     document.getElementById('soldierId').value = '';
     document.getElementById('soldierPhone').value = '';
     document.getElementById('soldierRank').value = 'טוראי';
-    document.getElementById('soldierRole').value = 'לוחם';
+    setSelectedRoles(['לוחם']);
     document.getElementById('soldierShoeSize').value = '';
     document.getElementById('soldierShirtSize').value = '';
     document.getElementById('soldierPantsSize').value = '';
@@ -3377,7 +3437,7 @@ function openEditSoldier(id) {
     document.getElementById('soldierCompany').value = sol.company;
     updateSoldierUnits();
     document.getElementById('soldierUnit').value = sol.unit || '';
-    document.getElementById('soldierRole').value = sol.role || 'לוחם';
+    setSelectedRoles(sol.role || 'לוחם');
     document.getElementById('soldierPhone').value = sol.phone || '';
     document.getElementById('soldierShoeSize').value = sol.shoeSize || '';
     document.getElementById('soldierShirtSize').value = sol.shirtSize || '';
@@ -3408,7 +3468,7 @@ function saveSoldier() {
             sol.rank = document.getElementById('soldierRank').value;
             sol.company = company;
             sol.unit = unit;
-            sol.role = document.getElementById('soldierRole').value;
+            sol.role = getRoleValue();
             sol.phone = document.getElementById('soldierPhone').value.trim();
             sol.shoeSize = document.getElementById('soldierShoeSize').value;
             sol.shirtSize = document.getElementById('soldierShirtSize').value;
@@ -3437,7 +3497,7 @@ function saveSoldier() {
             rank: document.getElementById('soldierRank').value,
             company,
             unit,
-            role: document.getElementById('soldierRole').value,
+            role: getRoleValue(),
             phone: document.getElementById('soldierPhone').value.trim(),
             shoeSize: document.getElementById('soldierShoeSize').value,
             shirtSize: document.getElementById('soldierShirtSize').value,
