@@ -152,7 +152,7 @@ const ROLE_LEVEL_MAP = [
     { level: PERM.COMPANY_CMD, roles: ['מ"פ', 'סמ"פ', 'סרס"פ', 'רס"פ'] },
     { level: PERM.OFFICER,     roles: ['סג"מ', 'סג"ם', 'רס"ן', 'סא"ל', 'אל"מ', 'מ"מ', 'מפק"צ'] },
     { level: PERM.SAMAL,       roles: ['סמל', 'סמ"ח'] },
-    { level: PERM.MASHAK,      roles: ['מ"כ', 'מפקד חוליה'] },
+    { level: PERM.MASHAK,      roles: ['מ"כ'] },
 ];
 
 const FULL_ACCESS_NAMES = ['ניסים סוויסה'];
