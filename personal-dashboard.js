@@ -4,12 +4,14 @@
 function renderPersonalDashboard() {
     const container = document.getElementById('personalDashboardContent');
     if (!container) return;
-    if (!currentUser || !currentUser.soldierId) {
-        container.innerHTML = '<div class="empty-state"><p>לא זוהה חייל מחובר</p></div>';
+    if (!currentUser) {
+        container.innerHTML = '<div class="empty-state"><p>לא זוהה משתמש מחובר</p></div>';
         return;
     }
 
-    const soldier = state.soldiers.find(s => s.id === currentUser.soldierId);
+    // Try to find soldier — admin/gdudi users may not have soldierId
+    const soldierId = currentUser.soldierId || null;
+    const soldier = soldierId ? state.soldiers.find(s => s.id === soldierId) : null;
     const soldierName = soldier ? soldier.name : currentUser.name;
     const unitName = getCompNames()[currentUser.unit] || currentUser.unit || '';
 
@@ -49,14 +51,14 @@ function renderGreetingWidget(name, unit) {
     return `
     <div class="pd-greeting">
         <div class="pd-greeting-text">
-            <h1>${greeting}, ${escapeHtml(name.split(' ')[0])}</h1>
+            <h1>${greeting}, ${esc(name.split(' ')[0])}</h1>
             <div class="pd-greeting-meta">
                 <i data-lucide="calendar" style="width:16px;height:16px;"></i>
                 <span>יום ${dayName}, ${dateStr}</span>
                 <span class="pd-sep">|</span>
                 <span>${timeStr}</span>
             </div>
-            ${unit ? `<div class="pd-greeting-unit"><i data-lucide="shield" style="width:14px;height:14px;"></i> ${escapeHtml(unit)}</div>` : ''}
+            ${unit ? `<div class="pd-greeting-unit"><i data-lucide="shield" style="width:14px;height:14px;"></i> ${esc(unit)}</div>` : ''}
         </div>
         <div class="pd-greeting-icon"><i data-lucide="${greetIcon}" style="width:48px;height:48px;"></i></div>
     </div>`;
@@ -87,8 +89,8 @@ function renderMyTodaySchedule() {
                 <div class="pd-timeline-time">${sh.startTime || '?'}</div>
                 <div class="pd-timeline-dot"></div>
                 <div class="pd-timeline-card">
-                    <div class="pd-timeline-task">${escapeHtml(taskName)}</div>
-                    ${shiftLabel ? `<div class="pd-timeline-shift">${escapeHtml(shiftLabel)}</div>` : ''}
+                    <div class="pd-timeline-task">${esc(taskName)}</div>
+                    ${shiftLabel ? `<div class="pd-timeline-shift">${esc(shiftLabel)}</div>` : ''}
                     <div class="pd-timeline-range">${sh.startTime || '?'} - ${sh.endTime || '?'}</div>
                 </div>
             </div>`;
@@ -128,7 +130,7 @@ function renderMyUpcomingSchedule() {
                 <div class="pd-upcoming-item">
                     <div class="pd-upcoming-date">${dayLabel}</div>
                     <div class="pd-upcoming-info">
-                        <strong>${escapeHtml(sh.task || sh.name || 'משמרת')}</strong>
+                        <strong>${esc(sh.task || sh.name || 'משמרת')}</strong>
                         <span>${sh.startTime || ''} - ${sh.endTime || ''}</span>
                     </div>
                 </div>`);
@@ -269,8 +271,8 @@ function renderMyEquipmentWidget() {
         content = shown.map(e => `
             <div class="pd-equip-item">
                 <i data-lucide="package" style="width:14px;height:14px;color:var(--success);"></i>
-                <span>${escapeHtml(e.type)}</span>
-                <span class="pd-equip-serial">${escapeHtml(e.serial || '')}</span>
+                <span>${esc(e.type)}</span>
+                <span class="pd-equip-serial">${esc(e.serial || '')}</span>
             </div>
         `).join('');
         if (heldItems.length > 4) {
@@ -310,8 +312,8 @@ function renderMyAnnouncementsWidget() {
             <div class="pd-ann-item ${isUrgent ? 'pd-ann-urgent' : ''}">
                 <div class="pd-ann-date">${dateStr}</div>
                 <div class="pd-ann-content">
-                    <strong>${escapeHtml(ann.title)}</strong>
-                    <p>${escapeHtml((ann.body || '').substring(0, 80))}${(ann.body || '').length > 80 ? '...' : ''}</p>
+                    <strong>${esc(ann.title)}</strong>
+                    <p>${esc((ann.body || '').substring(0, 80))}${(ann.body || '').length > 80 ? '...' : ''}</p>
                 </div>
             </div>`;
         }).join('');
