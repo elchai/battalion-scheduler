@@ -3101,7 +3101,7 @@ function switchTab(tab) {
         renderCompanyTab(tab);
     }
     if (tab === 'calendar') renderCalendar();
-    if (tab === 'reports') renderReportCompanyFilter();
+    if (tab === 'reports') { renderReportCompanyFilter(); if (typeof renderReportsSubTabs === 'function') renderReportsSubTabs(); }
     if (tab === 'morningreport') generateMorningReport();
     if (tab === 'rollcall') renderReport1();
     if (tab === 'announcements') renderAnnouncements();
