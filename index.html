@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v239';
+    var _cb = 'v240';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -134,6 +134,10 @@
             <span>סקירה כללית</span>
         </button>
 
+        <button class="sidebar-item tab-mydashboard" onclick="switchTab('mydashboard')" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+            <span>המסך שלי</span>
+        </button>
         <div class="sidebar-section-label">כלים</div>
         <button class="sidebar-item tab-morningreport" onclick="switchTab('morningreport')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="0.5"/><rect x="12" y="6" width="3" height="12" rx="0.5"/><rect x="17" y="13" width="3" height="5" rx="0.5"/></svg>
@@ -686,28 +690,10 @@
 </div>
 
 
-<!-- ====== TAB: SOLDIER VIEW ====== -->
+<!-- ====== TAB: SOLDIER VIEW / PERSONAL DASHBOARD ====== -->
 <div class="tab-content" id="tab-myequipment" style="display:none;">
-    <div class="main-content">
-        <div style="text-align:center;padding:16px 0 8px;">
-            <div class="icon" style="background:var(--primary);color:white;width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;margin-bottom:8px;"><i data-lucide="shield-check" style="width:24px;height:24px;"></i></div>
-            <h2 style="margin:0;" id="soldierViewName"></h2>
-            <p style="margin:4px 0 0;color:var(--text-light);font-size:0.9em;" id="soldierViewUnit"></p>
-        </div>
-        <div class="sub-section">
-            <div class="section-title">
-                <div class="icon" style="background:#E8F5E9;color:#2E7D32;"><i data-lucide="package"></i></div>
-                הציוד שלי
-            </div>
-            <div id="myEquipmentContent"></div>
-        </div>
-        <div class="sub-section" style="margin-top:20px;">
-            <div class="section-title">
-                <div class="icon" style="background:#E3F2FD;color:#1565C0;"><i data-lucide="calendar"></i></div>
-                המשמרות שלי
-            </div>
-            <div id="myShiftsContent"></div>
-        </div>
+    <div class="main-content" style="max-width:900px;margin:0 auto;">
+        <div id="personalDashboardContent"></div>
         <div style="text-align:center;margin-top:24px;">
             <button class="btn btn-danger" onclick="doLogout()"><i data-lucide="log-out"></i> יציאה</button>
         </div>
@@ -1889,6 +1875,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://smoovsign.com/smoov-sdk.js"></script>
+<script>document.write('<script src="personal-dashboard.js?' + _cb + '"><\/script>');</script>
 <script>document.write('<script src="app.js?' + _cb + '"><\/script>');</script>
 <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>

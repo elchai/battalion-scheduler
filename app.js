@@ -519,17 +519,22 @@ function activateSoldierView() {
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
 
-    // Show soldier view tab
+    // Show soldier view tab with personal dashboard
     const soldierTab = document.getElementById('tab-myequipment');
     if (soldierTab) {
         soldierTab.style.display = '';
-        const unitMap = getCompNames();
-        const nameEl = document.getElementById('soldierViewName');
-        const unitEl = document.getElementById('soldierViewUnit');
-        if (nameEl) nameEl.textContent = currentUser.name;
-        if (unitEl) unitEl.textContent = unitMap[currentUser.unit] || currentUser.unit;
-        renderSoldierEquipment();
-        renderSoldierShifts();
+        if (typeof renderPersonalDashboard === 'function') {
+            renderPersonalDashboard();
+        } else {
+            // Fallback to old view if personal-dashboard.js didn't load
+            const unitMap = getCompNames();
+            const nameEl = document.getElementById('soldierViewName');
+            const unitEl = document.getElementById('soldierViewUnit');
+            if (nameEl) nameEl.textContent = currentUser.name;
+            if (unitEl) unitEl.textContent = unitMap[currentUser.unit] || currentUser.unit;
+            renderSoldierEquipment();
+            renderSoldierShifts();
+        }
     }
 }
 
@@ -596,6 +601,9 @@ function applyUnitFilter() {
         const show = canView(comp);
         document.querySelectorAll(`.sidebar-item.tab-${comp}`).forEach(el => el.style.display = show ? '' : 'none');
     });
+
+    // Personal dashboard ("המסך שלי") - visible to MASHAK+ (level 2+)
+    document.querySelectorAll('.sidebar-item.tab-mydashboard').forEach(el => el.style.display = level >= PERM.MASHAK ? '' : 'none');
 
     // General tabs - visible to all (level 2+, since level 1 is redirected to soldier view)
     document.querySelectorAll('.sidebar-item.tab-calendar').forEach(el => el.style.display = '');
@@ -1087,6 +1095,8 @@ function renderAll() {
         renderAnnouncements();
     } else if (activeTab === 'tasks') {
         renderTasksPage();
+    } else if (activeTab === 'mydashboard' || activeTab === 'myequipment') {
+        if (typeof renderPersonalDashboard === 'function') renderPersonalDashboard();
     }
 }
 
@@ -3102,6 +3112,12 @@ function switchTab(tab) {
     if (tab === 'training') switchTrainingSubTab(trainingSubTab);
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'whatsapp') renderWhatsAppCenter();
+    if (tab === 'mydashboard') {
+        // Show the personal dashboard in the myequipment tab container
+        const soldierTab = document.getElementById('tab-myequipment');
+        if (soldierTab) { soldierTab.classList.add('active'); soldierTab.style.display = ''; }
+        if (typeof renderPersonalDashboard === 'function') renderPersonalDashboard();
+    }
 
 
     // Close sidebar on mobile after tab switch
