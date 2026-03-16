@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v240';
+    var _cb = 'v241';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -478,6 +478,7 @@
                     <button class="r1-range-tab active" data-range="week" onclick="setReport1Range('week')">שבוע</button>
                     <button class="r1-range-tab" data-range="month" onclick="setReport1Range('month')">חודש</button>
                     <button class="r1-range-tab" data-range="operation" onclick="setReport1Range('operation')">כל התקופה</button>
+                    <button class="r1-range-tab r1-table-btn" data-range="table" onclick="if(typeof toggleReport1TableView==='function')toggleReport1TableView()" title="טבלה חודשית"><i data-lucide="table" style="width:14px;height:14px;vertical-align:-2px;"></i> טבלה</button>
                 </div>
             </div>
             <div class="r1-controls-row r1-actions-row">
@@ -1877,6 +1878,7 @@
 <script src="https://smoovsign.com/smoov-sdk.js"></script>
 <script>document.write('<script src="app.js?' + _cb + '"><\/script>');</script>
 <script>document.write('<script src="personal-dashboard.js?' + _cb + '"><\/script>');</script>
+<script>document.write('<script src="attendance.js?' + _cb + '"><\/script>');</script>
 <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
 </html>

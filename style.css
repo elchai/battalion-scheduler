@@ -2830,6 +2830,89 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     .tasks-summary-chips { justify-content: center; }
 }
 
+/* ==================== Attendance Monthly Table ==================== */
+.att-table-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.att-table-month { font-weight: 700; font-size: 1.05em; }
+.att-table-wrap { overflow-x: auto; margin-bottom: 12px; }
+.att-monthly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78em;
+    min-width: 800px;
+}
+.att-monthly-table th, .att-monthly-table td {
+    border: 1px solid var(--border);
+    text-align: center;
+    padding: 3px 2px;
+}
+.att-tbl-name-col {
+    position: sticky;
+    right: 0;
+    background: var(--card);
+    z-index: 2;
+    text-align: right !important;
+    padding: 4px 8px !important;
+    min-width: 120px;
+    white-space: nowrap;
+}
+.att-tbl-name-col a { color: var(--text); text-decoration: none; }
+.att-tbl-name-col a:hover { color: var(--primary); }
+.att-tbl-role { display: block; font-size: 0.82em; color: var(--text-light); }
+.att-tbl-day {
+    min-width: 28px;
+    font-size: 0.82em;
+    background: var(--bg);
+}
+.att-tbl-day div:first-child { font-weight: 600; font-size: 0.9em; color: var(--text-light); }
+.att-tbl-today { background: rgba(52,152,219,0.12) !important; }
+.att-tbl-weekend { background: rgba(0,0,0,0.03); }
+[data-theme="dark"] .att-tbl-weekend { background: rgba(255,255,255,0.03); }
+.att-tbl-summary-col {
+    min-width: 36px;
+    font-weight: 600;
+    background: var(--bg);
+}
+.att-tbl-pct { font-size: 0.9em; }
+
+.att-cell-ok { color: var(--success); font-weight: 700; }
+.att-cell-bad { color: var(--danger); font-weight: 700; }
+.att-cell-leave { color: var(--warning); }
+.att-cell-ns { color: var(--text-light); }
+.att-cell-empty { color: transparent; }
+
+.att-tbl-totals td { font-weight: 600; background: var(--bg); }
+.att-tbl-total-cell { font-size: 0.9em; }
+.att-pct-high { color: var(--success); }
+.att-pct-mid { color: var(--warning); }
+.att-pct-low { color: var(--danger); }
+
+.att-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    font-size: 0.82em;
+    color: var(--text-light);
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.att-legend-dot {
+    display: inline-block;
+    width: 18px;
+    text-align: center;
+    font-weight: 700;
+    margin-left: 4px;
+}
+.r1-table-btn {
+    border-right: 1px solid var(--border) !important;
+    margin-right: 4px;
+}
+
 /* ==================== Personal Dashboard ==================== */
 .pd-greeting {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
