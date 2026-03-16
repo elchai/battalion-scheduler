@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v242';
+    var _cb = 'v243';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -163,6 +163,10 @@
         <button class="sidebar-item tab-tasks" onclick="switchTab('tasks')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>משימות</span>
+        </button>
+        <button class="sidebar-item tab-constraints" onclick="switchTab('constraints')" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span>אילוצים</span>
         </button>
         <button class="sidebar-item tab-equipment" onclick="switchTab('equipment')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
@@ -575,6 +579,16 @@
     </div>
 </div>
 
+
+<!-- ====== TAB: CONSTRAINTS (אילוצים) ====== -->
+<div class="tab-content" id="tab-constraints">
+    <div class="main-content" style="max-width:800px;margin:0 auto;">
+        <div id="constraintsContent"></div>
+        <div style="text-align:center;margin-top:20px;">
+            <button class="btn btn-add" onclick="if(typeof openAddConstraint==='function')openAddConstraint()"><i data-lucide="plus"></i> אילוץ חדש</button>
+        </div>
+    </div>
+</div>
 
 <!-- ====== TAB: EQUIPMENT (צל"מ) ====== -->
 <div class="tab-content" id="tab-equipment">
@@ -1884,6 +1898,7 @@
 <script>document.write('<script src="personal-dashboard.js?' + _cb + '"><\/script>');</script>
 <script>document.write('<script src="attendance.js?' + _cb + '"><\/script>');</script>
 <script>document.write('<script src="reports-enhanced.js?' + _cb + '"><\/script>');</script>
+<script>document.write('<script src="constraints.js?' + _cb + '"><\/script>');</script>
 <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
 </html>

@@ -2830,6 +2830,91 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     .tasks-summary-chips { justify-content: center; }
 }
 
+/* ==================== Constraints Page ==================== */
+.con-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.con-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.con-title h2 { margin: 0; font-size: 1.2em; }
+.con-count {
+    font-size: 0.78em;
+    color: var(--text-light);
+    background: var(--bg);
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+.con-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+}
+.con-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-size: 0.88em;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.con-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+.con-tab:hover { color: var(--text); }
+
+.con-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+}
+.con-empty h4 { margin: 12px 0 4px; color: var(--text); }
+.con-empty p { font-size: 0.85em; }
+
+.con-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    border-right: 3px solid var(--primary);
+}
+.con-card-inactive {
+    opacity: 0.5;
+    border-right-color: var(--border);
+}
+.con-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.con-type-badge {
+    font-size: 0.78em;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: var(--bg);
+}
+.con-card-actions { display: flex; gap: 4px; }
+.con-soldier-name { font-weight: 700; font-size: 0.95em; }
+.con-details { font-size: 0.82em; color: var(--text-light); margin-top: 4px; }
+.con-meta { font-size: 0.75em; color: var(--text-light); margin-top: 6px; }
+
 /* ==================== Enhanced Reports ==================== */
 .rpt-section-header {
     display: flex;

@@ -618,6 +618,9 @@ function applyUnitFilter() {
     // Weapons - visible to all
     document.querySelectorAll('.sidebar-item.tab-weapons').forEach(el => el.style.display = '');
 
+    // Constraints - SAMAL+ (סמלים, קצינים, מ"פים ומעלה)
+    document.querySelectorAll('.sidebar-item.tab-constraints').forEach(el => el.style.display = level >= PERM.SAMAL ? '' : 'none');
+
     // Settings - SAMAL+ (סמלים, קצינים, מ"פים ומעלה)
     document.querySelectorAll('.sidebar-item.tab-settings').forEach(el => el.style.display = level >= PERM.SAMAL ? '' : 'none');
 
@@ -3112,6 +3115,7 @@ function switchTab(tab) {
     if (tab === 'training') switchTrainingSubTab(trainingSubTab);
     if (tab === 'settings') renderSettingsTab();
     if (tab === 'whatsapp') renderWhatsAppCenter();
+    if (tab === 'constraints' && typeof renderConstraintsTab === 'function') renderConstraintsTab();
     if (tab === 'mydashboard') {
         // Show the personal dashboard in the myequipment tab container
         const soldierTab = document.getElementById('tab-myequipment');
@@ -3863,11 +3867,19 @@ function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
         return { available: false, onLeave: false, assignedTo: 'מחוץ לתקופת שירות' };
     }
 
-    // Check constraints
-    const hasConstraint = state.constraints && state.constraints.some(c =>
-        c.soldierId === soldierId && date >= c.startDate && date <= c.endDate
-    );
-    if (hasConstraint) return { available: false, onLeave: false, assignedTo: 'אילוץ' };
+    // Check constraints (enhanced: supports multiple types)
+    if (typeof checkEnhancedConstraints === 'function') {
+        const violations = checkEnhancedConstraints(soldierId, date, startTime, endTime);
+        if (violations.length > 0) {
+            return { available: false, onLeave: false, assignedTo: violations[0].message || 'אילוץ' };
+        }
+    } else {
+        // Fallback: legacy date_block only
+        const hasConstraint = state.constraints && state.constraints.some(c =>
+            (c.active !== false) && c.soldierId === soldierId && date >= c.startDate && date <= c.endDate
+        );
+        if (hasConstraint) return { available: false, onLeave: false, assignedTo: 'אילוץ' };
+    }
 
     // Check if on leave
     const onLeave = state.leaves.some(l => l.soldierId === soldierId && isOnLeaveForDate(l, date));
