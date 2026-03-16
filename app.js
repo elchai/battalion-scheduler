@@ -4527,6 +4527,12 @@ function renderTrainingTab() {
         return { ...t, completed, pct: totalSoldiers > 0 ? Math.round(completed / totalSoldiers * 100) : 0 };
     });
 
+    // Readiness level stats
+    const greenCount = soldiers.filter(s => s.readinessLevel === 'green').length;
+    const orangeCount = soldiers.filter(s => s.readinessLevel === 'orange').length;
+    const redCount = soldiers.filter(s => s.readinessLevel === 'red').length;
+    const noLevelCount = totalSoldiers - greenCount - orangeCount - redCount;
+
     let html = `
         <div class="section-header">
             <div class="section-title">
@@ -4540,6 +4546,14 @@ function renderTrainingTab() {
                 ${allCompanyKeys().map(k => `<option value="${k}" ${trainingCompanyFilter === k ? 'selected' : ''}>${compName(k)}</option>`).join('')}
             </select>
             ${isPalsamFilter ? '<span style="font-size:0.82em;color:var(--text-light);align-self:center;">פלח"ם — מוצג רק איפוס נשק</span>' : ''}
+        </div>
+        <!-- Readiness summary -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
+            <span style="font-weight:700;font-size:0.9em;align-self:center;">כשירות:</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:50%;background:#27ae60;display:inline-block;"></span> ${greenCount} ירוק</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:50%;background:#f39c12;display:inline-block;"></span> ${orangeCount} כתום</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:14px;border-radius:50%;background:#e74c3c;display:inline-block;"></span> ${redCount} אדום</span>
+            ${noLevelCount > 0 ? `<span style="color:var(--text-light);font-size:0.85em;">(${noLevelCount} ללא סיווג)</span>` : ''}
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px;">
             ${statsPerType.map(t => `
@@ -4557,6 +4571,7 @@ function renderTrainingTab() {
             <thead><tr style="background:var(--bg);">
                 <th style="padding:8px;text-align:right;position:sticky;right:0;background:var(--bg);z-index:1;">חייל</th>
                 <th style="padding:8px;text-align:right;">פלוגה</th>
+                <th style="padding:8px;text-align:center;">כשירות</th>
                 ${types.map(t => `<th style="padding:8px;text-align:center;">${esc(t.name)}</th>`).join('')}
             </tr></thead>
             <tbody>`;
@@ -4567,6 +4582,24 @@ function renderTrainingTab() {
                 <a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>
             </td>
             <td style="padding:6px 8px;font-size:0.85em;">${compName(s.company)}</td>`;
+
+        // Readiness level (כשירות)
+        const readinessLevel = s.readinessLevel || '';
+        const rlColors = { green: '#27ae60', orange: '#f39c12', red: '#e74c3c' };
+        const rlLabels = { green: 'ירוק', orange: 'כתום', red: 'אדום' };
+        const canEdit = canManage || canEditShifts(s.company);
+        html += `<td style="padding:4px 6px;text-align:center;">
+            <div style="display:flex;gap:3px;justify-content:center;">
+                ${['green','orange','red'].map(lvl => {
+                    const active = readinessLevel === lvl;
+                    return `<button onclick="setReadinessLevel('${s.id}','${lvl}')" title="${rlLabels[lvl]}"
+                        style="width:22px;height:22px;border-radius:50%;border:2px solid ${active ? '#333' : '#ccc'};
+                        background:${rlColors[lvl]};cursor:pointer;opacity:${active ? '1' : '0.3'};
+                        transform:${active ? 'scale(1.15)' : 'scale(1)'};transition:all 0.15s;"
+                        ${canEdit ? '' : 'disabled'}></button>`;
+                }).join('')}
+            </div>
+        </td>`;
 
         types.forEach(t => {
             const rec = (state.training || []).find(r => r.soldierId === s.id && r.typeId === t.id);
@@ -4607,6 +4640,15 @@ function updateTraining(soldierId, typeId, type, value) {
         rec.done = value;
     }
     saveState();
+}
+
+function setReadinessLevel(soldierId, level) {
+    const sol = state.soldiers.find(s => s.id === soldierId);
+    if (!sol) return;
+    // Toggle off if clicking same level
+    sol.readinessLevel = sol.readinessLevel === level ? '' : level;
+    saveState();
+    renderTrainingTab();
 }
 
 function addTrainingType() {
