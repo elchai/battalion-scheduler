@@ -1066,9 +1066,9 @@ async function init() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
         navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data && event.data.type === 'SW_UPDATED') {
-                showToast('מעדכן גרסה...', 'info');
-                setTimeout(() => location.reload(), 1000);
+            if (event.data && (event.data.type === 'SW_UPDATED' || event.data.type === 'SW_READY')) {
+                // Show update banner instead of forced reload
+                showUpdateBanner();
             }
         });
     }
@@ -6130,6 +6130,15 @@ function closeModal(id) {
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
     }
+}
+
+function showUpdateBanner() {
+    if (document.getElementById('swUpdateBanner')) return; // already shown
+    const banner = document.createElement('div');
+    banner.id = 'swUpdateBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a237e;color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:0.9em;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    banner.innerHTML = `<span>🔄 גרסה חדשה זמינה</span><button onclick="location.reload()" style="background:#fff;color:#1a237e;border:none;border-radius:6px;padding:5px 14px;font-weight:700;cursor:pointer;font-family:inherit;">עדכן עכשיו</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1.2em;line-height:1;">&times;</button>`;
+    document.body.prepend(banner);
 }
 
 function showToast(msg, type='success') {

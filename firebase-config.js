@@ -20,6 +20,7 @@ let tasksDebounceTimer = null;
 let unsubscribeState = null;
 let unsubscribeSettings = null;
 let unsubscribeTasks = null;
+let _lastLocalSaveTs = 0; // timestamp of last local save — suppress echo from own writes
 
 if (FIREBASE_ENABLED && typeof firebase !== 'undefined') {
     try {
@@ -135,6 +136,7 @@ function firebaseSaveState() {
     if (!FIREBASE_ENABLED || !db || !firestoreReady) return;
     clearTimeout(saveDebounceTimer);
     saveDebounceTimer = setTimeout(() => {
+        _lastLocalSaveTs = Date.now();
         db.collection(DB_COLLECTION).doc('state').set(JSON.parse(JSON.stringify(state)))
             .catch(err => console.warn('Firestore state save error:', err));
     }, 800);
@@ -172,7 +174,9 @@ function setupRealtimeListeners() {
             // Simple comparison to avoid self-trigger loops
             const localJSON = JSON.stringify(state);
             const remoteJSON = JSON.stringify(remoteState);
-            if (localJSON !== remoteJSON) {
+            // Suppress echo: if we saved locally in the last 3 seconds, skip re-render
+            const isEcho = (Date.now() - _lastLocalSaveTs) < 3000;
+            if (localJSON !== remoteJSON && !isEcho) {
                 // Merge fields individually instead of replacing reference
                 state.soldiers = remoteState.soldiers || state.soldiers;
                 state.shifts = remoteState.shifts || state.shifts;
