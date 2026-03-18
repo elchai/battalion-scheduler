@@ -139,7 +139,7 @@ function openAddConstraint() {
         <div class="modal" style="max-width:480px;">
             <div class="modal-header">
                 <h3>אילוץ חדש</h3>
-                <button class="modal-close" onclick="closeModal('addConstraintModal')">&times;</button>
+                <button class="modal-close" onclick="closeModal('addConstraintModal'); document.getElementById('addConstraintModal')?.remove()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -172,7 +172,7 @@ function openAddConstraint() {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-cancel" onclick="closeModal('addConstraintModal')">ביטול</button>
+                <button class="btn btn-cancel" onclick="closeModal('addConstraintModal'); document.getElementById('addConstraintModal')?.remove()">ביטול</button>
                 <button class="btn btn-add" onclick="saveNewConstraint()"><i data-lucide="plus"></i> הוסף</button>
             </div>
         </div>
