@@ -4068,6 +4068,7 @@ function renderShiftRoleSlots(restoreSoldiers) {
             const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
             let info = '';
             if (status.onLeave) info = ' 🏠 בבית';
+            else if (status.assignedTo && status.assignedTo.startsWith('בין משמרות')) info = ` 🕐 ${status.assignedTo}`;
             else if (status.assignedTo) info = ` ⚡ ${status.assignedTo}`;
             return `<option value="${s.id}" ${s.id === preselect ? 'selected' : ''}>${esc(s.name)}${info}</option>`;
         }).join('');
@@ -4122,6 +4123,31 @@ function renderShiftRoleSlots(restoreSoldiers) {
     if (cmdGroup) cmdGroup.style.display = 'none';
 }
 
+// Returns rest status based on 1/3 rule: rest = 2 × shift duration (for shifts ≤ 12h)
+function getSoldierRestWindowStatus(soldierId, date, startTime) {
+    function toAbsMin(dateStr, timeStr) {
+        const [h, m] = (timeStr || '00:00').split(':').map(Number);
+        return Math.floor(new Date(dateStr + 'T00:00:00').getTime() / 60000) + h * 60 + m;
+    }
+    const slotStart = toAbsMin(date, startTime);
+    const soldierShifts = state.shifts.filter(sh => sh.soldiers && sh.soldiers.includes(soldierId));
+    for (const sh of soldierShifts) {
+        const shStart = toAbsMin(sh.date, sh.startTime);
+        let shEnd = toAbsMin(sh.date, sh.endTime);
+        if (shEnd <= shStart) shEnd += 1440; // cross-midnight
+        const durMins = shEnd - shStart;
+        if (durMins <= 0 || durMins > 720) continue; // skip 0-duration or >12h shifts
+        const restEnd = shEnd + 2 * durMins;
+        if (shEnd <= slotStart && slotStart < restEnd) {
+            const restEndAbsDay = Math.floor((restEnd % 1440 + 1440) % 1440);
+            const rh = String(Math.floor(restEndAbsDay / 60)).padStart(2, '0');
+            const rm = String(restEndAbsDay % 60).padStart(2, '0');
+            return { inRest: true, restUntil: `${rh}:${rm}`, task: sh.task };
+        }
+    }
+    return { inRest: false };
+}
+
 // Check soldier status for a specific date/time
 function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
     const soldier = state.soldiers.find(s => s.id === soldierId);
@@ -4168,6 +4194,12 @@ function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
     if (overlap) {
         const taskName = overlap.task + (overlap.shiftName ? ' ' + overlap.shiftName : '');
         return { available: false, onLeave: false, assignedTo: `${taskName} ${overlap.startTime}-${overlap.endTime}` };
+    }
+
+    // Check rest window: 1/3 rule — rest = 2 × shift duration (shifts ≤ 12h)
+    const restStatus = getSoldierRestWindowStatus(soldierId, date, startTime);
+    if (restStatus.inRest) {
+        return { available: false, onLeave: false, assignedTo: `בין משמרות עד ${restStatus.restUntil}` };
     }
 
     return { available: true, onLeave: false, assignedTo: null };
