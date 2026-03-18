@@ -962,6 +962,114 @@ function updateSoldierUnits() {
     unitSel.innerHTML = '<option value="">-- בחר --</option>' + units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
 }
 
+function seedCompanyBIfNeeded() {
+    const SEED_KEY = CONFIG.storagePrefix + 'CompanyBSeeded_v1';
+    if (localStorage.getItem(SEED_KEY)) return;
+    const uM = { 'מפל"ג': 'מפל"ג', '1': 'מ"מ 1', '2': 'מ"מ 2', '3': 'מ"מ 3' };
+    // [personalId, name, phone, unit, role, cert, notArrived]
+    const D = [
+        ['5148298','לאון שוקרון','','מפל"ג','סמב"צ','',true],
+        ['5212536','יניב חצרוני','502071768','מפל"ג','סמ"פ','',false],
+        ['8652030','עידן סדי','502248117','2','לוחם','',false],
+        ['5383051','אלכס פסטוביץ׳','502331169','3','לוחם','קלע',false],
+        ['5270010','חובב הרוש','502713300','1','מ"מ','',false],
+        ['5384257','חיים לי צ\'פלר','503829922','2','לוחם','',false],
+        ['5410072','מרדכי יעקב טייטלבוים','504003429','3','לוחם','נגב',false],
+        ['5485066','אנדריי רייב','504062857','1','לוחם','נגב',false],
+        ['9229194','עילאי לוי','504090190','3','לוחם','',false],
+        ['7548202','ליאור שמעון אבקסיס','504866193','מפל"ג','סרס"פ','',false],
+        ['5749191','אלמוג סנקר','505567529','2','לוחם','מטול',false],
+        ['5226469','צביקה יגר','505643938','מפל"ג','סרס"פ','',false],
+        ['8363710','דור אל בנדל','505885098','1','לוחם','חובש',false],
+        ['8496642','אביב לוי','506506119','2','לוחם','',false],
+        ['6916365','אייל כהן','506734353','מפל"ג','לוחם','',false],
+        ['8572758','מתנאל שלום','506791503','2','מ"כ','',false],
+        ['7306641','אורי בילנסקי','506906516','2','מ"כ','',false],
+        ['6920798','ארז גרייבסקי','507261993','2','לוחם','חובש',false],
+        ['6113514','אלרן גיל','507311182','מפל"ג','סרס"פ','',false],
+        ['7360083','מאור טרבלסי','507646397','3','לוחם','מאג',false],
+        ['5342196','יקיר כהן','508453528','1','לוחם','',false],
+        ['7202550','אביעד יצחק יארמק','508480208','1','מ"כ','קלע',false],
+        ['5498759','מאיר יעל','509141089','2','לוחם','',false],
+        ['8141039','אור מעטוף','509604849','3','לוחם','',false],
+        ['5249031','עידן ידיד כהן','522282266','מפל"ג','לוחם','חובש',false],
+        ['5949831','אלון אסרף','522728181','מפל"ג','לוחם','',false],
+        ['4304963','איציק אשכנזי','523194445','1','סמל','קלע',false],
+        ['8205525','יובל קינן','524231996','3','לוחם','',false],
+        ['6866031','אורן ראובן','524625962','3','לוחם','',false],
+        ['5416885','תומר רוזנפלד','524780090','3','לוחם','',false],
+        ['5963257','אטנאו אבבה','525062155','3','לוחם','מטול',false],
+        ['6055145','גל סריזאדה','525552022','1','לוחם','חובש',false],
+        ['5624100','שוקי היינה','526134306','מפל"ג','רס"פ','',false],
+        ['7522430','שאול לוזון','526237523','מפל"ג','לוחם','',false],
+        ['5777584','ציון שבת','526328401','1','לוחם','קלע',false],
+        ['8247673','דניאל שחר','526422333','1','לוחם','',false],
+        ['7638852','איתמר שטרום','526453823','3','מ"מ','',false],
+        ['6008953','אלכסנדר גלדקוב','526622945','3','לוחם','',false],
+        ['8773421','עמית שאול','526624139','3','מ"כ','',false],
+        ['8472206','מתן בשה','526896171','2','לוחם','חובש',false],
+        ['8507387','ראמי אבו סיאם','527480449','3','לוחם','קלע',false],
+        ['5246961','יונתן זמיר','527703358','2','מ"מ','',false],
+        ['5117729','שגיא רוזנבאום','528119332','1','לוחם','מאג',false],
+        ['5943507','שי שמוא נייגר','528667627','2','לוחם','',false],
+        ['6944147','ירון ארונשטם','529426568','1','לוחם','נגב',false],
+        ['8174571','רון דמתי','529546888','2','לוחם','',false],
+        ['8678749','אדם ביידגילין','532407083','2','לוחם','',false],
+        ['8641484','אור כהן','532773088','3','לוחם','',false],
+        ['8646828','נתנאל איינייהו','534253168','2','לוחם','',false],
+        ['5213440','אלחי פיין','542012000','מפל"ג','מ"פ','',false],
+        ['7507240','שלמה קופצ\'יק','542230630','3','לוחם','',false],
+        ['5175303','משה ויינר','542478618','3','מ"כ','קלע',false],
+        ['5248815','ירון פיטובי','542545200','1','לוחם','חובש',false],
+        ['5203829','אלעד אברהם גריינר','542552133','1','מ"כ','מטול',false],
+        ['7332120','טובאל קולמן','0506367589','מפל"ג','סמב"צ','',false],
+        ['9044478','עוז מקס','0548174671','מפל"ג','סמב"צ','',false],
+        ['8481332','חן חנן אטלן','0543084444','מפל"ג','סמב"צ','',false],
+        ['7290839','יונתן הררי','543007213','מפל"ג','סמב"צ','',false],
+        ['8239416','נתן מאיר גז','543071213','2','לוחם','',false],
+        ['8303136','דניאל קורילציק','543369304','3','לוחם','נגב',false],
+        ['4647039','זהר ואנונו','543399873','1','מ"כ','',false],
+        ['8353687','שחר כץ','543535774','2','לוחם','מטול',false],
+        ['5001901','רון זיו','544339633','2','לוחם','',false],
+        ['7485966','אברהם זיו','544684599','1','לוחם','',false],
+        ['8067978','ירום בוזגלו','545685571','3','מ"כ','',false],
+        ['5940249','רפאל וידל','546461400','2','לוחם','נגב',false],
+        ['8665393','אורי מיכאלי','546739044','2','לוחם','',false],
+        ['5946813','גבריאל מורחי','546969331','1','לוחם','',false],
+        ['5979806','אביה גולדפרב','547571904','1','לוחם','מטול',false],
+        ['7259605','אנדרי בסרבוב','547664243','2','סמל','',false],
+        ['5231792','אבי אלרהנד','548000070','2','לוחם','',false],
+        ['4652910','יאיר רוזנברג','548065001','מפל"ג','סמ"פ','',false],
+        ['5122197','שמעון בייער','548108065','2','לוחם','',false],
+        ['7554182','דניאל ברודסקי','548118976','1','לוחם','',false],
+        ['5065640','אדם מקס','548179624','2','מ"כ','',false],
+        ['8611317','מיסגנאו וודמנך','548370298','3','לוחם','',false],
+        ['7259908','איגור רומננקו','549995956','3','סמל','',false],
+        ['6886476','איתי לנדאו','558871524','מפל"ג','לוחם','',false],
+        ['9049896','נתנאל רוימי','584020699','2','לוחם','',false],
+        ['8066733','שי-אל סובולב','584199555','3','לוחם','חובש',false],
+        ['5155979','נעם לירון ארזי','584707770','3','לוחם','',false],
+        ['8758139','נדב אלישקוב','585810111','2','לוחם','מטול',false],
+        ['8151825','אוריאל פלוס','547453893','מפל"ג','סמב"צ','',false],
+    ];
+    let added = 0;
+    D.forEach(([pid, name, phone, unitKey, role, cert, notArrived]) => {
+        if (state.soldiers.find(s => s.personalId === pid && s.company === 'b')) return;
+        state.soldiers.push({
+            id: 'b_' + pid, name, company: 'b',
+            personalId: pid, phone: phone || '',
+            unit: uM[unitKey] || unitKey,
+            role: role || 'לוחם', rank: '',
+            certification: cert || '',
+            notArrived: notArrived || false,
+            fromSheets: true
+        });
+        added++;
+    });
+    if (added > 0) { saveState(); console.log('Seeded', added, 'company B soldiers'); }
+    localStorage.setItem(SEED_KEY, '1');
+}
+
 async function init() {
     loadSettings();
     loadState();
@@ -984,6 +1092,9 @@ async function init() {
 
     // Run equipment migration AFTER Firestore data loaded (prevents overwrite race condition)
     migrateEquipmentSets();
+
+    // Seed company ב' soldiers from roster data
+    seedCompanyBIfNeeded();
 
     // Seed exercise types if empty (always re-seed, even if Firestore overwrote with empty array)
     if (!settings.exerciseTypes || settings.exerciseTypes.length === 0) {
@@ -1075,6 +1186,8 @@ async function init() {
 }
 
 let activeTab = 'all';
+let taskEditorDirty = false;
+let _taskEditorSnapshot = null;
 function renderAll() {
     updateGlobalStats();
     updateNotifications();
@@ -1658,7 +1771,7 @@ function renderDashboard() {
     if (notArrivedSoldiers.length > 0) {
         alertsHtml += `<div class="dash-alert dash-alert-danger">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-            <span><strong>${notArrivedSoldiers.length} חיילים</strong> לא הגיעו למילואים</span>
+            <span><strong>${notArrivedSoldiers.length} חיילים</strong> לא גוייסו</span>
         </div>`;
     }
 
@@ -2193,6 +2306,7 @@ function renderCompanyTab(compKey) {
                     </tbody>
                 </table>
             </div></div>
+            ${(getUserPermissionLevel() >= PERM.COMPANY_CMD) ? `<div style="text-align:left;padding:6px 0;"><button class="btn btn-sm" style="font-size:0.8em;background:var(--bg);border:1px solid var(--border);color:var(--text-light);" onclick="switchTab('settings');setTimeout(()=>{ document.querySelector('.settings-task-anchor')?.scrollIntoView({behavior:'smooth'}); },200)">⚙ הגדרת משימות פלוגתי</button></div>` : ''}
         </div>
 
         <!-- Shifts -->
@@ -3086,6 +3200,16 @@ function renderWhatsAppCard(n) {
 
 // ==================== TAB NAVIGATION ====================
 function switchTab(tab) {
+    // Dirty task editor guard
+    if (taskEditorDirty && activeTab === 'settings' && tab !== 'settings') {
+        if (!window.confirm('יש שינויים שלא נשמרו בהגדרות המשימות.\nלצאת בלי לשמור?')) return;
+        if (_taskEditorSnapshot) {
+            const compKey = document.getElementById('settingsTaskCompany')?.value || 'a';
+            companyData[compKey].tasks = JSON.parse(_taskEditorSnapshot);
+        }
+        taskEditorDirty = false;
+        _taskEditorSnapshot = null;
+    }
     activeTab = tab;
     // Update sidebar active state
     document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
@@ -3728,16 +3852,22 @@ function openEditShift(id) {
     // Select task
     document.getElementById('shiftTask').value = sh.task;
     // Check soldiers in checkbox list, then set task commander
+    window._shiftRestoreSoldiers = sh.soldiers || [];
+    window._shiftRestoreCommander = sh.taskCommander || '';
     setTimeout(() => {
-        setCheckboxListValues('shiftSoldiers', sh.soldiers);
-        updateTaskCommanderSelect();
-        if (sh.taskCommander) document.getElementById('taskCommanderSelect').value = sh.taskCommander;
+        renderShiftRoleSlots();
+        window._shiftRestoreSoldiers = null;
+        window._shiftRestoreCommander = null;
     }, 50);
     openModal('addShiftModal');
 }
 
+const EXTRA_PRESETS = {
+    dayhalf:   { name: 'יום 6-18',   start: '06:00', end: '18:00' },
+    nighthalf: { name: 'לילה 18-6',  start: '18:00', end: '06:00' },
+};
 function applyShiftPreset(preset, btn) {
-    const p = settings.shiftPresets[preset];
+    const p = settings.shiftPresets[preset] || EXTRA_PRESETS[preset];
     if (!p) return;
     document.getElementById('shiftName').value = p.name;
     document.getElementById('shiftStart').value = p.start;
@@ -3745,6 +3875,28 @@ function applyShiftPreset(preset, btn) {
     document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     updateShiftOptions();
+}
+
+function toggleMultiDayShift(btn) {
+    const row = document.getElementById('multiDayShiftRow');
+    if (!row) return;
+    const shown = row.style.display !== 'none';
+    row.style.display = shown ? 'none' : '';
+    btn.classList.toggle('active', !shown);
+    if (!shown) updateMultiDayInfo();
+}
+
+function updateMultiDayInfo() {
+    const startDate = document.getElementById('shiftDate')?.value;
+    const endDate = document.getElementById('shiftEndDate')?.value;
+    const info = document.getElementById('multiDayInfo');
+    if (!info) return;
+    if (!startDate || !endDate || endDate <= startDate) {
+        info.textContent = endDate && endDate <= startDate ? 'תאריך סיום חייב להיות אחרי תאריך התחלה' : '';
+        return;
+    }
+    const days = Math.round((new Date(endDate) - new Date(startDate)) / 86400000);
+    info.textContent = `יוצר משמרות עבור ${days + 1} ימים`;
 }
 
 function updateShiftOptions() {
@@ -3757,7 +3909,7 @@ function updateShiftOptions() {
     const taskSel = document.getElementById('shiftTask');
     taskSel.innerHTML = '';
     taskSel.onchange = function() {
-        updateTaskCommanderSelect();
+        renderShiftRoleSlots();
         notifyLinkedTasks(company, this.value.replace(/\s*\(\d+\/\d+\)$/, ''));
     };
     const tasks = (companyData[company] && companyData[company].tasks) || [];
@@ -3778,55 +3930,7 @@ function updateShiftOptions() {
         });
     }
 
-    // Soldiers: checkbox list from selected company, with status indicators
-    const solList = document.getElementById('shiftSoldiers');
-    const prevSelected = getCheckboxListValues('shiftSoldiers');
-    solList.innerHTML = '';
-
-    const companySoldiers = state.soldiers.filter(s => s.company === company);
-    if (companySoldiers.length > 0) {
-        const groups = {};
-        companySoldiers.forEach(s => {
-            const unit = s.unit || 'כללי';
-            if (!groups[unit]) groups[unit] = [];
-            groups[unit].push(s);
-        });
-        Object.entries(groups).forEach(([unit, soldiers]) => {
-            const header = document.createElement('div');
-            header.className = 'checkbox-list-group';
-            header.style.cssText = 'padding:4px 12px;font-size:0.75em;font-weight:700;color:var(--text-light);background:var(--bg);';
-            header.textContent = unit;
-            solList.appendChild(header);
-            soldiers.sort((a,b) => {
-                const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime);
-                const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime);
-                if (aStatus.available !== bStatus.available) return aStatus.available ? -1 : 1;
-                return a.name.localeCompare(b.name, 'he');
-            });
-            soldiers.forEach(s => {
-                const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
-                const checked = prevSelected.includes(s.id);
-                let label = esc(s.name);
-                let badge = '';
-                if (status.onLeave) {
-                    badge = '<span class="badge-sm" style="background:#fce4ec;color:#c62828;">בבית</span>';
-                } else if (status.assignedTo) {
-                    badge = `<span class="badge-sm" style="background:#fff3e0;color:#e65100;">${esc(status.assignedTo)}</span>`;
-                } else {
-                    badge = `<span class="badge-sm">${esc(s.role || '')}</span>`;
-                }
-                const item = document.createElement('div');
-                item.className = 'checkbox-list-item' + (checked ? ' checked' : '');
-                item.setAttribute('data-name', s.name);
-                item.innerHTML = `<input type="checkbox" value="${s.id}" ${checked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('checked',this.checked);updateTaskCommanderSelect()"><label>${label}</label>${badge}`;
-                item.onclick = function(e) { if (e.target.tagName !== 'INPUT') { const cb = this.querySelector('input'); cb.checked = !cb.checked; this.classList.toggle('checked', cb.checked); updateTaskCommanderSelect(); } };
-                solList.appendChild(item);
-            });
-        });
-    } else {
-        solList.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-light);font-size:0.85em;">אין חיילים רשומים</div>';
-    }
-    updateTaskCommanderSelect();
+    renderShiftRoleSlots();
 }
 
 function updateTaskCommanderSelect() {
@@ -3853,6 +3957,85 @@ function updateTaskCommanderSelect() {
     } else {
         group.style.display = 'none';
     }
+}
+
+function renderShiftRoleSlots(restoreSoldiers) {
+    const company = document.getElementById('shiftCompany').value;
+    const date = document.getElementById('shiftDate').value;
+    const startTime = document.getElementById('shiftStart').value;
+    const endTime = document.getElementById('shiftEnd').value;
+    const taskName = (document.getElementById('shiftTask').value || '').replace(/\s*\(\d+\/\d+\)$/, '');
+    const container = document.getElementById('shiftRoleSlots');
+    if (!container) return;
+
+    const taskData = companyData[company]?.tasks?.find(t => t.name === taskName);
+    const perShift = taskData ? taskData.perShift : { soldiers: 1, commanders: 0, officers: 0, drivers: 0 };
+
+    const soldiers = state.soldiers.filter(s => s.company === company)
+        .sort((a, b) => {
+            const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime);
+            const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime);
+            if (aStatus.available !== bStatus.available) return aStatus.available ? -1 : 1;
+            return a.name.localeCompare(b.name, 'he');
+        });
+
+    function slotHtml(role, idx, label, preselect) {
+        const options = soldiers.map(s => {
+            const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
+            let info = '';
+            if (status.onLeave) info = ' 🏠 בבית';
+            else if (status.assignedTo) info = ` ⚡ ${status.assignedTo}`;
+            return `<option value="${s.id}" ${s.id === preselect ? 'selected' : ''}>${esc(s.name)}${info}</option>`;
+        }).join('');
+        return `<div class="role-slot-group">
+            <label class="role-slot-label">${label}</label>
+            <select class="role-select" data-role="${role}" data-idx="${idx}" onchange="renderShiftRoleSlots()">
+                <option value="">-- בחר --</option>
+                ${options}
+            </select>
+        </div>`;
+    }
+
+    // Restore from existing shift if editing
+    const restore = restoreSoldiers || window._shiftRestoreSoldiers || [];
+    const cmdRestore = window._shiftRestoreCommander || '';
+    let solIdx = 0;
+
+    let html = '';
+    const soldierCount = perShift.soldiers || 0;
+    const cmdCount = perShift.commanders || 0;
+    const offCount = perShift.officers || 0;
+    const drvCount = perShift.drivers || 0;
+
+    for (let i = 0; i < soldierCount; i++) {
+        const label = soldierCount > 1 ? `חייל ${i + 1}` : 'חייל';
+        const pre = restore[solIdx++] || '';
+        html += slotHtml('soldier', i, label, pre);
+    }
+    for (let i = 0; i < cmdCount; i++) {
+        const label = cmdCount > 1 ? `מפקד ${i + 1}` : 'מפקד';
+        const pre = i === 0 ? (cmdRestore || restore[solIdx++] || '') : (restore[solIdx++] || '');
+        html += slotHtml('commander', i, label, pre);
+    }
+    for (let i = 0; i < offCount; i++) {
+        const label = offCount > 1 ? `קצין ${i + 1}` : 'קצין';
+        const pre = restore[solIdx++] || '';
+        html += slotHtml('officer', i, label, pre);
+    }
+    for (let i = 0; i < drvCount; i++) {
+        const label = drvCount > 1 ? `נהג ${i + 1}` : 'נהג';
+        const pre = restore[solIdx++] || '';
+        html += slotHtml('driver', i, label, pre);
+    }
+
+    if (!html) {
+        html = '<div style="padding:12px;text-align:center;color:var(--text-light);font-size:0.85em;">בחר משימה כדי לשבץ לפי תפקיד</div>';
+    }
+
+    container.innerHTML = `<div class="role-slots-grid">${html}</div>`;
+    // Hide old taskCommanderGroup since commanders are now role slots
+    const cmdGroup = document.getElementById('taskCommanderGroup');
+    if (cmdGroup) cmdGroup.style.display = 'none';
 }
 
 // Check soldier status for a specific date/time
@@ -5715,8 +5898,12 @@ async function saveShift() {
     const shiftName = document.getElementById('shiftName').value.trim();
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
-    const soldiers = getCheckboxListValues('shiftSoldiers');
-    const taskCommander = document.getElementById('taskCommanderSelect').value || '';
+    const roleSlots = document.querySelectorAll('#shiftRoleSlots .role-select');
+    const soldiers = roleSlots.length > 0
+        ? Array.from(roleSlots).map(s => s.value).filter(v => v)
+        : getCheckboxListValues('shiftSoldiers');
+    const cmdSlot = document.querySelector('#shiftRoleSlots .role-select[data-role="commander"]');
+    const taskCommander = cmdSlot ? cmdSlot.value : (document.getElementById('taskCommanderSelect')?.value || '');
     const editId = document.getElementById('shiftEditId').value;
 
     if (!task || !date || !startTime || !endTime) { showToast('יש למלא את כל השדות', 'error'); return; }
@@ -5769,6 +5956,31 @@ async function saveShift() {
     // Warn if task needs commander but none selected
     if (taskData && taskData.perShift.soldiers >= 4 && !taskCommander) {
         if (!await customConfirm('לא נבחר מפקד משימה.\nהאם להמשיך בלי?')) return;
+    }
+
+    // Multi-day: if shiftEndDate is set, create one shift per day
+    const endDateEl = document.getElementById('shiftEndDate');
+    const multiDayEnd = endDateEl && document.getElementById('multiDayShiftRow')?.style.display !== 'none' ? endDateEl.value : '';
+    if (!editId && multiDayEnd && multiDayEnd > date) {
+        const dates = [];
+        let cur = new Date(date);
+        const end = new Date(multiDayEnd);
+        while (cur <= end) {
+            dates.push(cur.toISOString().slice(0, 10));
+            cur.setDate(cur.getDate() + 1);
+        }
+        dates.forEach(d => {
+            state.shifts.push({
+                id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+                company, task, date: d, shiftName, startTime, endTime, soldiers, taskCommander
+            });
+        });
+        saveState();
+        closeModal('addShiftModal');
+        renderCompanyTab(company);
+        updateGlobalStats();
+        showToast(`נוצרו ${dates.length} משמרות (${dates[0]} - ${dates[dates.length-1]})`);
+        return;
     }
 
     if (editId) {
@@ -6462,7 +6674,7 @@ function renderSettingsTab() {
         html += `
     <!-- Task Management -->
     <div class="settings-card" style="grid-column: 1 / -1;">
-        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> ניהול משימות לפי פלוגה</h3>
+        <h3 class="settings-task-anchor"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> הגדרת משימות פלוגתי</h3>
         <div class="form-group" style="margin-bottom:14px;">
             ${taskCompanies.length > 1 ? `
             <input type="hidden" id="settingsTaskCompany" value="${taskCompanies[0]}">
@@ -6500,37 +6712,50 @@ function renderTaskEditor() {
     if (!tasks) return;
 
     container.innerHTML = `
-        <div class="task-edit-row task-edit-header">
-            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>נהגים</span><span title="כמה סבבי משמרות ביממה: 1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה, 6=שג/בונקר (4 שעות)">סבבים/24ש׳</span><span></span>
+        <div style="overflow-x:auto;">
+          <div class="task-edit-row task-edit-header" style="min-width:520px;">
+              <span>שם משימה</span><span>חיי׳/מש׳</span><span>מפקד׳/מש׳</span><span>קצי׳/מש׳</span><span>נהג׳/מש׳</span><span title="כמה סבבי משמרות ביממה: 1=יום שלם, 2=12/12, 3=8/16, 6=4/20 שג">סבבים</span><span></span>
+          </div>
+          <div style="min-width:520px;">
+          ${tasks.map((t, i) => `
+              <div class="task-edit-row">
+                  <input value="${esc(t.name)}" onchange="updateTask('${compKey}',${i},'name',this.value)">
+                  <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
+                  <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
+                  <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
+                  <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
+                  <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
+                  <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
+              </div>
+              ${t.linkedTo ? `<div style="padding:2px 8px 6px;font-size:0.78em;color:var(--success);display:flex;align-items:center;gap:4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                  כ״א משותף עם ${esc(t.linkedTo)} (לא נספר פעמיים)
+                  <button style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.85em;padding:0 4px;" onclick="unlinkTask('${compKey}',${i})" title="נתק קישור">✕</button>
+              </div>` : ''}
+          `).join('')}
+          </div>
         </div>
-        ${tasks.map((t, i) => `
-            <div class="task-edit-row">
-                <input value="${esc(t.name)}" onchange="updateTask('${compKey}',${i},'name',this.value)">
-                <input type="number" min="0" value="${t.perShift.soldiers}" onchange="updateTask('${compKey}',${i},'soldiers',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
-                <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
-                <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
-            </div>
-            ${t.linkedTo ? `<div style="padding:2px 8px 6px;font-size:0.78em;color:var(--success);display:flex;align-items:center;gap:4px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                כ״א משותף עם ${esc(t.linkedTo)} (לא נספר פעמיים)
-                <button style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.85em;padding:0 4px;" onclick="unlinkTask('${compKey}',${i})" title="נתק קישור">✕</button>
-            </div>` : ''}
-        `).join('')}
-        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
             <button class="btn btn-special btn-sm" style="font-size:0.78em;" onclick="openLinkTasksModal('${compKey}')">🔗 קישור כ״א משותף</button>
+        </div>
+        <div id="taskSaveBar" style="${taskEditorDirty ? '' : 'display:none;'}background:#e65100;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:8px;margin-top:12px;position:sticky;bottom:8px;z-index:10;">
+            <span style="font-size:0.9em;">⚠ יש שינויים שלא נשמרו</span>
+            <div style="display:flex;gap:8px;">
+                <button class="btn" style="background:rgba(255,255,255,0.25);color:#fff;border:none;" onclick="discardTaskEdits()">ביטול</button>
+                <button class="btn" style="background:#fff;color:#e65100;font-weight:700;border:none;" onclick="saveTaskEdits()">💾 שמור</button>
+            </div>
         </div>`;
 }
 
 function updateTask(compKey, index, field, value) {
+    if (!taskEditorDirty) {
+        _taskEditorSnapshot = JSON.stringify(companyData[compKey].tasks);
+    }
     const t = companyData[compKey].tasks[index];
     if (field === 'name') t.name = value;
     else if (field === 'shifts') {
         t.shifts = value;
-        // Recalc totals
         t.soldiers = t.perShift.soldiers * value;
         t.commanders = t.perShift.commanders * value;
         t.officers = t.perShift.officers * value;
@@ -6539,9 +6764,30 @@ function updateTask(compKey, index, field, value) {
         t.perShift[field] = value;
         t[field] = value * t.shifts;
     }
+    taskEditorDirty = true;
+    const bar = document.getElementById('taskSaveBar');
+    if (bar) bar.style.display = '';
+}
+
+function saveTaskEdits() {
     saveTasksToStorage();
     renderDashboard();
-    showToast('משימה עודכנה');
+    taskEditorDirty = false;
+    _taskEditorSnapshot = null;
+    const bar = document.getElementById('taskSaveBar');
+    if (bar) bar.style.display = 'none';
+    showToast('הגדרות משימות נשמרו', 'success');
+}
+
+async function discardTaskEdits() {
+    if (!await customConfirm('לבטל את כל השינויים ולחזור לגרסה השמורה?')) return;
+    if (_taskEditorSnapshot) {
+        const compKey = document.getElementById('settingsTaskCompany')?.value || 'a';
+        companyData[compKey].tasks = JSON.parse(_taskEditorSnapshot);
+    }
+    taskEditorDirty = false;
+    _taskEditorSnapshot = null;
+    renderTaskEditor();
 }
 
 function addTask(compKey) {
@@ -12711,7 +12957,11 @@ function renderTasksPage() {
         if (tasks.length === 0) return;
         const taskCards = [];
         tasks.forEach(t => {
-            const needed = (t.perShift?.soldiers || 0) + (t.perShift?.commanders || 0) + (t.perShift?.officers || 0) + (t.perShift?.drivers || 0);
+            let needed = (t.perShift?.soldiers || 0) + (t.perShift?.commanders || 0) + (t.perShift?.officers || 0) + (t.perShift?.drivers || 0);
+            if (!needed && t.linkedTo) {
+                const srcTask = companyData[k]?.tasks?.find(x => x.name === t.linkedTo);
+                if (srcTask) needed = (srcTask.perShift?.soldiers || 0) + (srcTask.perShift?.commanders || 0) + (srcTask.perShift?.officers || 0) + (srcTask.perShift?.drivers || 0);
+            }
             const assignedShifts = state.shifts.filter(sh => sh.company === k && sh.task === t.name && sh.date === todayStr);
             const assignedSoldiers = [];
             const assignedIds = new Set();

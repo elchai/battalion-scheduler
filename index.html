@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v244';
+    var _cb = 'v245';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -1038,10 +1038,24 @@
             <div class="form-group">
                 <label>תבנית משמרת</label>
                 <div class="shift-presets">
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('morning', this)">בוקר</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('afternoon', this)">צהריים</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('night', this)">לילה</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('morning', this)">בוקר 6-14</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('afternoon', this)">צהריים 14-22</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('night', this)">לילה 22-6</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('dayhalf', this)">יום 6-18</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('nighthalf', this)">לילה 18-6</button>
                     <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('fullday', this)">יום שלם</button>
+                    <button type="button" class="shift-preset-btn" onclick="toggleMultiDayShift(this)">📅 מרובה ימים</button>
+                </div>
+                <div id="multiDayShiftRow" style="display:none;margin-top:8px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>תאריך סיום</label>
+                            <input type="date" id="shiftEndDate" onchange="updateMultiDayInfo()">
+                        </div>
+                        <div class="form-group" style="align-self:flex-end;">
+                            <span id="multiDayInfo" style="font-size:0.82em;color:var(--text-light);"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="form-row">
@@ -1061,10 +1075,9 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>חיילים משובצים</label>
-                <div class="checkbox-list-wrap">
-                    <input type="text" class="checkbox-list-search" placeholder="חיפוש חייל..." oninput="filterCheckboxList('shiftSoldiers', this.value)">
-                    <div class="checkbox-list" id="shiftSoldiers"></div>
+                <label>שיבוץ לפי תפקיד</label>
+                <div id="shiftRoleSlots">
+                    <div style="padding:12px;text-align:center;color:var(--text-light);font-size:0.85em;">בחר משימה לשיבוץ</div>
                 </div>
             </div>
             <div class="form-group" id="taskCommanderGroup" style="display:none">
