@@ -1257,6 +1257,9 @@ async function init() {
     updateShiftOptions();
     checkSession();
 
+    // Keep FAB visibility in sync on window resize
+    window.addEventListener('resize', updateFab);
+
     // Register Service Worker for PWA — bypass HTTP cache for SW updates
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
@@ -1611,7 +1614,7 @@ function soldierAvatar(sol) {
 
 function fabAction() {
     if (allCompanyKeys().includes(activeTab)) { openAddShift(activeTab); return; }
-    if (activeTab === 'rotation' && typeof openAddRotationGroup === 'function') { openAddRotationGroup(); return; }
+    if (activeTab === 'rotation') { openModal('addRotationGroupModal'); return; }
     if (activeTab === 'constraints' && typeof openAddConstraint === 'function') { openAddConstraint(); return; }
 }
 
@@ -3961,7 +3964,7 @@ function applyYizumotPreset() {
     sunday.setDate(today.getDate() + daysToSunday);
     const saturday = new Date(sunday);
     saturday.setDate(sunday.getDate() + 6);
-    const fmt = d => d.toISOString().split('T')[0];
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     document.getElementById('shiftName').value = 'יזומות';
     document.getElementById('shiftStart').value = '08:00';
     document.getElementById('shiftEnd').value = '00:00';
@@ -13160,12 +13163,12 @@ function renderTasksPage() {
             const taskDef = companyData[comp.key]?.tasks?.find(x => x.name === t.name);
             const shiftTimes = getTaskShiftTimes(taskDef);
             const slotNeeded = taskDef ? ((taskDef.perShift?.soldiers || 0) + (taskDef.perShift?.commanders || 0) + (taskDef.perShift?.officers || 0) + (taskDef.perShift?.drivers || 0)) : 0;
-            const shiftsHtml = shiftTimes.map(s => {
+            const shiftsHtml = slotNeeded > 0 ? shiftTimes.map(s => {
                 const cnt = state.shifts.filter(sh => sh.company === comp.key && sh.task === t.name && sh.startTime === s.start && sh.date === todayStr).reduce((acc, sh) => acc + (sh.soldiers?.length || 0), 0);
-                const ok = slotNeeded > 0 && cnt >= slotNeeded;
-                const cls = ok ? 'shift-pill-ok' : slotNeeded > 0 && cnt === 0 ? 'shift-pill-empty' : '';
+                const ok = cnt >= slotNeeded;
+                const cls = ok ? 'shift-pill-ok' : cnt === 0 ? 'shift-pill-empty' : '';
                 return `<span class="shift-pill ${cls}">${s.start} ${cnt}/${slotNeeded}</span>`;
-            }).join('');
+            }).join('') : '';
             return `
                 <div class="tasks-card ${t.statusClass}" onclick="switchTab('${comp.key}')">
                     <div class="tasks-card-header">
