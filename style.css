@@ -2076,6 +2076,11 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .task-edit-header { font-weight: 700; color: var(--text-light); font-size: 0.8em; border-bottom: 2px solid var(--border); }
 .task-edit-header span { text-align: center; }
 .task-edit-header span:first-child { text-align: right; }
+#taskEditorContainer { overflow-x: auto; }
+.role-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 4px 0; }
+.role-slot-group { display: flex; flex-direction: column; gap: 4px; }
+.role-slot-label { font-size: 0.78em; font-weight: 700; color: var(--text-light); }
+.role-slot-group select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85em; background: var(--card); color: var(--text); }
 .company-tab-btn.active { color: #fff !important; }
 .company-tab-btn[data-comp="a"].active { background: #C62828 !important; }
 .company-tab-btn[data-comp="b"].active { background: #2E7D32 !important; }
@@ -3375,3 +3380,45 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
     .pd-greeting h1 { font-size: 1.4em; }
     .pd-greeting-icon { display: none; }
 }
+
+/* ===== EMPTY STATE ===== */
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 24px; text-align:center; color:var(--text-light); }
+.empty-state svg { opacity:0.3; margin-bottom:16px; }
+.empty-state .empty-title { font-size:1.1em; font-weight:700; color:var(--text); margin-bottom:6px; }
+.empty-state p { font-size:0.85em; margin:0 0 4px; max-width:280px; line-height:1.5; }
+.empty-state .btn { margin-top:16px; }
+
+/* ===== KPI CARDS (Dashboard) ===== */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.kpi-card { background:var(--card); border-radius:12px; padding:16px 12px; text-align:center; border:1px solid var(--border); }
+.kpi-card-num { font-size:2.2em; font-weight:900; line-height:1; margin-bottom:4px; }
+.kpi-card-label { font-size:0.75em; color:var(--text-light); font-weight:500; }
+.kpi-num-total { color:var(--primary); }
+.kpi-num-available { color:#10b981; }
+.kpi-num-assigned { color:#f59e0b; }
+.kpi-num-home { color:#ef4444; }
+@media(max-width:480px) { .kpi-grid { grid-template-columns:repeat(2,1fr); } }
+
+/* ===== SOLDIER AVATAR ===== */
+.sol-avatar { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.82em; color:#fff; flex-shrink:0; letter-spacing:0; }
+.personnel-grid .person-card { display:flex; align-items:flex-start; gap:10px; }
+
+/* ===== CALENDAR NOW BADGE ===== */
+.cal-now-badge { display:inline-block; background:var(--primary); color:#fff; border-radius:10px; font-size:0.7em; padding:1px 6px; font-weight:600; margin-right:4px; vertical-align:middle; }
+
+/* ===== SHIFT PILLS (Tasks page) ===== */
+.tasks-card-shifts { margin-top:6px; display:flex; flex-wrap:wrap; gap:3px; }
+.shift-pill { display:inline-block; font-size:0.72em; padding:2px 7px; border-radius:10px; background:var(--bg); border:1px solid var(--border); }
+.shift-pill-ok { background:#e8f5e9; border-color:#a5d6a7; color:#2e7d32; }
+.shift-pill-empty { background:#fff3e0; border-color:#ffcc80; color:#e65100; }
+
+/* ===== ATTENDANCE COLORED SUMMARY ===== */
+.att-day-pill { display:inline-block; border-radius:10px; padding:1px 5px; font-size:0.78em; font-weight:700; }
+.att-pct-high { background:#e8f5e9; color:#2e7d32; }
+.att-pct-mid { background:#fff3e0; color:#e65100; }
+.att-pct-low { background:#ffebee; color:#c62828; }
+
+/* ===== FAB BUTTON (mobile) ===== */
+.fab-btn { position:fixed; bottom:24px; left:20px; width:56px; height:56px; border-radius:50%; background:var(--primary); color:#fff; border:none; cursor:pointer; z-index:500; box-shadow:0 4px 16px rgba(0,0,0,0.28); display:none; align-items:center; justify-content:center; transition:transform 0.15s; }
+.fab-btn:active { transform:scale(0.93); box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+@media(min-width:769px) { .fab-btn { display:none !important; } }

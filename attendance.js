@@ -137,7 +137,8 @@ function renderAttendanceTable() {
         const sum = daySummaries[dateStr] || { present: 0, total: 0 };
         const pct = sum.total > 0 ? Math.round(sum.present / sum.total * 100) : 0;
         const pctCls = pct >= 80 ? 'att-pct-high' : pct >= 50 ? 'att-pct-mid' : pct > 0 ? 'att-pct-low' : '';
-        html += `<td class="att-tbl-cell att-tbl-total-cell ${pctCls}">${sum.present}</td>`;
+        const dayLabel = sum.total > 0 ? `${sum.present}/${sum.total}` : '—';
+        html += `<td class="att-tbl-cell att-tbl-total-cell"><span class="att-day-pill ${pctCls}">${dayLabel}</span></td>`;
     }
     html += `<td class="att-tbl-summary-col"></td></tr>`;
 

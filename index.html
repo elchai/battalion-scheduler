@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v247';
+    var _cb = 'v248';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -1045,6 +1045,7 @@
                     <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('nighthalf', this)">לילה 18-6</button>
                     <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('fullday', this)">יום שלם</button>
                     <button type="button" class="shift-preset-btn" onclick="toggleMultiDayShift(this)">📅 מרובה ימים</button>
+                    <button type="button" class="shift-preset-btn" onclick="applyYizumotPreset()">📅 יזומה א'–שבת</button>
                 </div>
                 <div id="multiDayShiftRow" style="display:none;margin-top:8px;">
                     <div class="form-row">
@@ -1913,5 +1914,9 @@
 <script>document.write('<script src="reports-enhanced.js?' + _cb + '"><\/script>');</script>
 <script>document.write('<script src="constraints.js?' + _cb + '"><\/script>');</script>
 <script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
+<!-- FAB: mobile floating action button -->
+<button id="fabBtn" class="fab-btn" onclick="fabAction()" title="הוסף" aria-label="פעולה ראשית">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
 </body>
 </html>

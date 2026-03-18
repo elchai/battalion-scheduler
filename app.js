@@ -1591,6 +1591,37 @@ function renderOverview() {
     });
 }
 
+// ==================== UI HELPERS ====================
+function emptyState(svgPath, title, msg, ctaHtml) {
+    return `<div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">${svgPath}</svg>
+        <div class="empty-title">${title}</div>
+        ${msg ? `<p>${msg}</p>` : ''}
+        ${ctaHtml || ''}
+    </div>`;
+}
+
+function soldierAvatar(sol) {
+    const parts = (sol.name || '').trim().split(/\s+/);
+    const initials = (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
+    const colors = { a:'#e53935', b:'#1565c0', c:'#2e7d32', d:'#e65100', hq:'#4527a0', palsam:'#00695c' };
+    const bg = colors[sol.company] || '#546e7a';
+    return `<div class="sol-avatar" style="background:${bg}">${initials}</div>`;
+}
+
+function fabAction() {
+    if (allCompanyKeys().includes(activeTab)) { openAddShift(activeTab); return; }
+    if (activeTab === 'rotation' && typeof openAddRotationGroup === 'function') { openAddRotationGroup(); return; }
+    if (activeTab === 'constraints' && typeof openAddConstraint === 'function') { openAddConstraint(); return; }
+}
+
+function updateFab() {
+    const btn = document.getElementById('fabBtn');
+    if (!btn) return;
+    const hasFab = allCompanyKeys().includes(activeTab) || activeTab === 'rotation' || activeTab === 'constraints';
+    btn.style.display = (hasFab && window.innerWidth <= 768) ? 'flex' : 'none';
+}
+
 // ==================== DASHBOARD ====================
 function renderDashboard() {
     const heroEl = document.getElementById('dashboardHeroStats');
@@ -1647,57 +1678,25 @@ function renderDashboard() {
     const chartCompanies = [...chartMainCompanies, ...chartGrayCompanies];
     const activeCompCount = chartMainCompanies.length;
 
-    // === HERO STATS ===
+    // === HERO STATS — KPI Cards ===
     if (heroEl) {
         heroEl.innerHTML = `
-            <div class="dash-hero-banner">
-                <div class="dash-hero-banner-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-card-num kpi-num-total">${totalPersonnel}</div>
+                    <div class="kpi-card-label">סד"כ רשום${activeCompCount > 0 ? ` · ${activeCompCount} פלוגות` : ''}</div>
                 </div>
-                <div class="dash-hero-banner-num">${totalPersonnel}</div>
-                <div class="dash-hero-banner-label">כוח אדם בגדוד${totalNotRecruited > 0 ? ` (צפי הגעה ${totalPersonnel - totalNotRecruited})` : ''}</div>
-                <div class="dash-hero-banner-sub">${activeCompCount} פלוגות</div>
-            </div>
-            <div class="dash-hero-grid">
-                <div class="dash-hero-card hero-assigned">
-                    <div class="dash-hero-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    </div>
-                    <div class="dash-hero-info">
-                        <div class="dash-hero-num">${totalAssigned}</div>
-                        <div class="dash-hero-label">משובצים</div>
-                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAssigned/totalPersonnel*100) : 0}%</div>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-card-num kpi-num-available">${totalAvailable}</div>
+                    <div class="kpi-card-label">בין משמרות</div>
                 </div>
-                <div class="dash-hero-card hero-available">
-                    <div class="dash-hero-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    </div>
-                    <div class="dash-hero-info">
-                        <div class="dash-hero-num">${totalAvailable}</div>
-                        <div class="dash-hero-label">בין משמרות</div>
-                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalAvailable/totalPersonnel*100) : 0}%</div>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-card-num kpi-num-assigned">${totalAssigned}</div>
+                    <div class="kpi-card-label">בשיבוץ</div>
                 </div>
-                <div class="dash-hero-card hero-home">
-                    <div class="dash-hero-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </div>
-                    <div class="dash-hero-info">
-                        <div class="dash-hero-num">${totalHome}</div>
-                        <div class="dash-hero-label">בבית</div>
-                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalHome/totalPersonnel*100) : 0}%</div>
-                    </div>
-                </div>
-                <div class="dash-hero-card hero-notrecruited">
-                    <div class="dash-hero-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                    </div>
-                    <div class="dash-hero-info">
-                        <div class="dash-hero-num">${totalNotRecruited}</div>
-                        <div class="dash-hero-label">לא גויסו</div>
-                        <div class="dash-hero-sub">${totalPersonnel > 0 ? Math.round(totalNotRecruited/totalPersonnel*100) : 0}%</div>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-card-num kpi-num-home">${totalHome}</div>
+                    <div class="kpi-card-label">בבית${totalNotRecruited > 0 ? ` · ${totalNotRecruited} לא גויסו` : ''}</div>
                 </div>
             </div>
         `;
@@ -2294,6 +2293,7 @@ function renderSoldiersGrid(compKey) {
             rotInfo = `<div class="meta">רוטציה: ${esc(rotGroup.name)} | ${rotStatus.inBase ? 'יום ' + rotStatus.dayInCycle + '/' + rotGroup.daysIn + ' בבסיס' : 'יום ' + (rotStatus.dayInCycle - rotGroup.daysIn) + '/' + rotGroup.daysOut + ' בבית'}</div>`;
         }
         return `<div class="person-card ${cls}" data-soldier-id="${s.id}">
+            ${soldierAvatar(s)}
             <div class="person-info">
                 <h4><a href="#" onclick="event.preventDefault();openSoldierProfile('${s.id}')" class="soldier-link">${esc(s.name)}</a>${s.tempAssigned ? ' <span style="font-size:0.75em;color:var(--text-light);font-weight:400;">(מוצב זמנית)</span>' : ''}</h4>
                 <div class="meta">${esc(s.role || '')}${s.unit ? ' | '+esc(s.unit) : ''}${s.personalId ? ' | '+esc(s.personalId) : ''}</div>
@@ -2769,9 +2769,10 @@ function renderCalendar() {
         });
 
         const dateLabel = day.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+        const nowBadge = isToday ? (() => { const n = new Date(); return `<span class="cal-now-badge">${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}</span>`; })() : '';
 
         html += `<div class="cal-day${isToday ? ' today' : ''}">
-            <div class="cal-date">${dateLabel}</div>
+            <div class="cal-date">${dateLabel}${nowBadge}</div>
             <div class="cal-events">${eventsHtml || '<div class="cal-empty">—</div>'}</div>
         </div>`;
     }
@@ -3338,6 +3339,7 @@ function switchTab(tab) {
         document.getElementById('sidebarOverlay').classList.remove('active');
         document.body.classList.remove('sidebar-open');
     }
+    updateFab();
     setTimeout(refreshIcons, 50);
 }
 
@@ -3950,6 +3952,27 @@ const EXTRA_PRESETS = {
     dayhalf:   { name: 'יום 6-18',   start: '06:00', end: '18:00' },
     nighthalf: { name: 'לילה 18-6',  start: '18:00', end: '06:00' },
 };
+
+function applyYizumotPreset() {
+    const today = new Date();
+    const dow = today.getDay(); // 0=Sunday
+    const daysToSunday = dow === 0 ? 0 : 7 - dow;
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() + daysToSunday);
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
+    const fmt = d => d.toISOString().split('T')[0];
+    document.getElementById('shiftName').value = 'יזומות';
+    document.getElementById('shiftStart').value = '08:00';
+    document.getElementById('shiftEnd').value = '00:00';
+    document.getElementById('shiftDate').value = fmt(sunday);
+    const row = document.getElementById('multiDayShiftRow');
+    if (row) row.style.display = '';
+    document.getElementById('shiftEndDate').value = fmt(saturday);
+    updateMultiDayInfo();
+    updateShiftOptions();
+}
+
 function applyShiftPreset(preset, btn) {
     const p = settings.shiftPresets[preset] || EXTRA_PRESETS[preset];
     if (!p) return;
@@ -13125,6 +13148,7 @@ function renderTasksPage() {
         ? companyTaskData
         : companyTaskData.filter(c => c.key === tasksFilterCompany);
 
+    const todayStr = localToday();
     let sectionsHtml = '';
     filteredData.forEach(comp => {
         const cardsHtml = comp.tasks.map(t => {
@@ -13132,6 +13156,16 @@ function renderTasksPage() {
             const soldierList = t.assignedSoldiers.length > 0
                 ? t.assignedSoldiers.map(s => `<span class="tasks-soldier-chip">${esc(s.name)}</span>`).join('')
                 : '<span class="tasks-no-soldiers">לא שובצו לוחמים</span>';
+            // Shift pills — show per-slot fill for today
+            const taskDef = companyData[comp.key]?.tasks?.find(x => x.name === t.name);
+            const shiftTimes = getTaskShiftTimes(taskDef);
+            const slotNeeded = taskDef ? ((taskDef.perShift?.soldiers || 0) + (taskDef.perShift?.commanders || 0) + (taskDef.perShift?.officers || 0) + (taskDef.perShift?.drivers || 0)) : 0;
+            const shiftsHtml = shiftTimes.map(s => {
+                const cnt = state.shifts.filter(sh => sh.company === comp.key && sh.task === t.name && sh.startTime === s.start && sh.date === todayStr).reduce((acc, sh) => acc + (sh.soldiers?.length || 0), 0);
+                const ok = slotNeeded > 0 && cnt >= slotNeeded;
+                const cls = ok ? 'shift-pill-ok' : slotNeeded > 0 && cnt === 0 ? 'shift-pill-empty' : '';
+                return `<span class="shift-pill ${cls}">${s.start} ${cnt}/${slotNeeded}</span>`;
+            }).join('');
             return `
                 <div class="tasks-card ${t.statusClass}" onclick="switchTab('${comp.key}')">
                     <div class="tasks-card-header">
@@ -13144,6 +13178,7 @@ function renderTasksPage() {
                         </div>
                         <span class="tasks-card-count">${t.assigned}/${t.needed}</span>
                     </div>
+                    ${shiftsHtml ? `<div class="tasks-card-shifts">${shiftsHtml}</div>` : ''}
                     ${t.commander ? `<div class="tasks-card-commander">מפקד: ${esc(t.commander.name)}</div>` : ''}
                     <div class="tasks-card-soldiers">${soldierList}</div>
                 </div>`;
