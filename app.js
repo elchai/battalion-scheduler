@@ -9679,7 +9679,8 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         <!-- Declaration box -->
         <div style="border:1.5px solid #1a3a5c;padding:10px 14px;margin-bottom:14px;font-size:0.84em;line-height:1.6;text-align:right;">
             ${pdfTxt('אני הח"מ מאשר/ת בזאת כי קיבלתי את הציוד המפורט לעיל במצב תקין ושלם.')}
-            <br>${pdfTxt('אני מתחייב/ת לשמור על הציוד, להשתמש בו בהתאם להוראות, ולהחזירו במצב תקין עם סיום השימוש או לפי דרישה.')}
+            <br>${pdfTxt('אני מתחייב/ת לשמור על הציוד, להשתמש בו בהתאם להוראות, ולהחזירו במצב תקין עם סיום השימוש')}
+            ${pdfTxt('או לפי דרישה.')}
             <br>${pdfTxt('ידוע לי כי באחריותי לדווח מיידית על כל נזק, אובדן או תקלה.')}
         </div>
 
@@ -9718,8 +9719,9 @@ function generateSignaturePDF(logEntry, eqUnused, sol) {
         </table>
 
         <!-- נרשם בכפנ"ס -->
-        <div style="font-size:0.75em;color:#888;margin-bottom:8px;border-top:1px solid #e0e0e0;padding-top:4px;">
-            ${pdfTxt('נרשם בכפנ"ס / טופל ע"י:')} ________________\u00A0\u00A0\u00A0\u00A0${pdfTxt('הדרשום בוקר ע"י:')} ________________
+        <div style="font-size:0.75em;color:#555;margin-bottom:8px;border-top:1px solid #e0e0e0;padding-top:6px;display:flex;justify-content:space-between;">
+            <span>${pdfTxt('נרשם בכפנ"ס / טופל ע"י:')} ________________</span>
+            <span>${pdfTxt('הרשום בוקר ע"י:')} ________________</span>
         </div>
 
         <div style="border-top:1px solid #ddd;padding-top:6px;text-align:center;font-size:0.65em;color:#aaa;">
