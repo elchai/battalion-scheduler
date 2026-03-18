@@ -4155,6 +4155,14 @@ function generateScheduleProposal(compKey, startDate, endDate) {
 
     // Shift time definitions
     const shiftTimes = {
+        6: [
+            { name: 'שג 00-04', start: '00:00', end: '04:00' },
+            { name: 'שג 04-08', start: '04:00', end: '08:00' },
+            { name: 'שג 08-12', start: '08:00', end: '12:00' },
+            { name: 'שג 12-16', start: '12:00', end: '16:00' },
+            { name: 'שג 16-20', start: '16:00', end: '20:00' },
+            { name: 'שג 20-00', start: '20:00', end: '00:00' }
+        ],
         3: [
             { name: 'בוקר', start: '06:00', end: '14:00' },
             { name: 'צהריים', start: '14:00', end: '22:00' },
@@ -5857,6 +5865,14 @@ function createLinkedShifts(company, sourceTask, date, startTime, endTime, soldi
 function getTaskShiftTimes(task) {
     if (!task) return [{ start: '06:00', end: '22:00' }];
     const shiftDefs = {
+        6: [
+            { start: '00:00', end: '04:00' },
+            { start: '04:00', end: '08:00' },
+            { start: '08:00', end: '12:00' },
+            { start: '12:00', end: '16:00' },
+            { start: '16:00', end: '20:00' },
+            { start: '20:00', end: '00:00' }
+        ],
         3: [
             { start: '06:00', end: '14:00' },
             { start: '14:00', end: '22:00' },
@@ -6476,7 +6492,7 @@ function renderTaskEditor() {
 
     container.innerHTML = `
         <div class="task-edit-row task-edit-header">
-            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>נהגים</span><span title="כמה סבבי משמרות ביממה (1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה)">סבבים/24ש׳</span><span></span>
+            <span>שם משימה</span><span>חיילים</span><span>מפקדים</span><span>קצינים</span><span>נהגים</span><span title="כמה סבבי משמרות ביממה: 1=יום שלם, 2=יום+לילה, 3=בוקר+צהריים+לילה, 6=שג/בונקר (4 שעות)">סבבים/24ש׳</span><span></span>
         </div>
         ${tasks.map((t, i) => `
             <div class="task-edit-row">
@@ -12768,6 +12784,10 @@ function renderTasksPage() {
                         <option value="all" ${tasksFilterCompany === 'all' ? 'selected' : ''}>כל הגדוד</option>
                         ${filterOptions}
                     </select>
+                    ${getUserPermissionLevel() >= PERM.SAMAL ? `<button class="btn btn-sm" style="font-size:0.8em;padding:5px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text-light);" onclick="switchTab('settings')" title="עבור להגדרות משמרות">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                        הגדרת משמרות
+                    </button>` : ''}
                     <div class="tasks-summary-chips">
                         <span class="tasks-chip tasks-chip-total">${totalTasks} משימות</span>
                         <span class="tasks-chip tasks-chip-full">${fullCount} מאוישות</span>
