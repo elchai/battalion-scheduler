@@ -6644,6 +6644,11 @@ function loadTasksFromStorage() {
             }
         });
     }
+    // Add חמ"ל to hq (always migrate if missing)
+    if (!CONFIG.isDemo && companyData.hq && !companyData.hq.tasks.find(t => t.name === 'חמ"ל')) {
+        companyData.hq.tasks.unshift({ name: 'חמ"ל', soldiers: 6, commanders: 3, officers: 3, drivers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 1, drivers: 0 } });
+        saveTasksToStorage();
+    }
 }
 
 function updatePreset(key, field, value) {

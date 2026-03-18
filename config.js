@@ -110,7 +110,9 @@ const CONFIG = {
         hq: {
             name: 'חפ"קים', location: 'מפקדה', baseName: 'מכבים',
             units: ['חפ"ק מג"ד', 'לשכה'],
-            tasks: [],
+            tasks: [
+                { name: 'חמ"ל', soldiers: 6, commanders: 3, officers: 3, drivers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 1, drivers: 0 } }
+            ],
             totals: { soldiers: 0, commanders: 0, officers: 0 }
         },
         agam: {
