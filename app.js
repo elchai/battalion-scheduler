@@ -6644,10 +6644,21 @@ function loadTasksFromStorage() {
             }
         });
     }
-    // Add חמ"ל to hq (always migrate if missing)
-    if (!CONFIG.isDemo && companyData.hq && !companyData.hq.tasks.find(t => t.name === 'חמ"ל')) {
-        companyData.hq.tasks.unshift({ name: 'חמ"ל', soldiers: 6, commanders: 3, officers: 3, drivers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 1, drivers: 0 } });
-        saveTasksToStorage();
+    // Add or fix חמ"ל in hq — ensure shifts=3 (8h each), staffed correctly
+    if (!CONFIG.isDemo && companyData.hq) {
+        const chamalTask = companyData.hq.tasks.find(t => t.name === 'חמ"ל');
+        if (!chamalTask) {
+            companyData.hq.tasks.unshift({ name: 'חמ"ל', soldiers: 6, commanders: 3, officers: 3, drivers: 0, shifts: 3, perShift: { soldiers: 2, commanders: 1, officers: 1, drivers: 0 } });
+            saveTasksToStorage();
+        } else if (chamalTask.shifts !== 3) {
+            chamalTask.shifts = 3;
+            chamalTask.perShift = chamalTask.perShift || { soldiers: 2, commanders: 1, officers: 1, drivers: 0 };
+            chamalTask.soldiers = chamalTask.perShift.soldiers * 3;
+            chamalTask.commanders = chamalTask.perShift.commanders * 3;
+            chamalTask.officers = chamalTask.perShift.officers * 3;
+            chamalTask.drivers = (chamalTask.perShift.drivers || 0) * 3;
+            saveTasksToStorage();
+        }
     }
 }
 
