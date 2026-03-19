@@ -6946,7 +6946,7 @@ function renderTaskEditor() {
     container.innerHTML = `
         <div style="overflow-x:auto;">
           <div class="task-edit-row task-edit-header" style="min-width:520px;">
-              <span>שם משימה</span><span>חיי׳/מש׳</span><span>מפקד׳/מש׳</span><span>קצי׳/מש׳</span><span>נהג׳/מש׳</span><span title="כמה סבבי משמרות ביממה: 1=יום שלם, 2=12/12, 3=8/16, 6=4/20 שג">סבבים</span><span></span>
+              <span>שם משימה</span><span>חייל</span><span>מפקד</span><span>קצין</span><span>נהג</span><span title="כמה סבבי משמרות ביממה: 1=יום שלם, 2=12/12, 3=8/16, 6=4/20 שג">סבבים</span><span></span>
           </div>
           <div style="min-width:520px;">
           ${tasks.map((t, i) => `
@@ -6971,11 +6971,11 @@ function renderTaskEditor() {
             <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
             <button class="btn btn-special btn-sm" style="font-size:0.78em;" onclick="openLinkTasksModal('${compKey}')">🔗 קישור כ״א משותף</button>
         </div>
-        <div id="taskSaveBar" style="${taskEditorDirty ? '' : 'display:none;'}background:#e65100;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:8px;margin-top:12px;position:sticky;bottom:8px;z-index:10;">
-            <span style="font-size:0.9em;">⚠ יש שינויים שלא נשמרו</span>
-            <div style="display:flex;gap:8px;">
-                <button class="btn" style="background:rgba(255,255,255,0.25);color:#fff;border:none;" onclick="discardTaskEdits()">ביטול</button>
-                <button class="btn" style="background:#fff;color:#e65100;font-weight:700;border:none;" onclick="saveTaskEdits()">💾 שמור</button>
+        <div id="taskSaveBar" style="${taskEditorDirty ? '' : 'display:none;'}background:var(--card);border:2px solid var(--warning);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:10px;margin-top:12px;position:sticky;bottom:8px;z-index:10;gap:12px;">
+            <span style="font-size:0.88em;color:var(--warning);font-weight:600;">⚠ יש שינויים שלא נשמרו</span>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+                <button class="btn btn-cancel btn-sm" onclick="discardTaskEdits()">ביטול</button>
+                <button class="btn btn-success btn-sm" onclick="saveTaskEdits()">💾 שמור</button>
             </div>
         </div>`;
 }
