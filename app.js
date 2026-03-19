@@ -543,12 +543,12 @@ function renderSoldierEquipment() {
     if (!container) return;
     const soldierId = currentUser.soldierId;
     if (!soldierId) {
-        container.innerHTML = '<div class="empty-state"><p>לא נמצא חייל מתאים במערכת</p></div>';
+        container.innerHTML = emptyState('<circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>', 'לא נמצא חייל מתאים', 'נסה להיכנס מחדש עם מספר אישי תקין');
         return;
     }
     const heldItems = state.equipment.filter(e => e.holderId === soldierId);
     if (!heldItems.length) {
-        container.innerHTML = '<div class="empty-state"><p>אין ציוד חתום על שמך</p></div>';
+        container.innerHTML = emptyState('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/>', 'אין ציוד חתום', 'ציוד שייחתם על שמך יופיע כאן');
         return;
     }
     container.innerHTML = heldItems.map(e => `
@@ -574,7 +574,7 @@ function renderSoldierShifts() {
     // Show all company shifts (spec: "משמרות הפלוגה שלו"), highlight soldier's own
     const compShifts = (state.shifts || []).filter(sh => sh.company === comp);
     if (!compShifts.length) {
-        container.innerHTML = '<div class="empty-state"><p>אין משמרות בפלוגה</p></div>';
+        container.innerHTML = emptyState('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', 'אין משמרות בפלוגה', 'כשישובצו משמרות הן יופיעו כאן');
         return;
     }
     container.innerHTML = compShifts.slice(-15).reverse().map(sh => {
@@ -1869,7 +1869,7 @@ function renderDashboard() {
             </div>
             <div class="readiness-pct">${r.filled}/${r.needed} משובצים</div>
         </div>
-    `).join('') : '<div style="text-align:center;color:var(--text-light);padding:16px;font-size:0.88em;">אין משימות מוגדרות להיום</div>';
+    `).join('') : emptyState('<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>', 'אין משימות להיום', 'הגדר משימות בהגדרות כדי לראות כאן סטטוס');
 
     // === Render grid ===
     grid.innerHTML = `
@@ -2364,9 +2364,9 @@ function renderSoldiersGrid(compKey) {
     if (soldiers.length === 0) {
         const ss = getSearchState(compKey);
         if (ss.query || ss.filter !== 'all') {
-            gridEl.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><p>לא נמצאו תוצאות</p></div>';
+            gridEl.innerHTML = emptyState('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', 'לא נמצאו תוצאות', 'נסה לשנות את מילת החיפוש או הפילטר');
         } else {
-            gridEl.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg></div><p>טרם נרשמו חיילים</p><p style="font-size:0.83em">לחץ "הוספת חייל" להתחיל</p></div>';
+            gridEl.innerHTML = emptyState('<circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>', 'טרם נרשמו חיילים', 'לחץ "הוספת חייל" להתחיל');
         }
         return;
     }
@@ -2493,7 +2493,7 @@ function renderCompanyTab(compKey) {
                 משמרות ושיבוצים (${shifts.length})
             </div>
             ${shifts.length === 0 ? `
-                <div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>טרם נוצרו משמרות</p></div>
+                ${emptyState('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', 'טרם נוצרו משמרות', 'שבץ חיילים למשמרות כדי לראות אותן כאן')}
             ` : `
                 <div class="shifts-grid">
                     ${shifts.sort((a,b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map(sh => {
@@ -2609,7 +2609,7 @@ function renderRotationCalendar() {
     const container = document.getElementById('rotationCalendar');
     const visibleGroups = getVisibleRotGroups();
     if (visibleGroups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg></div><p>צור קבוצות רוטציה כדי לראות את לוח הזמנים</p></div>';
+        container.innerHTML = emptyState('<path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 3 21 9 15 9"/>', 'אין קבוצות רוטציה', 'צור קבוצות כדי לראות את לוח הזמנים');
         return;
     }
 
@@ -4415,7 +4415,7 @@ function renderConstraintsList(compKey) {
     const constraints = state.constraints.filter(c => solIds.has(c.soldierId));
     const container = document.getElementById('constraintsList');
     if (constraints.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:20px;">אין אילוצים פעילים</div>';
+        container.innerHTML = emptyState('<path d="M12 9v2m0 4h.01"/><circle cx="12" cy="12" r="10"/>', 'אין אילוצים פעילים', 'הוסף אילוצים לחיילים כדי למנוע שיבוץ שגוי');
         return;
     }
     container.innerHTML = `<table style="width:100%;border-collapse:collapse;">
@@ -9839,7 +9839,7 @@ function renderEquipmentTab() {
     const companyNames = getCompNames();
 
     if (items.length === 0) {
-        tableContainer.innerHTML = '<div class="empty-state"><div class="icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><p>אין פריטי ציוד</p></div>';
+        tableContainer.innerHTML = emptyState('<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/>', 'אין פריטי ציוד', 'הוסף פריטים דרך "הוספת ציוד"');
     } else {
         tableContainer.innerHTML = `
             <div id="equipBulkBar" style="display:none;background:#fff3e0;padding:8px 12px;border-radius:6px;margin-bottom:8px;display:none;align-items:center;gap:10px;">

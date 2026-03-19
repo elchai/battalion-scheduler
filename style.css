@@ -1661,8 +1661,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     margin: 6px 0;
 }
 .timeline-fill { height: 100%; border-radius: 3px; background: var(--success); }
-.empty-state { text-align: center; padding: 30px 20px; color: var(--text-light); }
-.empty-state .icon { font-size: 2.5em; margin-bottom: 10px; }
+/* old empty-state removed — modern version at end of file */
 
 /* Checkbox list (replaces select-multiple) */
 .checkbox-list-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
