@@ -1376,12 +1376,24 @@ function syncFromGoogleSheets(silent) {
         const counts = {};
         ALL_COMPANIES.forEach(k => { counts[k] = state.soldiers.filter(s => s.company === k).length; });
         console.log('Soldiers per company:', counts);
+
+        // === SYNC LEAVES from תעסוקה date columns ===
+        const leavesToAdd = [];
+        results.forEach(({ key, csv }) => {
+            if (key === 'nispachim' || key === 'support') return;
+            const compLeaves = parseLeavesFromSheet(csv, key);
+            leavesToAdd.push(...compLeaves);
+        });
+        // Replace only sheet-sourced leaves; keep manually entered leaves
+        state.leaves = [...(state.leaves || []).filter(l => !l.fromSheets), ...leavesToAdd];
+        console.log(`Leaves synced: ${leavesToAdd.length} records`);
+
         updateCompanyTotals();
         saveState();
         renderAll();
         const manualCount = manualSoldiers.length;
         localStorage.setItem(CONFIG.storagePrefix + 'LastSync', String(Date.now()));
-        if (!silent) showToast(`סונכרנו ${state.soldiers.length} חיילים${manualCount > 0 ? ` (${sheetSoldiers.length} משיטס + ${manualCount} ידניים)` : ' מגוגל שיטס'}`, 'success');
+        if (!silent) showToast(`סונכרנו ${state.soldiers.length} חיילים ו-${leavesToAdd.length} חופשות מגוגל שיטס`, 'success');
     }).catch(err => {
         console.error('Sync error:', err);
         if (!silent) showToast('שגיאה בסנכרון - בדוק חיבור אינטרנט', 'error');
@@ -1496,6 +1508,84 @@ function parseCombatSheet(csv, companyKey) {
         });
     }
     return soldiers;
+}
+
+// Parse leave records from תעסוקה date columns (f[15+] = dates)
+// Values: "חופש אושר" | "חופש חלקי" | "מבקש חופשה" → leave record; "נמצא" | "" → ignore
+function parseLeavesFromSheet(csv, companyKey) {
+    const lines = csv.split('\n');
+    if (lines.length < 2) return [];
+
+    // Build date index from header row
+    const headers = parseCSVLine(lines[0]);
+    const dateCols = [];
+    for (let j = 15; j < headers.length; j++) {
+        const h = headers[j].trim().replace(/^"|"$/g, '');
+        const m = h.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (m) {
+            let year = parseInt(m[3]);
+            if (year > 2026) year = 2026; // fix common typo (2027 → 2026)
+            dateCols.push({ idx: j, dateStr: `${year}-${m[2]}-${m[1]}` });
+        }
+    }
+    if (dateCols.length === 0) return [];
+
+    const leaveStatuses = new Set(['חופש אושר', 'חופש חלקי', 'מבקש חופשה']);
+    const leaves = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const f = parseCSVLine(lines[i]);
+        if (f.length < 2) continue;
+        const personalId = f[0].trim();
+        if (!personalId) continue;
+
+        // Find soldier — match by personalId across any company (seed may prefix id differently)
+        const sol = state.soldiers.find(s => s.personalId === personalId && s.company === companyKey)
+                 || state.soldiers.find(s => s.personalId === personalId);
+        if (!sol) continue;
+
+        // Collect leave days
+        const leaveDays = [];
+        dateCols.forEach(({ idx, dateStr }) => {
+            const val = (f[idx] || '').trim().replace(/^"|"$/g, '');
+            if (leaveStatuses.has(val)) leaveDays.push({ dateStr, status: val });
+        });
+        if (leaveDays.length === 0) continue;
+
+        // Merge consecutive days with same status into date ranges
+        let cur = null;
+        const flush = () => { if (cur) leaves.push(cur); cur = null; };
+        leaveDays.forEach(day => {
+            if (!cur) {
+                cur = makeLeaveRecord(sol, day.dateStr, day.dateStr, day.status);
+            } else {
+                const prev = new Date(cur.endDate);
+                const next = new Date(day.dateStr);
+                const gap = Math.round((next - prev) / 86400000);
+                if (gap === 1 && day.status === cur.notes) {
+                    cur.endDate = day.dateStr; // extend range
+                } else {
+                    flush();
+                    cur = makeLeaveRecord(sol, day.dateStr, day.dateStr, day.status);
+                }
+            }
+        });
+        flush();
+    }
+    return leaves;
+}
+
+function makeLeaveRecord(sol, startDate, endDate, status) {
+    return {
+        id: `leave_sync_${sol.id}_${startDate.replace(/-/g, '')}`,
+        soldierId: sol.id,
+        company: sol.company,
+        startDate, endDate,
+        startTime: '00:00', endTime: '23:59',
+        notes: status,
+        approved: status === 'חופש אושר' || status === 'חופש חלקי',
+        fromSheets: true
+    };
 }
 
 function parseCSVLine(line) {
