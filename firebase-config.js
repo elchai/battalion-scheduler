@@ -123,6 +123,7 @@ async function firebaseLoadTasks() {
             ALL.forEach(k => {
                 if (tasksData[k]) companyData[k].tasks = tasksData[k];
             });
+            if (typeof _filterDeletedTasks === 'function') _filterDeletedTasks();
             return true;
         }
         return false;
@@ -240,5 +241,6 @@ function setupRealtimeListeners() {
             ALL.forEach(k => {
                 if (tasksData[k]) companyData[k].tasks = tasksData[k];
             });
+            if (typeof _filterDeletedTasks === 'function') _filterDeletedTasks();
         }, err => console.warn('Tasks listener error:', err));
 }

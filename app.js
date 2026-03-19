@@ -6956,7 +6956,14 @@ function renderTaskEditor() {
                   <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
                   <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
                   <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
-                  <input type="number" min="1" value="${t.shifts}" onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
+                  <select onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))" style="padding:3px 4px;border:1px solid var(--border);border-radius:6px;font-size:0.82em;width:100%;background:var(--input-bg,#fff);color:var(--text);">
+                      <option value="6" ${t.shifts===6?'selected':''}>4 שעות</option>
+                      <option value="3" ${t.shifts===3?'selected':''}>8 שעות</option>
+                      <option value="2" ${t.shifts===2?'selected':''}>12 שעות</option>
+                      <option value="1" ${t.shifts===1?'selected':''}>יום שלם</option>
+                      <option value="7" ${t.shifts===7?'selected':''}>שבוע שלם</option>
+                      ${![1,2,3,6,7].includes(t.shifts)?`<option value="${t.shifts}" selected>${t.shifts}×/יום</option>`:''}
+                  </select>
                   <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
               </div>
               ${t.linkedTo ? `<div style="padding:2px 8px 6px;font-size:0.78em;color:var(--success);display:flex;align-items:center;gap:4px;">
@@ -7033,6 +7040,13 @@ function addTask(compKey) {
 
 async function deleteTask(compKey, index) {
     if (!await customConfirm('למחוק משימה?')) return;
+    const taskName = companyData[compKey].tasks[index]?.name;
+    if (taskName) {
+        const key = CONFIG.storagePrefix + 'DeletedTasks';
+        const deleted = JSON.parse(localStorage.getItem(key) || '[]');
+        deleted.push(`${compKey}:${taskName}`);
+        localStorage.setItem(key, JSON.stringify([...new Set(deleted)]));
+    }
     companyData[compKey].tasks.splice(index, 1);
     saveTasksToStorage();
     renderTaskEditor();
@@ -7114,6 +7128,15 @@ function saveTasksToStorage() {
     if (typeof firebaseSaveTasks === 'function') firebaseSaveTasks();
 }
 
+function _filterDeletedTasks() {
+    const key = CONFIG.storagePrefix + 'DeletedTasks';
+    const deleted = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!deleted.length) return;
+    ALL_COMPANIES.forEach(k => {
+        if (companyData[k]) companyData[k].tasks = companyData[k].tasks.filter(t => !deleted.includes(`${k}:${t.name}`));
+    });
+}
+
 function loadTasksFromStorage() {
     const saved = localStorage.getItem(CONFIG.storagePrefix + 'Tasks');
     if (saved) {
@@ -7123,14 +7146,7 @@ function loadTasksFromStorage() {
             if (tasksData[k] && companyData[k]) companyData[k].tasks = tasksData[k];
         });
     }
-    // Add מפל"ג to combat companies only if no saved tasks exist yet (skip in demo)
-    if (!saved && !CONFIG.isDemo) {
-        CONFIG.combatCompanies.forEach(k => {
-            if (!companyData[k].tasks.find(t => t.name === 'מפל"ג')) {
-                companyData[k].tasks.unshift({ name: 'מפל"ג', soldiers: 5, commanders: 1, officers: 1, drivers: 0, shifts: 1, perShift: { soldiers: 5, commanders: 1, officers: 1, drivers: 0 } });
-            }
-        });
-    }
+    _filterDeletedTasks();
     // Add or fix חמ"ל in hq — ensure shifts=3 (8h each), staffed correctly
     if (!CONFIG.isDemo && companyData.hq) {
         const chamalTask = companyData.hq.tasks.find(t => t.name === 'חמ"ל');
