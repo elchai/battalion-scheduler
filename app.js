@@ -13241,7 +13241,6 @@ function renderTasksPage() {
         ? companyTaskData
         : companyTaskData.filter(c => c.key === tasksFilterCompany);
 
-    const todayStr = localToday();
     let sectionsHtml = '';
     filteredData.forEach(comp => {
         const cardsHtml = comp.tasks.map(t => {
