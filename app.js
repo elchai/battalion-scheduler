@@ -1427,7 +1427,7 @@ function parseSupportSheet(csv) {
             role: f[4].trim() || 'לוחם',
             rank: '', fromSheets: true,
             arrival: (f[6] || '').trim(),
-            notArrived: (f[6] || '').trim() !== 'מגיע'
+            notArrived: !['מגיע','כן','הגיע','v','V','1','גויס',''].includes((f[6] || '').trim())
         });
     }
     return soldiers;
@@ -1504,7 +1504,7 @@ function parseCombatSheet(csv, companyKey) {
             role: role || (staffType === 'סגל' ? 'מפקד' : 'לוחם'),
             rank: staffType || '', fromSheets: true,
             arrival, certification: cert || '',
-            notArrived: arrival !== 'מגיע'
+            notArrived: !['מגיע','כן','הגיע','v','V','1','גויס',''].includes(arrival)
         });
     }
     return soldiers;
@@ -4091,6 +4091,21 @@ function applyShiftType(type) {
         }
         document.getElementById('shiftStart').value = '08:00';
         document.getElementById('shiftEnd').value = '12:00';
+        updateShiftOptions();
+    } else if (type === '6:18') {
+        // 6h on, 18h off — 4 slots
+        document.getElementById('shiftName').value = '6:18';
+        if (subPresets && presetsContainer) {
+            presetsContainer.innerHTML = `
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('00:00','06:00',this)">00:00–06:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('06:00','12:00',this)">06:00–12:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('12:00','18:00',this)">12:00–18:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('18:00','00:00',this)">18:00–00:00</button>
+            `;
+            subPresets.style.display = '';
+        }
+        document.getElementById('shiftStart').value = '18:00';
+        document.getElementById('shiftEnd').value = '00:00';
         updateShiftOptions();
     } else if (type === '8:16') {
         // 8h on, 16h off — 3 slots
@@ -7080,11 +7095,12 @@ function renderTaskEditor() {
                   <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
                   <select onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
                       <option value="6" ${t.shifts===6?'selected':''}>4 שעות</option>
+                      <option value="4" ${t.shifts===4?'selected':''}>6 שעות</option>
                       <option value="3" ${t.shifts===3?'selected':''}>8 שעות</option>
                       <option value="2" ${t.shifts===2?'selected':''}>12 שעות</option>
                       <option value="1" ${t.shifts===1?'selected':''}>יום שלם</option>
                       <option value="7" ${t.shifts===7?'selected':''}>שבוע שלם</option>
-                      ${![1,2,3,6,7].includes(t.shifts)?`<option value="${t.shifts}" selected>${t.shifts}×/יום</option>`:''}
+                      ${![1,2,3,4,6,7].includes(t.shifts)?`<option value="${t.shifts}" selected>${t.shifts}×/יום</option>`:''}
                   </select>
                   <button class="btn btn-danger btn-sm" onclick="deleteTask('${compKey}',${i})">&#10005;</button>
               </div>

@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v264';
+    var _cb = 'v265';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -1040,6 +1040,7 @@
                 <select id="shiftTypeSelect" onchange="applyShiftType(this.value)">
                     <option value="">-- בחר סוג --</option>
                     <option value="4:8">4:8 — 4 שעות פעילות, 8 מנוחה</option>
+                    <option value="6:18">6:18 — 6 שעות פעילות, 18 מנוחה</option>
                     <option value="8:16">8:16 — 8 שעות פעילות, 16 מנוחה</option>
                     <option value="12">12 שעות</option>
                     <option value="24">יום שלם (24 שעות)</option>
