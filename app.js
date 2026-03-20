@@ -1770,7 +1770,7 @@ function renderDashboard() {
 
         const todayStr = localToday();
         const assignedIds = new Set();
-        state.shifts.filter(sh => sh.company === k && sh.date === todayStr).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
+        state.shifts.filter(sh => sh.company === k && shiftCoversDate(sh, todayStr)).forEach(sh => sh.soldiers.forEach(sid => assignedIds.add(sid)));
 
         const assigned = assignedIds.size;
         const home = onLeave + rotLeave;
@@ -2512,7 +2512,10 @@ function renderCompanyTab(compKey) {
             ${shifts.length === 0 ? `
                 ${emptyState('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', 'טרם נוצרו משמרות', 'שבץ חיילים למשמרות כדי לראות אותן כאן')}
             ` : `
-                <div class="shifts-grid">
+                <div style="margin-bottom:8px;">
+                    <input type="text" placeholder="חפש משמרת, משימה או חייל..." oninput="filterShiftCards(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.85em;box-sizing:border-box;">
+                </div>
+                <div class="shifts-grid" id="shiftsGrid_${compKey}">
                     ${shifts.sort((a,b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map(sh => {
                         const names = sh.soldiers.map(sid => {
                             const sol = state.soldiers.find(s => s.id === sid);
@@ -2529,7 +2532,7 @@ function renderCompanyTab(compKey) {
                             </div>
                             <div class="shift-card-body">
                                 <div style="font-size:0.83em;color:var(--text-light);margin-bottom:6px;">
-                                    ${formatDate(sh.date)} | ${names.length}/${needed} משובצים
+                                    ${formatDate(sh.date)}${sh.endDate ? ' — ' + formatDate(sh.endDate) : ''} | ${names.length}/${needed} משובצים
                                 </div>
                                 ${needsCommander ? `<div class="task-commander-badge">${cmdSol ? '<strong>מפקד המשימה:</strong> <a href="#" onclick="event.preventDefault();openSoldierProfile(\'' + sh.taskCommander + '\')" class="soldier-link">' + esc(cmdSol.name) + '</a>' : '<span style="color:var(--danger)">לא נבחר מפקד משימה</span>'}</div>` : ''}
                                 ${names.length > 0 ? `<ul class="shift-soldiers">${names.map(n => `<li class="shift-soldier"><span>${n}</span></li>`).join('')}</ul>` : '<div style="text-align:center;padding:8px;color:var(--danger);font-size:0.83em;">לא שובצו חיילים</div>'}
@@ -3043,7 +3046,7 @@ function renderCommanderDashboard(targetCompKey) {
     const soldiers = state.soldiers.filter(s => s.company === compKey);
     const todayStr = localToday();
     const shifts = state.shifts.filter(sh => sh.company === compKey);
-    const todayShifts = shifts.filter(sh => sh.date === todayStr);
+    const todayShifts = shifts.filter(sh => shiftCoversDate(sh, todayStr));
     const leaves = state.leaves.filter(l => l.company === compKey);
 
     // Categorize soldiers
@@ -4396,6 +4399,13 @@ function renderShiftRoleSlots(restoreSoldiers) {
     // Hide old taskCommanderGroup since commanders are now role slots
     const cmdGroup = document.getElementById('taskCommanderGroup');
     if (cmdGroup) cmdGroup.style.display = 'none';
+}
+
+function filterShiftCards(query) {
+    const q = query.trim().toLowerCase();
+    document.querySelectorAll('.shift-card').forEach(card => {
+        card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
 }
 
 function filterRoleSelect(selectId, query) {
@@ -6378,6 +6388,22 @@ async function saveShift() {
     const endDateEl = document.getElementById('shiftEndDate');
     const multiDayEnd = endDateEl && document.getElementById('multiDayShiftRow')?.style.display !== 'none' ? endDateEl.value : '';
     if (!editId && multiDayEnd && multiDayEnd > date) {
+        // Check shift type — "custom" creates ONE long shift with endDate
+        const shiftType = document.getElementById('shiftTypeSelect')?.value || '';
+        if (shiftType === 'custom' || shiftType === '5days' || shiftType === 'week') {
+            // Single shift spanning multiple days
+            state.shifts.push({
+                id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+                company, task, date, endDate: multiDayEnd, shiftName, startTime, endTime, soldiers, taskCommander
+            });
+            saveState();
+            closeModal('addShiftModal');
+            renderCompanyTab(company);
+            updateGlobalStats();
+            showToast(`נוצרה משמרת ${date} עד ${multiDayEnd}`);
+            return;
+        }
+        // Other types (4:8, 8:16 etc.) — one shift per day
         const dates = [];
         let cur = new Date(date + 'T12:00:00');
         const end = new Date(multiDayEnd + 'T12:00:00');
@@ -6388,7 +6414,6 @@ async function saveShift() {
         }
         let skippedDays = 0;
         dates.forEach(d => {
-            // Filter soldiers available on this specific day
             const daySoldiers = soldiers.filter(sid => {
                 const onLeave = state.leaves.some(l => l.soldierId === sid && isOnLeaveForDate(l, d));
                 return !onLeave;
@@ -6753,6 +6778,12 @@ function formatDate(dateStr) {
 function localToday() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Check if a shift covers a specific date (supports endDate for multi-day shifts)
+function shiftCoversDate(sh, dateStr) {
+    if (sh.endDate) return sh.date <= dateStr && sh.endDate >= dateStr;
+    return sh.date === dateStr;
 }
 
 function openModal(id) {
