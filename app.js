@@ -4056,18 +4056,19 @@ function applyShiftType(type) {
     if (multiRow) multiRow.style.display = 'none';
     if (subPresets) subPresets.style.display = 'none';
 
-    if (!type || type === 'custom') {
-        // Custom: show all sub-presets for manual pick
-        if (subPresets && presetsContainer) {
-            presetsContainer.innerHTML = `
-                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('morning', this)">בוקר 6-14</button>
-                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('afternoon', this)">צהריים 14-22</button>
-                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('night', this)">לילה 22-6</button>
-                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('dayhalf', this)">יום 6-18</button>
-                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('nighthalf', this)">לילה 18-6</button>
-            `;
-            subPresets.style.display = type === 'custom' ? '' : 'none';
-        }
+    if (!type) return;
+
+    if (type === 'custom') {
+        // Custom: show end date (multi-day), no time presets
+        document.getElementById('shiftName').value = 'מותאם אישית';
+        document.getElementById('shiftStart').value = '08:00';
+        document.getElementById('shiftEnd').value = '08:00';
+        if (multiRow) multiRow.style.display = '';
+        // Default end date: end of milium (30.04.2026)
+        const endDefault = '2026-04-30';
+        document.getElementById('shiftEndDate').value = endDefault;
+        updateMultiDayInfo();
+        updateShiftOptions();
         return;
     }
 
@@ -4273,6 +4274,12 @@ function renderShiftRoleSlots(restoreSoldiers) {
     const container = document.getElementById('shiftRoleSlots');
     if (!container) return;
 
+    // Preserve current selections before re-render
+    const existingSelects = container.querySelectorAll('.role-select');
+    const currentSelections = Array.from(existingSelects).map(s => s.value);
+    const currentCmd = container.querySelector('.role-select[data-role="commander"]');
+    const currentCmdVal = currentCmd ? currentCmd.value : '';
+
     const taskData = companyData[company]?.tasks?.find(t => t.name === taskName);
     const perShift = taskData ? taskData.perShift : { soldiers: 1, commanders: 0, officers: 0, drivers: 0 };
 
@@ -4296,16 +4303,16 @@ function renderShiftRoleSlots(restoreSoldiers) {
         }).join('');
         return `<div class="role-slot-group">
             <label class="role-slot-label">${label}</label>
-            <select class="role-select" data-role="${role}" data-idx="${idx}" onchange="renderShiftRoleSlots()">
+            <select class="role-select" data-role="${role}" data-idx="${idx}">
                 <option value="">-- בחר --</option>
                 ${options}
             </select>
         </div>`;
     }
 
-    // Restore from existing shift if editing
-    const restore = restoreSoldiers || window._shiftRestoreSoldiers || [];
-    const cmdRestore = window._shiftRestoreCommander || '';
+    // Restore: use passed array > current DOM selections > window restore > empty
+    const restore = restoreSoldiers || (currentSelections.some(v => v) ? currentSelections : null) || window._shiftRestoreSoldiers || [];
+    const cmdRestore = currentCmdVal || window._shiftRestoreCommander || '';
     let solIdx = 0;
 
     let html = '';
