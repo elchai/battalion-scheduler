@@ -1181,6 +1181,15 @@ async function init() {
     // Seed company ב' leave data from March–May 2026 roster
     seedCompanyBLeavesIfNeeded();
 
+    // Dedup soldiers: remove duplicates by personalId (keep latest — sheet data overrides seed)
+    if (state.soldiers && state.soldiers.length > 0) {
+        const seenPid = new Map();
+        state.soldiers.forEach((s, i) => { if (s.personalId) seenPid.set(s.personalId, i); });
+        const beforeSol = state.soldiers.length;
+        state.soldiers = state.soldiers.filter((s, i) => !s.personalId || seenPid.get(s.personalId) === i);
+        if (state.soldiers.length < beforeSol) console.log(`Dedup soldiers: removed ${beforeSol - state.soldiers.length} duplicates`);
+    }
+
     // Dedup leaves: remove duplicate entries by soldierId+startDate+endDate (keep latest)
     if (state.leaves && state.leaves.length > 0) {
         const seen = new Map();
