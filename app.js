@@ -1035,7 +1035,8 @@ function seedCompanyBLeavesIfNeeded() {
             soldierId: sol.id, company: 'b',
             startDate, endDate,
             startTime: '08:00', endTime: '07:59',
-            notes, approved: notes === 'חופש אושר'
+            notes, approved: notes === 'חופש אושר',
+            fromSheets: true
         });
         added++;
     });
@@ -1179,6 +1180,19 @@ async function init() {
 
     // Seed company ב' leave data from March–May 2026 roster
     seedCompanyBLeavesIfNeeded();
+
+    // Dedup leaves: remove duplicate entries by soldierId+startDate+endDate (keep latest)
+    if (state.leaves && state.leaves.length > 0) {
+        const seen = new Map();
+        state.leaves.forEach((l, i) => { seen.set(`${l.soldierId}_${l.startDate}_${l.endDate}`, i); });
+        const before = state.leaves.length;
+        state.leaves = state.leaves.filter((l, i) => seen.get(`${l.soldierId}_${l.startDate}_${l.endDate}`) === i);
+        if (state.leaves.length < before) console.log(`Dedup leaves: removed ${before - state.leaves.length} duplicates`);
+    }
+    // Fix legacy leave times 00:00/23:59 → 08:00/07:59
+    (state.leaves || []).forEach(l => {
+        if (l.startTime === '00:00' && l.endTime === '23:59') { l.startTime = '08:00'; l.endTime = '07:59'; }
+    });
 
     // Seed exercise types if empty (always re-seed, even if Firestore overwrote with empty array)
     if (!settings.exerciseTypes || settings.exerciseTypes.length === 0) {
