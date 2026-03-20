@@ -582,9 +582,9 @@ function renderSoldierShifts() {
         const borderColor = isMine ? 'var(--primary)' : 'var(--border)';
         const badge = isMine ? '<span style="background:var(--primary);color:white;font-size:0.72em;padding:2px 8px;border-radius:10px;margin-right:8px;">אני משובץ</span>' : '';
         return `<div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;border-right:4px solid ${borderColor};">
-            <div style="font-weight:600;">${escapeHtml(sh.name || sh.type || 'משמרת')} ${badge}</div>
+            <div style="font-weight:600;">${esc(sh.name || sh.type || 'משמרת')} ${badge}</div>
             <div style="font-size:0.82em;color:var(--text-light);">${sh.date || ''} ${sh.time || ''}</div>
-            ${sh.notes ? `<div style="font-size:0.82em;margin-top:4px;">${escapeHtml(sh.notes)}</div>` : ''}
+            ${sh.notes ? `<div style="font-size:0.82em;margin-top:4px;">${esc(sh.notes)}</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -597,7 +597,7 @@ function applyUnitFilter() {
     document.querySelectorAll('.sidebar-item.tab-all').forEach(el => el.style.display = seesAll ? '' : 'none');
 
     // Company tabs - show based on canView()
-    ['a', 'b', 'c', 'd', 'hq', 'agam', 'palsam'].forEach(comp => {
+    allCompanyKeys().forEach(comp => {
         const show = canView(comp);
         document.querySelectorAll(`.sidebar-item.tab-${comp}`).forEach(el => el.style.display = show ? '' : 'none');
     });
@@ -6364,12 +6364,12 @@ async function deleteShift(id) {
     if (sh && !canEditShifts(sh.company)) { showToast('אין הרשאה', 'error'); return; }
     if (!await customConfirm('למחוק משמרת?')) return;
     state.shifts = state.shifts.filter(s => s.id !== id);
-    saveState();
     // Also delete linked auto-shifts
     if (sh) {
         state.shifts = state.shifts.filter(s => s.linkedSourceId !== id);
-        renderCompanyTab(sh.company);
     }
+    saveState();
+    if (sh) renderCompanyTab(sh.company);
     updateGlobalStats();
     showToast('משמרת נמחקה');
 }
