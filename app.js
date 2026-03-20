@@ -7080,11 +7080,32 @@ function renderTaskEditor() {
             <button class="btn btn-add btn-sm" onclick="addTask('${compKey}')">+ הוסף משימה</button>
             <button class="btn btn-special btn-sm" style="font-size:0.78em;" onclick="openLinkTasksModal('${compKey}')">🔗 קישור כ״א משותף</button>
         </div>
-        <div id="taskSaveBar" style="${taskEditorDirty ? '' : 'display:none;'}background:var(--card);border:2px solid var(--warning);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-radius:10px;margin-top:12px;position:sticky;bottom:8px;z-index:10;gap:12px;">
-            <span style="font-size:0.88em;color:var(--warning);font-weight:600;">⚠ יש שינויים שלא נשמרו</span>
-            <div style="display:flex;gap:8px;flex-shrink:0;">
-                <button class="btn btn-cancel btn-sm" onclick="discardTaskEdits()">ביטול</button>
+        ${(() => {
+            // Summary: total personnel per day
+            let sumSol = 0, sumCmd = 0, sumOff = 0, sumDrv = 0;
+            tasks.forEach(t => {
+                const sh = t.shifts || 1;
+                sumSol += (t.perShift.soldiers || 0) * sh;
+                sumCmd += (t.perShift.commanders || 0) * sh;
+                sumOff += (t.perShift.officers || 0) * sh;
+                sumDrv += (t.perShift.drivers || 0) * sh;
+            });
+            const total = sumSol + sumCmd + sumOff + sumDrv;
+            return total > 0 ? `
+            <div style="margin-top:10px;padding:10px 12px;background:var(--bg-hover,#f5f5f5);border-radius:8px;font-size:0.82em;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:flex-end;">
+                <span style="font-weight:700;color:var(--text);">סה״כ כ״א ליממה:</span>
+                <span>חיילים <b>${sumSol}</b></span>
+                <span>מפקדים <b>${sumCmd}</b></span>
+                <span>קצינים <b>${sumOff}</b></span>
+                <span>נהגים <b>${sumDrv}</b></span>
+                <span style="font-weight:800;color:var(--primary);border-right:2px solid var(--border);padding-right:12px;">סה״כ <b>${total}</b></span>
+            </div>` : '';
+        })()}
+        <div id="taskSaveBar" style="${taskEditorDirty ? '' : 'display:none;'}background:var(--card);border:2px solid var(--warning);padding:10px 16px;border-radius:10px;margin-top:12px;position:sticky;bottom:8px;z-index:10;">
+            <div style="display:flex;align-items:center;gap:12px;justify-content:flex-start;">
                 <button class="btn btn-success btn-sm" onclick="saveTaskEdits()">💾 שמור</button>
+                <button class="btn btn-cancel btn-sm" onclick="discardTaskEdits()">ביטול</button>
+                <span style="font-size:0.85em;color:var(--warning);font-weight:600;margin-right:auto;">⚠ יש שינויים שלא נשמרו</span>
             </div>
         </div>`;
 }
