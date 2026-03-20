@@ -1062,16 +1062,17 @@ table { width: 100%; border-collapse: collapse; }
 thead th {
     background: var(--primary-dark);
     color: white;
-    padding: 8px 6px;
+    padding: 6px 3px;
     font-weight: 600;
-    font-size: 0.78em;
+    font-size: 0.75em;
     text-align: center;
+    white-space: nowrap;
 }
 tbody td {
-    padding: 7px 6px;
+    padding: 5px 3px;
     text-align: center;
     border-bottom: 1px solid var(--border);
-    font-size: 0.84em;
+    font-size: 0.82em;
 }
 tbody tr:hover { background: #f8f9ff; }
 .task-name { text-align: right !important; font-weight: 600; color: var(--primary); }
