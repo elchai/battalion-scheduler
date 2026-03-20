@@ -42,7 +42,7 @@ const CONFIG = {
     companies: {
         a: {
             name: 'פלוגה א', location: 'עתודה', baseName: 'מכבים', forecast: 51,
-            units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+            units: ['מפל"ג', 'מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל', 'מסופח'],
             sheetTab: 'פלוגה א', sheetGid: '1028480518',
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
@@ -57,7 +57,7 @@ const CONFIG = {
         },
         b: {
             name: 'פלוגה ב', location: 'מבוא חורון', baseName: 'מכבים', forecast: 66,
-            units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+            units: ['מפל"ג', 'מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל', 'מסופח'],
             sheetTab: 'פלוגה ב', sheetGid: '2089743793',
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
@@ -75,7 +75,7 @@ const CONFIG = {
         },
         c: {
             name: 'פלוגה ג', location: 'חשמונאים', baseName: 'חשמונאים', forecast: 65,
-            units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+            units: ['מפל"ג', 'מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל', 'מסופח'],
             sheetTab: 'פלוגה ג', sheetGid: '12652557',
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
@@ -92,7 +92,7 @@ const CONFIG = {
         },
         d: {
             name: 'פלוגה ד', location: '443', baseName: 'מכבים', forecast: 71,
-            units: ['מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל'],
+            units: ['מפל"ג', 'מחלקה 1', 'מחלקה 2', 'מחלקה 3', 'סגל', 'מסופח'],
             sheetTab: 'פלוגה ד', sheetGid: '59321270',
             tasks: [
                 { name: 'חפק מפ', soldiers: 3, commanders: 0, officers: 1, shifts: 1, perShift: { soldiers: 3, commanders: 0, officers: 1 } },
