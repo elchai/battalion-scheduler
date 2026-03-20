@@ -2452,10 +2452,10 @@ function renderCompanyTab(compKey) {
                             const isLinked = !!t.linkedTo;
                             return `<tr style="${editShifts ? 'cursor:pointer;' : ''}" ${editShifts ? `onclick="openAddShift('${compKey}','${esc(t.name)}')" title="לחץ לשיבוץ"` : ''}>
                                 <td class="task-name">${esc(t.name)}${isLinked ? ' <span style="font-size:0.7em;color:var(--success);" title="כ״א משותף עם ' + esc(t.linkedTo) + '">🔗 ' + esc(t.linkedTo) + '</span>' : ''}</td>
-                                <td>${t.soldiers}</td>
-                                <td>${t.commanders}</td>
-                                <td>${t.officers}</td>
-                                <td>${t.drivers || 0}</td>
+                                <td>${t.perShift.soldiers}</td>
+                                <td>${t.perShift.commanders}</td>
+                                <td>${t.perShift.officers}</td>
+                                <td>${t.perShift.drivers || 0}</td>
                                 <td>${t.shifts || '-'}</td>
                                 <td>${assigned}/${totalNeeded}</td>
                             </tr>`;
@@ -2463,14 +2463,15 @@ function renderCompanyTab(compKey) {
                         ${(() => {
                             let sSol=0, sCmd=0, sOff=0, sDrv=0;
                             comp.tasks.forEach(t => { sSol+=t.soldiers; sCmd+=t.commanders; sOff+=t.officers; sDrv+=(t.drivers||0); });
+                            const grand = sSol+sCmd+sOff+sDrv;
                             return `<tr class="total-row">
-                                <td class="task-name">סיכום</td>
+                                <td class="task-name">סיכום ליממה</td>
                                 <td><strong>${sSol}</strong></td>
                                 <td><strong>${sCmd}</strong></td>
                                 <td><strong>${sOff}</strong></td>
                                 <td><strong>${sDrv}</strong></td>
                                 <td>-</td>
-                                <td><strong>${sSol+sCmd+sOff+sDrv}</strong></td>
+                                <td><strong>${grand}</strong></td>
                             </tr>`;
                         })()}
                     </tbody>
