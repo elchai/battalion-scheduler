@@ -2442,7 +2442,6 @@ function renderCompanyTab(compKey) {
                         <th>קצין</th>
                         <th>נהג</th>
                         <th>סבבים</th>
-                        <th>סה״כ</th>
                         <th>משובצים</th>
                     </tr></thead>
                     <tbody>
@@ -2458,29 +2457,26 @@ function renderCompanyTab(compKey) {
                                 <td>${t.officers}</td>
                                 <td>${t.drivers || 0}</td>
                                 <td>${t.shifts || '-'}</td>
-                                <td><strong>${totalNeeded}</strong></td>
-                                <td><div style="display:flex;align-items:center;justify-content:center;gap:4px;">
-                                    <span>${assigned}/${totalNeeded}</span>
-                                    <div style="width:30px;height:5px;background:var(--border);border-radius:3px;">
-                                        <div style="width:${pct}%;height:100%;background:${pct>=100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)'};border-radius:3px;"></div>
-                                    </div>
-                                </div></td>
+                                <td>${assigned}/${totalNeeded}</td>
                             </tr>`;
                         }).join('')}
-                        <tr class="total-row">
-                            <td class="task-name">סה"כ</td>
-                            <td><strong>${comp.totals.soldiers}</strong></td>
-                            <td><strong>${comp.totals.commanders}</strong></td>
-                            <td><strong>${comp.totals.officers}</strong></td>
-                            <td><strong>${comp.totals.drivers || 0}</strong></td>
-                            <td>-</td>
-                            <td><strong>${comp.totals.soldiers + comp.totals.commanders + comp.totals.officers + (comp.totals.drivers || 0)}</strong></td>
-                            <td>-</td>
-                        </tr>
+                        ${(() => {
+                            let sSol=0, sCmd=0, sOff=0, sDrv=0;
+                            comp.tasks.forEach(t => { sSol+=t.soldiers; sCmd+=t.commanders; sOff+=t.officers; sDrv+=(t.drivers||0); });
+                            return `<tr class="total-row">
+                                <td class="task-name">סיכום</td>
+                                <td><strong>${sSol}</strong></td>
+                                <td><strong>${sCmd}</strong></td>
+                                <td><strong>${sOff}</strong></td>
+                                <td><strong>${sDrv}</strong></td>
+                                <td>-</td>
+                                <td><strong>${sSol+sCmd+sOff+sDrv}</strong></td>
+                            </tr>`;
+                        })()}
                     </tbody>
                 </table>
             </div></div>
-            ${(getUserPermissionLevel() >= PERM.COMPANY_CMD) ? `<div style="text-align:left;padding:6px 0;"><button class="btn btn-sm" style="font-size:0.8em;background:var(--bg);border:1px solid var(--border);color:var(--text-light);" onclick="switchTab('settings');setTimeout(()=>{ document.querySelector('.settings-task-anchor')?.scrollIntoView({behavior:'smooth'}); },200)">⚙ הגדרת משימות פלוגתי</button></div>` : ''}
+            ${(getUserPermissionLevel() >= PERM.COMPANY_CMD) ? `<div style="text-align:center;padding:10px 0;"><button class="btn btn-add" onclick="switchTab('settings');setTimeout(()=>{ document.querySelector('.settings-task-anchor')?.scrollIntoView({behavior:'smooth'}); },200)">⚙ הגדרת משימות פלוגתי</button></div>` : ''}
         </div>
 
         <!-- Shifts -->
