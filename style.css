@@ -1893,7 +1893,8 @@ input:focus, select:focus { outline: none; border-color: var(--primary-light); }
     .settings-card { padding: 14px; }
     .settings-row { flex-direction: column; gap: 0; }
     .settings-row .settings-field { flex: unset; min-width: unset; width: 100%; }
-    .task-edit-row { grid-template-columns: 1fr 38px 38px 38px 38px 80px 26px; gap: 3px; font-size: 0.75em; }
+    .task-edit-row { grid-template-columns: minmax(60px,2fr) repeat(4, 1fr) minmax(56px,1.3fr) 24px; gap: 3px; font-size: 0.75em; }
+    .task-edit-row input, .task-edit-row select { padding: 3px 2px; font-size: 0.82em; }
     .task-edit-header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72em; text-align: center; }
 
     /* Login */
@@ -2067,10 +2068,10 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .settings-row .settings-field { flex: 1; min-width: 120px; }
 .settings-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .task-edit-row {
-    display: grid; grid-template-columns: 1fr 55px 55px 55px 55px 96px 34px; gap: 6px;
+    display: grid; grid-template-columns: minmax(80px,2fr) repeat(4, 1fr) minmax(70px,1.3fr) 30px; gap: 5px;
     align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85em;
 }
-.task-edit-row input { padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85em; text-align: center; }
+.task-edit-row input, .task-edit-row select { padding: 4px 4px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85em; text-align: center; width: 100%; box-sizing: border-box; }
 .task-edit-row input:first-child { text-align: right; }
 .task-edit-header { font-weight: 700; color: var(--text-light); font-size: 0.8em; border-bottom: 2px solid var(--border); }
 .task-edit-header span { text-align: center; }

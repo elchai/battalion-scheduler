@@ -7047,10 +7047,10 @@ function renderTaskEditor() {
 
     container.innerHTML = `
         <div style="overflow-x:auto;">
-          <div class="task-edit-row task-edit-header" style="min-width:520px;">
+          <div class="task-edit-row task-edit-header">
               <span>שם משימה</span><span>חייל</span><span>מפקד</span><span>קצין</span><span>נהג</span><span title="כמה סבבי משמרות ביממה: 1=יום שלם, 2=12/12, 3=8/16, 6=4/20 שג">סבבים</span><span></span>
           </div>
-          <div style="min-width:520px;">
+          <div>
           ${tasks.map((t, i) => `
               <div class="task-edit-row">
                   <input value="${esc(t.name)}" onchange="updateTask('${compKey}',${i},'name',this.value)">
@@ -7058,7 +7058,7 @@ function renderTaskEditor() {
                   <input type="number" min="0" value="${t.perShift.commanders}" onchange="updateTask('${compKey}',${i},'commanders',parseInt(this.value))">
                   <input type="number" min="0" value="${t.perShift.officers}" onchange="updateTask('${compKey}',${i},'officers',parseInt(this.value))">
                   <input type="number" min="0" value="${t.perShift.drivers || 0}" onchange="updateTask('${compKey}',${i},'drivers',parseInt(this.value))">
-                  <select onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))" style="padding:3px 4px;border:1px solid var(--border);border-radius:6px;font-size:0.82em;width:100%;background:var(--input-bg,#fff);color:var(--text);">
+                  <select onchange="updateTask('${compKey}',${i},'shifts',parseInt(this.value))">
                       <option value="6" ${t.shifts===6?'selected':''}>4 שעות</option>
                       <option value="3" ${t.shifts===3?'selected':''}>8 שעות</option>
                       <option value="2" ${t.shifts===2?'selected':''}>12 שעות</option>
