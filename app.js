@@ -1034,7 +1034,7 @@ function seedCompanyBLeavesIfNeeded() {
             id: 'leave_b_' + pid + '_' + startDate.replace(/-/g,''),
             soldierId: sol.id, company: 'b',
             startDate, endDate,
-            startTime: '00:00', endTime: '23:59',
+            startTime: '08:00', endTime: '07:59',
             notes, approved: notes === 'חופש אושר'
         });
         added++;
@@ -1581,7 +1581,7 @@ function makeLeaveRecord(sol, startDate, endDate, status) {
         soldierId: sol.id,
         company: sol.company,
         startDate, endDate,
-        startTime: '00:00', endTime: '23:59',
+        startTime: '08:00', endTime: '07:59',
         notes: status,
         approved: status === 'חופש אושר' || status === 'חופש חלקי',
         fromSheets: true
@@ -6452,10 +6452,10 @@ function openAddLeave(company) {
     document.getElementById('leaveNotes').value = '';
     const today = localToday();
     document.getElementById('leaveStart').value = today;
-    document.getElementById('leaveStartTime').value = '17:00';
+    document.getElementById('leaveStartTime').value = '08:00';
     const d4 = new Date(); d4.setDate(d4.getDate() + 4);
     document.getElementById('leaveEnd').value = d4.toISOString().split('T')[0];
-    document.getElementById('leaveEndTime').value = '08:00';
+    document.getElementById('leaveEndTime').value = '07:59';
     // Show multi-select, hide single display
     document.getElementById('leaveSoldierGroup').style.display = '';
     document.getElementById('leaveSoldierDisplay').style.display = 'none';
