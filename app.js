@@ -3071,7 +3071,7 @@ function renderCommanderDashboard(targetCompKey) {
 
     // Task manning
     const taskManning = (comp.tasks || []).map(task => {
-        const totalNeeded = (task.soldiers || 0) + (task.commanders || 0) + (task.officers || 0);
+        const totalNeeded = (task.soldiers || 0) + (task.commanders || 0) + (task.officers || 0) + (task.drivers || 0);
         const assigned = todayShifts.filter(sh => sh.task === task.name)
             .reduce((sum, sh) => sum + sh.soldiers.length, 0);
         const pct = totalNeeded > 0 ? Math.round(assigned / totalNeeded * 100) : 0;
@@ -4471,11 +4471,8 @@ function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
         if (!rotStatus.inBase) return { available: false, onLeave: true, assignedTo: null };
     }
 
-    // Check overlapping shifts
-    const overlap = state.shifts.find(sh =>
-        sh.date === date && sh.soldiers.includes(soldierId) &&
-        sh.startTime < endTime && sh.endTime > startTime
-    );
+    // Check overlapping shifts (cross-midnight safe)
+    const overlap = hasTimeOverlap(soldierId, date, startTime, endTime, null);
     if (overlap) {
         const taskName = overlap.task + (overlap.shiftName ? ' ' + overlap.shiftName : '');
         return { available: false, onLeave: false, assignedTo: `${taskName} ${overlap.startTime}-${overlap.endTime}` };
@@ -6300,9 +6297,9 @@ async function saveShift() {
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
     const roleSlots = document.querySelectorAll('#shiftRoleSlots .role-select');
-    const soldiers = roleSlots.length > 0
+    const soldiers = [...new Set(roleSlots.length > 0
         ? Array.from(roleSlots).map(s => s.value).filter(v => v)
-        : getCheckboxListValues('shiftSoldiers');
+        : getCheckboxListValues('shiftSoldiers'))];
     const cmdSlot = document.querySelector('#shiftRoleSlots .role-select[data-role="commander"]');
     const taskCommander = cmdSlot ? cmdSlot.value : (document.getElementById('taskCommanderSelect')?.value || '');
     const editId = document.getElementById('shiftEditId').value;
@@ -6382,23 +6379,32 @@ async function saveShift() {
     const multiDayEnd = endDateEl && document.getElementById('multiDayShiftRow')?.style.display !== 'none' ? endDateEl.value : '';
     if (!editId && multiDayEnd && multiDayEnd > date) {
         const dates = [];
-        let cur = new Date(date);
-        const end = new Date(multiDayEnd);
+        let cur = new Date(date + 'T12:00:00');
+        const end = new Date(multiDayEnd + 'T12:00:00');
         while (cur <= end) {
-            dates.push(cur.toISOString().slice(0, 10));
+            const fmt = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+            dates.push(fmt);
             cur.setDate(cur.getDate() + 1);
         }
+        let skippedDays = 0;
         dates.forEach(d => {
+            // Filter soldiers available on this specific day
+            const daySoldiers = soldiers.filter(sid => {
+                const onLeave = state.leaves.some(l => l.soldierId === sid && isOnLeaveForDate(l, d));
+                return !onLeave;
+            });
+            if (daySoldiers.length === 0) { skippedDays++; return; }
             state.shifts.push({
                 id: 'shift_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-                company, task, date: d, shiftName, startTime, endTime, soldiers, taskCommander
+                company, task, date: d, shiftName, startTime, endTime, soldiers: daySoldiers, taskCommander
             });
         });
         saveState();
         closeModal('addShiftModal');
         renderCompanyTab(company);
         updateGlobalStats();
-        showToast(`נוצרו ${dates.length} משמרות (${dates[0]} - ${dates[dates.length-1]})`);
+        const skipMsg = skippedDays > 0 ? ` (${skippedDays} ימים דולגו בגלל חופשות)` : '';
+        showToast(`נוצרו ${dates.length - skippedDays} משמרות (${dates[0]} - ${dates[dates.length-1]})${skipMsg}`);
         return;
     }
 
@@ -7248,8 +7254,10 @@ function addTask(compKey) {
 }
 
 async function deleteTask(compKey, index) {
-    if (!await customConfirm('למחוק משימה?')) return;
     const taskName = companyData[compKey].tasks[index]?.name;
+    const orphanShifts = taskName ? state.shifts.filter(sh => sh.company === compKey && sh.task === taskName).length : 0;
+    const warnText = orphanShifts > 0 ? `למשימה "${taskName}" יש ${orphanShifts} שיבוצים פעילים.\nלמחוק את המשימה? (השיבוצים יישארו ללא משימה)` : `למחוק את "${taskName}"?`;
+    if (!await customConfirm(warnText)) return;
     if (taskName) {
         const key = CONFIG.storagePrefix + 'DeletedTasks';
         const deleted = JSON.parse(localStorage.getItem(key) || '[]');
