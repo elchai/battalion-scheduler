@@ -4288,7 +4288,8 @@ function renderShiftRoleSlots(restoreSoldiers) {
         const options = soldiers.map(s => {
             const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
             let info = '';
-            if (status.onLeave) info = ' 🏠 בבית';
+            if (status.notArrived) info = ' ❌ לא גויס';
+            else if (status.onLeave) info = ' 🏠 בבית';
             else if (status.assignedTo && status.assignedTo.startsWith('בין משמרות')) info = ` 🕐 ${status.assignedTo}`;
             else if (status.assignedTo) info = ` ⚡ ${status.assignedTo}`;
             return `<option value="${s.id}" ${s.id === preselect ? 'selected' : ''}>${esc(s.name)}${info}</option>`;
@@ -4372,9 +4373,9 @@ function getSoldierRestWindowStatus(soldierId, date, startTime) {
 // Check soldier status for a specific date/time
 function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
     const soldier = state.soldiers.find(s => s.id === soldierId);
-    // Check notArrived
+    // Check notArrived — warn but allow assignment
     if (soldier && soldier.notArrived) {
-        return { available: false, onLeave: false, assignedTo: 'לא הגיע למילואים' };
+        return { available: false, onLeave: false, assignedTo: 'לא גויס', notArrived: true };
     }
     // Check service periods (פיצול)
     if (soldier && !isSoldierActiveOnDate(soldier, date)) {
@@ -6258,6 +6259,15 @@ async function saveShift() {
     if (conflicts.length > 0) {
         showToast('שיבוץ כפול: ' + conflicts.join(', '), 'error');
         return;
+    }
+
+    // Check for notArrived soldiers — offer to mark as arrived
+    const notArrivedSoldiers = soldiers.map(sid => state.soldiers.find(s => s.id === sid)).filter(s => s && s.notArrived);
+    if (notArrivedSoldiers.length > 0) {
+        const names = notArrivedSoldiers.map(s => s.name).join(', ');
+        const recruit = await customConfirm(`${names} — מסומנים כלא גויסו.\nלסמן כגויסו ולשבץ?`);
+        if (!recruit) return;
+        notArrivedSoldiers.forEach(s => { s.notArrived = false; });
     }
 
     // Validate: warn if task commander not selected for 4+ soldiers tasks
