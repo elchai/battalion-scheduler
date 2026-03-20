@@ -3999,6 +3999,15 @@ function openAddShift(company, preSelectTask) {
     document.getElementById('shiftEditId').value = '';
     document.getElementById('shiftCompany').value = company || 'a';
     document.getElementById('shiftName').value = '';
+    document.getElementById('shiftDate').value = localToday();
+    document.getElementById('shiftStart').value = '08:00';
+    document.getElementById('shiftEnd').value = '16:00';
+    const typeSelect = document.getElementById('shiftTypeSelect');
+    if (typeSelect) typeSelect.value = '';
+    const subPresets = document.getElementById('shiftSubPresets');
+    if (subPresets) subPresets.style.display = 'none';
+    const multiRow = document.getElementById('multiDayShiftRow');
+    if (multiRow) multiRow.style.display = 'none';
     // Reset preset buttons
     document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
     updateShiftOptions();
