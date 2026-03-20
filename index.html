@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v251';
+    var _cb = 'v252';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -1036,26 +1036,30 @@
                 <input type="date" id="shiftDate" onchange="updateShiftOptions()">
             </div>
             <div class="form-group">
-                <label>תבנית משמרת</label>
-                <div class="shift-presets">
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('morning', this)">בוקר 6-14</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('afternoon', this)">צהריים 14-22</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('night', this)">לילה 22-6</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('dayhalf', this)">יום 6-18</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('nighthalf', this)">לילה 18-6</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('fullday', this)">יום שלם</button>
-                    <button type="button" class="shift-preset-btn" onclick="toggleMultiDayShift(this)">📅 מרובה ימים</button>
-                    <button type="button" class="shift-preset-btn" onclick="applyYizumotPreset()">📅 יזומה א'–שבת</button>
-                </div>
-                <div id="multiDayShiftRow" style="display:none;margin-top:8px;">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>תאריך סיום</label>
-                            <input type="date" id="shiftEndDate" onchange="updateMultiDayInfo()">
-                        </div>
-                        <div class="form-group" style="align-self:flex-end;">
-                            <span id="multiDayInfo" style="font-size:0.82em;color:var(--text-light);"></span>
-                        </div>
+                <label>סוג משמרת</label>
+                <select id="shiftTypeSelect" onchange="applyShiftType(this.value)">
+                    <option value="">-- בחר סוג --</option>
+                    <option value="4:8">4:8 — 4 שעות פעילות, 8 מנוחה</option>
+                    <option value="8:16">8:16 — 8 שעות פעילות, 16 מנוחה</option>
+                    <option value="12">12 שעות</option>
+                    <option value="24">יום שלם (24 שעות)</option>
+                    <option value="5days">5 ימים</option>
+                    <option value="week">שבוע שלם (א׳–שבת)</option>
+                    <option value="custom">מותאם אישית</option>
+                </select>
+            </div>
+            <div class="form-group" id="shiftSubPresets" style="display:none;">
+                <label>תבנית שעות</label>
+                <div class="shift-presets" id="shiftPresetsContainer"></div>
+            </div>
+            <div id="multiDayShiftRow" style="display:none;margin-top:8px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>תאריך סיום</label>
+                        <input type="date" id="shiftEndDate" onchange="updateMultiDayInfo()">
+                    </div>
+                    <div class="form-group" style="align-self:flex-end;">
+                        <span id="multiDayInfo" style="font-size:0.82em;color:var(--text-light);"></span>
                     </div>
                 </div>
             </div>

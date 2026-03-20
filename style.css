@@ -1282,7 +1282,7 @@ tbody tr:hover { background: #f8f9ff; }
 .role-multi-selected {
     min-height: 38px; border: 1px solid var(--border); border-radius: 8px;
     padding: 4px 10px; cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px;
-    align-items: center; background: var(--bg-card);
+    align-items: center; background: var(--bg-card); direction: rtl;
 }
 .role-multi-selected::after {
     content: '\25BC'; font-size: 0.6em; color: var(--text-secondary);
@@ -1298,24 +1298,24 @@ tbody tr:hover { background: #f8f9ff; }
 .role-multi-dropdown {
     position: absolute; top: calc(100% + 2px); right: 0; left: 0; z-index: 200;
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.2); max-height: 240px; overflow-y: auto;
-    padding: 4px 0;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15); max-height: 260px; overflow-y: auto;
+    padding: 4px 0; direction: rtl;
 }
 .role-group-label {
-    padding: 6px 12px 2px; font-size: 0.72em; font-weight: 700;
+    padding: 6px 12px 2px; font-size: 0.75em; font-weight: 700;
     color: var(--primary); border-top: 1px solid var(--border);
-    margin-top: 2px;
+    margin-top: 2px; text-align: right;
 }
 .role-group-label:first-child { border-top: none; margin-top: 0; }
 .role-option {
-    display: flex; align-items: center; gap: 8px; padding: 4px 14px;
-    cursor: pointer; font-size: 0.88em; transition: background 0.12s;
-    direction: rtl;
+    display: flex; flex-direction: row-reverse; align-items: center; gap: 8px;
+    padding: 6px 14px; cursor: pointer; font-size: 0.88em; transition: background 0.12s;
+    direction: rtl; justify-content: flex-start;
 }
 .role-option:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); }
 .role-option input[type="checkbox"] {
     accent-color: var(--primary); width: 16px; height: 16px;
-    margin: 0; flex-shrink: 0;
+    margin: 0; flex-shrink: 0; order: -1;
 }
 
 .modal-footer {

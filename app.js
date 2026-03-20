@@ -4046,6 +4046,108 @@ const EXTRA_PRESETS = {
     nighthalf: { name: 'לילה 18-6',  start: '18:00', end: '06:00' },
 };
 
+function applyShiftType(type) {
+    const multiRow = document.getElementById('multiDayShiftRow');
+    const subPresets = document.getElementById('shiftSubPresets');
+    const presetsContainer = document.getElementById('shiftPresetsContainer');
+    if (multiRow) multiRow.style.display = 'none';
+    if (subPresets) subPresets.style.display = 'none';
+
+    if (!type || type === 'custom') {
+        // Custom: show all sub-presets for manual pick
+        if (subPresets && presetsContainer) {
+            presetsContainer.innerHTML = `
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('morning', this)">בוקר 6-14</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('afternoon', this)">צהריים 14-22</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('night', this)">לילה 22-6</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('dayhalf', this)">יום 6-18</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset('nighthalf', this)">לילה 18-6</button>
+            `;
+            subPresets.style.display = type === 'custom' ? '' : 'none';
+        }
+        return;
+    }
+
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const today = new Date();
+
+    if (type === '4:8') {
+        // 4h on, 8h off — show sub-presets for the 6 slots in 24h
+        document.getElementById('shiftName').value = '4:8';
+        if (subPresets && presetsContainer) {
+            presetsContainer.innerHTML = `
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('00:00','04:00',this)">00:00–04:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('04:00','08:00',this)">04:00–08:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('08:00','12:00',this)">08:00–12:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('12:00','16:00',this)">12:00–16:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('16:00','20:00',this)">16:00–20:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('20:00','00:00',this)">20:00–00:00</button>
+            `;
+            subPresets.style.display = '';
+        }
+        document.getElementById('shiftStart').value = '08:00';
+        document.getElementById('shiftEnd').value = '12:00';
+        updateShiftOptions();
+    } else if (type === '8:16') {
+        // 8h on, 16h off — 3 slots
+        document.getElementById('shiftName').value = '8:16';
+        if (subPresets && presetsContainer) {
+            presetsContainer.innerHTML = `
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('06:00','14:00',this)">בוקר 06:00–14:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('14:00','22:00',this)">צהריים 14:00–22:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('22:00','06:00',this)">לילה 22:00–06:00</button>
+            `;
+            subPresets.style.display = '';
+        }
+        document.getElementById('shiftStart').value = '06:00';
+        document.getElementById('shiftEnd').value = '14:00';
+        updateShiftOptions();
+    } else if (type === '12') {
+        // 12h — 2 slots
+        document.getElementById('shiftName').value = '12 שעות';
+        if (subPresets && presetsContainer) {
+            presetsContainer.innerHTML = `
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('06:00','18:00',this)">יום 06:00–18:00</button>
+                <button type="button" class="shift-preset-btn" onclick="applyShiftPreset48('18:00','06:00',this)">לילה 18:00–06:00</button>
+            `;
+            subPresets.style.display = '';
+        }
+        document.getElementById('shiftStart').value = '06:00';
+        document.getElementById('shiftEnd').value = '18:00';
+        updateShiftOptions();
+    } else if (type === '24') {
+        document.getElementById('shiftName').value = 'יום שלם';
+        document.getElementById('shiftStart').value = '00:00';
+        document.getElementById('shiftEnd').value = '00:00';
+        updateShiftOptions();
+    } else if (type === '5days') {
+        document.getElementById('shiftName').value = '5 ימים';
+        document.getElementById('shiftStart').value = '08:00';
+        document.getElementById('shiftEnd').value = '08:00';
+        const startD = new Date(today);
+        const dow = startD.getDay();
+        const daysToSun = dow === 0 ? 0 : 7 - dow;
+        startD.setDate(startD.getDate() + daysToSun);
+        const endD = new Date(startD);
+        endD.setDate(startD.getDate() + 4); // Sun–Thu
+        document.getElementById('shiftDate').value = fmt(startD);
+        if (multiRow) multiRow.style.display = '';
+        document.getElementById('shiftEndDate').value = fmt(endD);
+        updateMultiDayInfo();
+        updateShiftOptions();
+    } else if (type === 'week') {
+        applyYizumotPreset();
+    }
+}
+
+function applyShiftPreset48(start, end, btn) {
+    document.getElementById('shiftStart').value = start;
+    document.getElementById('shiftEnd').value = end;
+    document.querySelectorAll('#shiftPresetsContainer .shift-preset-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    updateShiftOptions();
+}
+
 function applyYizumotPreset() {
     const today = new Date();
     const dow = today.getDay(); // 0=Sunday
