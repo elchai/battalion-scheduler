@@ -7091,14 +7091,14 @@ function renderTaskEditor() {
                 sumDrv += (t.perShift.drivers || 0) * sh;
             });
             const total = sumSol + sumCmd + sumOff + sumDrv;
+            const parts = [];
+            if (sumSol) parts.push(`${sumSol} חיילים`);
+            if (sumCmd) parts.push(`${sumCmd} מפקדים`);
+            if (sumOff) parts.push(`${sumOff} קצינים`);
+            if (sumDrv) parts.push(`${sumDrv} נהגים`);
             return total > 0 ? `
-            <div style="margin-top:10px;padding:10px 12px;background:var(--bg-hover,#f5f5f5);border-radius:8px;font-size:0.82em;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:flex-end;">
-                <span style="font-weight:700;color:var(--text);">סה״כ כ״א ליממה:</span>
-                <span>חיילים <b>${sumSol}</b></span>
-                <span>מפקדים <b>${sumCmd}</b></span>
-                <span>קצינים <b>${sumOff}</b></span>
-                <span>נהגים <b>${sumDrv}</b></span>
-                <span style="font-weight:800;color:var(--primary);border-right:2px solid var(--border);padding-right:12px;">סה״כ <b>${total}</b></span>
+            <div class="task-edit-row task-edit-header" style="border-bottom:none;margin-top:6px;padding-top:8px;border-top:2px solid var(--border);">
+                <span style="font-weight:700;">סיכום</span><span>${sumSol}</span><span>${sumCmd}</span><span>${sumOff}</span><span>${sumDrv}</span><span style="font-weight:800;color:var(--primary);">${total}</span><span></span>
             </div>` : '';
         })()}
         <div id="taskSaveBar" style="${taskEditorDirty ? '' : 'display:none;'}background:var(--card);border:2px solid var(--warning);padding:10px 16px;border-radius:10px;margin-top:12px;position:sticky;bottom:8px;z-index:10;">
