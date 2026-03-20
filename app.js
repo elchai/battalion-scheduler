@@ -4249,8 +4249,9 @@ function updateShiftOptions() {
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
 
-    // Tasks dropdown with capacity info
+    // Tasks dropdown with capacity info — preserve current selection
     const taskSel = document.getElementById('shiftTask');
+    const prevTask = taskSel.value.replace(/\s*\(\d+\/\d+\)$/, '');
     taskSel.innerHTML = '';
     taskSel.onchange = function() {
         renderShiftRoleSlots();
@@ -4272,6 +4273,11 @@ function updateShiftOptions() {
             if (needed > 0 && assigned >= needed) opt.style.color = '#C62828';
             taskSel.appendChild(opt);
         });
+        // Restore previous task selection if still exists
+        if (prevTask) {
+            const match = Array.from(taskSel.options).find(o => o.value.replace(/\s*\(\d+\/\d+\)$/, '') === prevTask);
+            if (match) taskSel.value = match.value;
+        }
     }
 
     renderShiftRoleSlots();
@@ -4336,12 +4342,14 @@ function renderShiftRoleSlots(restoreSoldiers) {
             if (status.notArrived) info = ' ❌ לא גויס';
             else if (status.onLeave) info = ' 🏠 בבית';
             else if (status.assignedTo && status.assignedTo.startsWith('בין משמרות')) info = ` 🕐 ${status.assignedTo}`;
-            else if (status.assignedTo) info = ` ⚡ ${status.assignedTo}`;
+            else if (status.assignedTo) info = ` ← ${status.assignedTo}`;
             return `<option value="${s.id}" ${s.id === preselect ? 'selected' : ''}>${esc(s.name)}${info}</option>`;
         }).join('');
+        const uid = `roleSlot_${role}_${idx}`;
         return `<div class="role-slot-group">
             <label class="role-slot-label">${label}</label>
-            <select class="role-select" data-role="${role}" data-idx="${idx}">
+            <input type="text" class="role-search" placeholder="חפש חייל..." oninput="filterRoleSelect('${uid}', this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.82em;margin-bottom:3px;width:100%;box-sizing:border-box;">
+            <select class="role-select" id="${uid}" data-role="${role}" data-idx="${idx}" size="1">
                 <option value="">-- בחר --</option>
                 ${options}
             </select>
@@ -4388,6 +4396,16 @@ function renderShiftRoleSlots(restoreSoldiers) {
     // Hide old taskCommanderGroup since commanders are now role slots
     const cmdGroup = document.getElementById('taskCommanderGroup');
     if (cmdGroup) cmdGroup.style.display = 'none';
+}
+
+function filterRoleSelect(selectId, query) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const q = query.trim().toLowerCase();
+    Array.from(sel.options).forEach(opt => {
+        if (!opt.value) { opt.style.display = ''; return; } // keep "-- בחר --"
+        opt.style.display = !q || opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
 }
 
 // Returns rest status based on 1/3 rule: rest = 2 × shift duration (for shifts ≤ 12h)
@@ -6292,18 +6310,27 @@ async function saveShift() {
     if (!task || !date || !startTime || !endTime) { showToast('יש למלא את כל השדות', 'error'); return; }
     if (soldiers.length === 0) { showToast('יש לבחור חיילים לשיבוץ', 'error'); return; }
 
-    // Validate: check for double-booking
-    const conflicts = [];
+    // Validate: check for double-booking — offer transfer instead of blocking
+    const transfers = [];
     soldiers.forEach(sid => {
         const overlap = hasTimeOverlap(sid, date, startTime, endTime, editId || null);
         if (overlap) {
             const sol = state.soldiers.find(s => s.id === sid);
-            conflicts.push(`${sol ? sol.name : '?'} כבר משובץ ל${overlap.task} (${overlap.startTime}-${overlap.endTime})`);
+            transfers.push({ sid, sol, overlap });
         }
     });
-    if (conflicts.length > 0) {
-        showToast('שיבוץ כפול: ' + conflicts.join(', '), 'error');
-        return;
+    if (transfers.length > 0) {
+        const names = transfers.map(t => `${t.sol ? t.sol.name : '?'} ← ${t.overlap.task} (${t.overlap.startTime}-${t.overlap.endTime})`).join('\n');
+        const move = await customConfirm(`חיילים אלו כבר משובצים:\n${names}\n\nלהעביר אותם לשיבוץ הנוכחי?`);
+        if (!move) return;
+        // Remove from old shifts
+        transfers.forEach(t => {
+            const oldShift = state.shifts.find(sh => sh.id === t.overlap.id);
+            if (oldShift) {
+                oldShift.soldiers = oldShift.soldiers.filter(sid => sid !== t.sid);
+                if (oldShift.soldiers.length === 0) state.shifts = state.shifts.filter(sh => sh.id !== oldShift.id);
+            }
+        });
     }
 
     // Check for notArrived soldiers — offer to mark as arrived
