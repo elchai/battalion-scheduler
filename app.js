@@ -4374,10 +4374,11 @@ function renderShiftRoleSlots(restoreSoldiers) {
             return `<option value="${s.id}" ${s.id === preselect ? 'selected' : ''}>${esc(s.name)}${info}</option>`;
         }).join('');
         const uid = `roleSlot_${role}_${idx}`;
+        const listSize = Math.min(soldiers.length + 1, 6);
         return `<div class="role-slot-group">
             <label class="role-slot-label">${label}</label>
-            <input type="text" class="role-search" placeholder="חפש חייל..." oninput="filterRoleSelect('${uid}', this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.82em;margin-bottom:3px;width:100%;box-sizing:border-box;">
-            <select class="role-select" id="${uid}" data-role="${role}" data-idx="${idx}" size="1">
+            <input type="text" class="role-search" placeholder="🔍 חפש חייל..." oninput="filterRoleSelect('${uid}', this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85em;margin-bottom:4px;width:100%;box-sizing:border-box;">
+            <select class="role-select" id="${uid}" data-role="${role}" data-idx="${idx}" size="${listSize}" style="width:100%;border:1px solid var(--border);border-radius:6px;font-size:0.85em;">
                 <option value="">-- בחר --</option>
                 ${options}
             </select>

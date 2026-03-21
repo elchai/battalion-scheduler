@@ -2086,7 +2086,10 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .role-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 4px 0; }
 .role-slot-group { display: flex; flex-direction: column; gap: 4px; }
 .role-slot-label { font-size: 0.78em; font-weight: 700; color: var(--text-light); }
-.role-slot-group select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85em; background: var(--card); color: var(--text); }
+.role-slot-group select { padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.82em; background: var(--card); color: var(--text); direction: rtl; }
+.role-slot-group select option { padding: 4px 8px; }
+.role-slot-group select option:checked { background: var(--primary); color: #fff; }
+@media(max-width:768px) { .role-slots-grid { grid-template-columns: 1fr; } }
 .company-tab-btn.active { color: #fff !important; }
 .company-tab-btn[data-comp="a"].active { background: #C62828 !important; }
 .company-tab-btn[data-comp="b"].active { background: #2E7D32 !important; }
