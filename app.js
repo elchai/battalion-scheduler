@@ -2383,7 +2383,7 @@ function getSoldierRealtimeStatus(soldier) {
     const rotStatus = rotGroup ? getRotationStatus(rotGroup, new Date()) : null;
     const isHome = isNotArrived || onLeave || (rotStatus && !rotStatus.inBase);
     const isAssigned = !isHome && shifts.some(sh => sh.soldiers.includes(soldier.id));
-    const text = isNotArrived ? 'לא הגיע' : onLeave ? 'בבית' : (rotStatus && !rotStatus.inBase) ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
+    const text = isNotArrived ? 'לא גויס' : onLeave ? 'בבית' : (rotStatus && !rotStatus.inBase) ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
     const cls = isHome ? 'on-leave' : isAssigned ? 'on-duty' : 'unassigned';
     const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
     return { text, cls, badge, isHome, isAssigned };
@@ -2415,7 +2415,7 @@ function renderSoldiersGrid(compKey) {
         const isHome = isNotArrived || onLeave || (rotStatus && !rotStatus.inBase);
         const isAssigned = !isHome && shifts.some(sh => sh.soldiers.includes(s.id));
         const cls = isHome ? 'on-leave' : isAssigned ? 'on-duty' : 'unassigned';
-        const txt = isNotArrived ? 'לא הגיע' : onLeave ? 'בבית' : (rotStatus && !rotStatus.inBase) ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
+        const txt = isNotArrived ? 'לא גויס' : onLeave ? 'בבית' : (rotStatus && !rotStatus.inBase) ? 'בבית' : isAssigned ? 'בשיבוץ' : 'זמין';
         const badge = isHome ? 'status-on-leave' : isAssigned ? 'status-on-duty' : 'status-available';
         let rotInfo = '';
         if (rotGroup && rotStatus) {
@@ -2432,7 +2432,7 @@ function renderSoldiersGrid(compKey) {
             <div style="display:flex;align-items:center;gap:6px;">
                 <span class="person-status ${badge}">${txt}</span>
                 ${canEditSoldierDetails(compKey) ? `<button class="btn btn-edit btn-icon btn-sm" onclick="openEditSoldier('${s.id}')" title="עריכה">&#9998;</button>
-                <button class="btn btn-icon btn-sm" style="background:${s.notArrived ? '#e74c3c' : '#78909C'};color:white;" onclick="toggleNotArrived('${s.id}')" title="${s.notArrived ? 'סמן כמגיע' : 'סמן כלא מגיע'}">${s.notArrived ? '&#10007;' : '&#10003;'}</button>
+                <button class="btn btn-icon btn-sm" style="background:${s.notArrived ? '#e74c3c' : '#78909C'};color:white;" onclick="toggleNotArrived('${s.id}')" title="${s.notArrived ? 'סמן כגויס' : 'סמן כלא גויס'}">${s.notArrived ? '&#10007;' : '&#10003;'}</button>
                 ${!(CONFIG.skipPassword && s.id.startsWith('demo_')) ? `<button class="btn btn-danger btn-icon btn-sm" onclick="deleteSoldier('${s.id}')" title="מחק">&#10005;</button>` : ''}` : ''}
             </div>
         </div>`;
@@ -7162,6 +7162,17 @@ function renderSettingsTab() {
             <button class="btn btn-sync" onclick="document.getElementById('importFile').click();">ייבוא נתונים (Excel)</button>
             <input type="file" id="importFile" accept=".xlsx,.xls,.json" style="display:none" onchange="importAllData(this)">
             ${isAdmin() ? '<button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>' : ''}
+            ${isAdmin() ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                <select id="deleteShiftsCompany" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:0.85em;background:var(--card);color:var(--text);">
+                    <option value="all">כל הפלוגות (${state.shifts.length})</option>
+                    ${allCompanyKeys().map(k => {
+                        const cnt = state.shifts.filter(sh => sh.company === k).length;
+                        return cnt > 0 ? `<option value="${k}">${getCompNames()[k] || k} (${cnt})</option>` : '';
+                    }).join('')}
+                </select>
+                <button class="btn btn-danger" onclick="deleteAllShifts(document.getElementById('deleteShiftsCompany').value)" style="background:#e65100;">&#128465; מחק משמרות</button>
+            </div>` : ''}
+
         </div>
         <div style="margin-top:12px;font-size:0.83em;color:var(--text-light);">
             סה"כ: ${state.soldiers.length} חיילים | ${state.shifts.length} שיבוצים | ${state.leaves.length} יציאות
@@ -7573,6 +7584,21 @@ function importAllData(input) {
     if (file.name.endsWith('.json')) reader.readAsText(file);
     else reader.readAsArrayBuffer(file);
     input.value = '';
+}
+
+async function deleteAllShifts(companyFilter) {
+    if (!isAdmin()) { showToast('פעולה זו מותרת למנהל בלבד', 'error'); return; }
+    const isAll = !companyFilter || companyFilter === 'all';
+    const target = isAll ? state.shifts : state.shifts.filter(sh => sh.company === companyFilter);
+    const count = target.length;
+    if (count === 0) { showToast('אין משמרות למחיקה', 'info'); return; }
+    const label = isAll ? 'כל הפלוגות' : (getCompNames()[companyFilter] || companyFilter);
+    if (!await customConfirm(`האם אתה בטוח שברצונך למחוק ${count} משמרות ב${label}?\nפעולה זו בלתי הפיכה!`)) return;
+    state.shifts = isAll ? [] : state.shifts.filter(sh => sh.company !== companyFilter);
+    saveState();
+    renderAll();
+    renderSettingsTab();
+    showToast(`${count} משמרות נמחקו מ${label}`);
 }
 
 async function resetAllData() {
