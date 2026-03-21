@@ -4177,7 +4177,7 @@ function applyShiftType(type) {
         document.getElementById('shiftEnd').value = '08:00';
         if (multiRow) multiRow.style.display = '';
         // Default end date: end of milium (30.04.2026)
-        const endDefault = '2026-04-30';
+        const endDefault = settings.operationEndDate || '2026-04-30';
         document.getElementById('shiftEndDate').value = endDefault;
         updateMultiDayInfo();
         updateShiftOptions();
