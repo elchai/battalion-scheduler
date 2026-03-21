@@ -9500,7 +9500,7 @@ function onSignSoldierSelect() {
     const info = document.getElementById('signSoldierInfo');
     info.style.display = '';
     const shoeOpts = ['','36','37','38','39','40','41','42','43','44','45','46','47','48','49'].map(v => `<option value="${v}"${v === (sol.shoeSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
-    const sizeList = ['','קק','ק','ב1','ב2','ב3','ג1','ג2','ג3','מ','ממ','מממ','ממממ'];
+    const sizeList = ['','קק','ק','ב1','ב2','ב3','ג1','ג2','ג3','מ1','מ2','מ3','מ4'];
     const shirtOpts = sizeList.map(v => `<option value="${v}"${v === (sol.shirtSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
     const pantsOpts = sizeList.map(v => `<option value="${v}"${v === (sol.pantsSize||'') ? ' selected' : ''}>${v || '--'}</option>`).join('');
     info.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
