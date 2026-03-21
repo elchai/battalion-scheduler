@@ -4438,10 +4438,18 @@ function filterRoleSelect(selectId, query) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
     const q = query.trim().toLowerCase();
+    const visible = [];
     Array.from(sel.options).forEach(opt => {
-        if (!opt.value) { opt.style.display = ''; return; } // keep "-- בחר --"
-        opt.style.display = !q || opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+        if (!opt.value) { opt.style.display = ''; return; }
+        const show = !q || opt.textContent.toLowerCase().includes(q);
+        opt.style.display = show ? '' : 'none';
+        if (show && opt.value) visible.push(opt);
     });
+    // Auto-select when only one match
+    if (visible.length === 1) {
+        sel.value = visible[0].value;
+        visible[0].selected = true;
+    }
 }
 
 // Returns rest status based on 1/3 rule: rest = 2 × shift duration (for shifts ≤ 12h)
