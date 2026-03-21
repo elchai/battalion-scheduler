@@ -292,23 +292,88 @@ function isSoldierView() {
 // ==================== GREEN API WHATSAPP ====================
 function sendGreenApiWhatsApp(firstName, phone) {
     if (!CONFIG.greenApi) return;
+    sendGreenApiMessage(phone, `שלום ${firstName} 😎\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`);
+}
+
+function sendGreenApiMessage(phone, message) {
+    if (!CONFIG.greenApi) return;
     const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
     if (!idInstance || !apiTokenInstance) return;
-    // Normalize phone: remove leading 0, add 972 prefix
-    let cleanPhone = phone.replace(/[\s\-\(\)\+]/g, '');
+    let cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '972' + cleanPhone.slice(1);
     if (!cleanPhone.match(/^\d{10,15}$/)) return;
     const chatId = cleanPhone + '@c.us';
-    const message = `שלום ${firstName} 😎\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`;
     const url = `${apiUrl || 'https://api.green-api.com'}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`;
     fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chatId, message })
     }).then(r => r.json()).then(data => {
-        if (data.idMessage) console.log('WhatsApp sent:', data.idMessage);
+        if (data.idMessage) console.log('WhatsApp sent to', cleanPhone);
         else console.warn('WhatsApp response:', data);
     }).catch(err => console.warn('Green API send failed:', err));
+}
+
+// ==================== AUTO SHIFT REMINDERS (WhatsApp 2h before) ====================
+let _shiftReminderInterval = null;
+const _sentReminders = new Set();
+
+function startShiftReminders() {
+    if (_shiftReminderInterval) return;
+    // Load sent reminders from localStorage
+    try {
+        const saved = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + 'SentReminders') || '[]');
+        saved.forEach(k => _sentReminders.add(k));
+    } catch(e) {}
+    // Check immediately, then every 5 minutes
+    checkAndSendReminders();
+    _shiftReminderInterval = setInterval(checkAndSendReminders, 5 * 60 * 1000);
+    console.log('Shift reminders started (every 5 min)');
+}
+
+function checkAndSendReminders() {
+    if (!CONFIG.greenApi) return;
+    const now = new Date();
+    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const fiveMinMs = 5 * 60 * 1000;
+    let sent = 0;
+
+    state.shifts.forEach(sh => {
+        if (!sh.soldiers || !sh.soldiers.length) return;
+        // Calculate shift start datetime
+        const shiftStart = new Date(sh.date + 'T' + (sh.startTime || '00:00') + ':00');
+        // Check if shift starts within the 2h window (±5 min)
+        const diff = shiftStart.getTime() - now.getTime();
+        if (diff < (2 * 60 * 60 * 1000 - fiveMinMs) || diff > (2 * 60 * 60 * 1000 + fiveMinMs)) return;
+
+        sh.soldiers.forEach(solId => {
+            const key = `${sh.id}_${solId}_${sh.date}`;
+            if (_sentReminders.has(key)) return;
+            const sol = state.soldiers.find(s => s.id === solId);
+            if (!sol || !sol.phone) return;
+
+            const taskName = sh.task || sh.shiftName || 'משמרת';
+            const template = settings.reminderTemplate || 'שלום {שם} 👋\nשים לב! בעוד שעתיים בשעה {שעה} אתה אמור להתחיל את המשימה ב{משימה}.\nבהצלחה!';
+            const msg = template.replace(/\{שם\}/g, sol.name).replace(/\{שעה\}/g, sh.startTime).replace(/\{משימה\}/g, taskName);
+            sendGreenApiMessage(sol.phone, msg);
+            _sentReminders.add(key);
+            sent++;
+        });
+    });
+
+    // Persist sent reminders (keep last 500 to prevent bloat)
+    if (sent > 0) {
+        const arr = Array.from(_sentReminders).slice(-500);
+        localStorage.setItem(CONFIG.storagePrefix + 'SentReminders', JSON.stringify(arr));
+        console.log(`Sent ${sent} shift reminders`);
+    }
+
+    // Cleanup old reminders (older than 3 days)
+    const threeDaysAgo = localToday().replace(/-/g, '');
+    _sentReminders.forEach(k => {
+        const dateMatch = k.match(/(\d{4})(\d{2})(\d{2})/);
+        if (dateMatch && dateMatch[0] < threeDaysAgo) _sentReminders.delete(k);
+    });
 }
 
 // ==================== LOGIN ====================
@@ -520,6 +585,11 @@ function activateApp() {
     if (Date.now() - lastSync > 5 * 60 * 1000) {
         syncFromGoogleSheets(true);
         syncWeaponsEasyDoStatus(true);
+    }
+
+    // Start automatic shift reminders (WhatsApp 2h before shift)
+    if (getUserPermissionLevel() >= PERM.SAMAL) {
+        startShiftReminders();
     }
 }
 
@@ -7092,6 +7162,14 @@ function renderSettingsTab() {
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Shift Reminder Template -->
+    <div class="settings-card">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.11 4.18 2 2 0 015.11 2h3a2 2 0 012 1.72"/><polyline points="22 4 12 14.01 9 11.01"/></svg> תבנית הודעת תזכורת (WhatsApp)</h3>
+        <p style="font-size:0.78em;color:var(--text-light);margin-bottom:8px;">הודעה שנשלחת אוטומטית לחייל שעתיים לפני המשמרת. משתנים: {שם} {שעה} {משימה}</p>
+        <textarea id="reminderTemplate" rows="3" style="width:100%;resize:vertical;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:0.9em;font-family:inherit;background:var(--card);color:var(--text);direction:rtl;"
+            onchange="settings.reminderTemplate=this.value;saveSettings();">${esc(settings.reminderTemplate || 'שלום {שם} 👋\nשים לב! בעוד שעתיים בשעה {שעה} אתה אמור להתחיל את המשימה ב{משימה}.\nבהצלחה!')}</textarea>
     </div>
 
     <!-- Training Types -->
