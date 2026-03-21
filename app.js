@@ -6823,7 +6823,8 @@ function shiftCoversDate(sh, dateStr) {
 function openModal(id) {
     document.getElementById(id).classList.add('active');
     document.body.classList.add('modal-open');
-    // Push history state so mobile back button closes modal
+    const fab = document.getElementById('fabBtn');
+    if (fab) fab.style.display = 'none';
     history.pushState({ modal: id }, '');
 }
 function closeModal(id) {
@@ -6833,6 +6834,7 @@ function closeModal(id) {
     el.style.zIndex = '';
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
+        updateFab();
     }
 }
 // Handle mobile back button — close topmost modal
@@ -6843,6 +6845,7 @@ window.addEventListener('popstate', function(e) {
         activeModal.style.zIndex = '';
         if (!document.querySelector('.modal-overlay.active')) {
             document.body.classList.remove('modal-open');
+            if (typeof updateFab === 'function') updateFab();
         }
     }
 });
@@ -7161,7 +7164,7 @@ function renderSettingsTab() {
             <button class="btn btn-export" onclick="exportAllData()">ייצוא נתונים (Excel)</button>
             <button class="btn btn-sync" onclick="document.getElementById('importFile').click();">ייבוא נתונים (Excel)</button>
             <input type="file" id="importFile" accept=".xlsx,.xls,.json" style="display:none" onchange="importAllData(this)">
-            ${isAdmin() ? '<button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כל הנתונים</button>' : ''}
+            ${isAdmin() ? '<button class="btn btn-danger" onclick="resetAllData()">&#9651; איפוס כללי</button>' : ''}
             ${isAdmin() ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
                 <select id="deleteShiftsCompany" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:0.85em;background:var(--card);color:var(--text);">
                     <option value="all">כל הפלוגות (${state.shifts.length})</option>
