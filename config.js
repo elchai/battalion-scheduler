@@ -11,6 +11,7 @@ const CONFIG = {
     // --- כניסה ---
     password: '1875',
     adminName: 'אלחי פיין',
+    adminPhone: '0542012000',
 
     // --- Firebase ---
     firebase: {

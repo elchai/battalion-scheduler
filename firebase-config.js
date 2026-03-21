@@ -65,16 +65,43 @@ async function firebaseLoadState() {
             state.shootingResults = remoteState.shootingResults || state.shootingResults;
             localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
             firestoreReady = true;
+            showFirebaseOfflineBanner(false);
             return true;
         } else {
             // First time: push current localStorage data to Firestore
             await db.collection(DB_COLLECTION).doc('state').set(JSON.parse(JSON.stringify(state)));
             firestoreReady = true;
+            showFirebaseOfflineBanner(false);
             return true;
         }
     } catch (err) {
         console.warn('Firestore load failed, using localStorage:', err);
+        showFirebaseOfflineBanner(true);
         return false;
+    }
+}
+
+let _firebaseOfflineTimer = null;
+let _firebaseAlertSent = false;
+
+function showFirebaseOfflineBanner(show) {
+    const banner = document.getElementById('firebaseOfflineBanner');
+    if (banner) banner.style.display = show ? '' : 'none';
+
+    if (show && !_firebaseAlertSent) {
+        // Wait 10 minutes before sending WhatsApp — ignore brief disconnects
+        if (!_firebaseOfflineTimer) {
+            _firebaseOfflineTimer = setTimeout(() => {
+                if (!firestoreReady && typeof sendGreenApiMessage === 'function' && CONFIG.adminPhone) {
+                    sendGreenApiMessage(CONFIG.adminPhone, '⚠ שים לב! Firebase לא מחובר כבר 10 דקות במערכת ניהול הגדוד.\nהנתונים נשמרים מקומית בלבד ולא מסונכרנים.\nיש לבדוק את חיבור ה-Firestore.');
+                    _firebaseAlertSent = true;
+                }
+            }, 10 * 60 * 1000);
+        }
+    } else if (!show) {
+        // Firebase reconnected — cancel pending alert
+        if (_firebaseOfflineTimer) { clearTimeout(_firebaseOfflineTimer); _firebaseOfflineTimer = null; }
+        _firebaseAlertSent = false;
     }
 }
 
