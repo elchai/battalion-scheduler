@@ -1152,10 +1152,10 @@ const CONFIG = {
     serviceType: 'מילואים',
 
     // --- כניסה ---
-    password: 'demo',
+    password: '2024',
     adminName: 'רון כהן',
     isDemo: true,
-    skipPassword: true,
+    skipPassword: false,
     collectVisitorData: true,
     visitorCollection: 'demo-visitors',
 
