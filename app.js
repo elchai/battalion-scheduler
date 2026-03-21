@@ -361,6 +361,19 @@ function checkPassword() { doLogin(); }
 function doLoginByPersonalId() { doLogin(); }
 
 
+function unlockDemo() {
+    const pass = document.getElementById('loginDemoPass').value;
+    const err = document.getElementById('loginDemoPassError');
+    err.classList.remove('show');
+    if (pass !== CONFIG.password) {
+        err.textContent = 'סיסמה שגויה';
+        err.classList.add('show');
+        return;
+    }
+    document.getElementById('loginDemoPassword').style.display = 'none';
+    document.getElementById('loginDemoFields').style.display = '';
+}
+
 function doDemoLogin() {
     const name = (document.getElementById('loginDemoName')?.value || '').trim();
     const email = (document.getElementById('loginEmail')?.value || '').trim();

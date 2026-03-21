@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v276';
+    var _cb = 'v277';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -66,7 +66,18 @@
             <div class="login-error" id="loginError"></div>
         </div>
 
-        <!-- Demo mode fields (shown only when CONFIG.skipPassword) -->
+        <!-- Demo mode: Step 1 — password only -->
+        <div id="loginDemoPassword" style="display:none;">
+            <div class="login-field">
+                <label>סיסמה</label>
+                <input type="password" id="loginDemoPass" placeholder="הזן סיסמה" autocomplete="off"
+                       onkeypress="if(event.key==='Enter')unlockDemo()">
+            </div>
+            <button class="login-btn" onclick="unlockDemo()">המשך</button>
+            <div class="login-error" id="loginDemoPassError"></div>
+        </div>
+
+        <!-- Demo mode: Step 2 — visitor details + WhatsApp -->
         <div id="loginDemoFields" style="display:none;">
             <div class="login-field">
                 <label>שם מלא</label>
@@ -94,7 +105,11 @@
         <script>
         if (CONFIG.skipPassword) {
             document.getElementById('loginStep1').style.display = 'none';
-            document.getElementById('loginDemoFields').style.display = '';
+            if (CONFIG.demoRequirePassword) {
+                document.getElementById('loginDemoPassword').style.display = '';
+            } else {
+                document.getElementById('loginDemoFields').style.display = '';
+            }
         }
         </script>
     </div>

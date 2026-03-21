@@ -1155,7 +1155,8 @@ const CONFIG = {
     password: '2024',
     adminName: 'רון כהן',
     isDemo: true,
-    skipPassword: false,
+    skipPassword: true,
+    demoRequirePassword: true,
     collectVisitorData: true,
     visitorCollection: 'demo-visitors',
 
