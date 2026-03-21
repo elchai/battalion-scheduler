@@ -4259,42 +4259,54 @@ function updateMultiDayInfo() {
     info.textContent = `יוצר משמרות עבור ${days + 1} ימים`;
 }
 
-function updateShiftOptions() {
+function updateShiftOptions(forceRebuildTasks) {
     const company = document.getElementById('shiftCompany').value;
     const date = document.getElementById('shiftDate').value;
     const startTime = document.getElementById('shiftStart').value;
     const endTime = document.getElementById('shiftEnd').value;
 
-    // Tasks dropdown with capacity info — preserve current selection
     const taskSel = document.getElementById('shiftTask');
-    const prevTask = taskSel.value.replace(/\s*\(\d+\/\d+\)$/, '');
-    taskSel.innerHTML = '';
-    taskSel.onchange = function() {
-        renderShiftRoleSlots();
-        notifyLinkedTasks(company, this.value.replace(/\s*\(\d+\/\d+\)$/, ''));
-    };
+    const prevTask = (taskSel.value || '').replace(/\s*\(\d+\/\d+\)$/, '');
     const tasks = (companyData[company] && companyData[company].tasks) || [];
-    if (tasks.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = 'כללי'; opt.textContent = 'כללי';
-        taskSel.appendChild(opt);
-    } else {
-        tasks.forEach(t => {
-            const needed = t.perShift.soldiers + t.perShift.commanders + t.perShift.officers + (t.perShift.drivers || 0);
-            const assigned = state.shifts.filter(sh => sh.company === company && sh.task === t.name && sh.date === date &&
-                sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + sh.soldiers.length, 0);
+
+    // Only rebuild task list when company changes or forced (not on time changes)
+    if (forceRebuildTasks || taskSel.options.length === 0 || taskSel.dataset.company !== company) {
+        taskSel.innerHTML = '';
+        taskSel.dataset.company = company;
+        taskSel.onchange = function() {
+            renderShiftRoleSlots();
+            notifyLinkedTasks(company, this.value.replace(/\s*\(\d+\/\d+\)$/, ''));
+        };
+        if (tasks.length === 0) {
             const opt = document.createElement('option');
-            opt.value = t.name;
-            opt.textContent = needed > 0 ? `${t.name} (${assigned}/${needed})` : t.name;
-            if (needed > 0 && assigned >= needed) opt.style.color = '#C62828';
+            opt.value = 'כללי'; opt.textContent = 'כללי';
             taskSel.appendChild(opt);
-        });
-        // Restore previous task selection if still exists
+        } else {
+            tasks.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.name;
+                opt.textContent = t.name;
+                taskSel.appendChild(opt);
+            });
+        }
+        // Restore previous selection
         if (prevTask) {
-            const match = Array.from(taskSel.options).find(o => o.value.replace(/\s*\(\d+\/\d+\)$/, '') === prevTask);
+            const match = Array.from(taskSel.options).find(o => o.value === prevTask);
             if (match) taskSel.value = match.value;
         }
     }
+
+    // Update capacity counts in existing options (without rebuilding)
+    Array.from(taskSel.options).forEach(opt => {
+        const tName = opt.value;
+        const t = tasks.find(x => x.name === tName);
+        if (!t || !t.perShift) return;
+        const needed = (t.perShift.soldiers || 0) + (t.perShift.commanders || 0) + (t.perShift.officers || 0) + (t.perShift.drivers || 0);
+        const assigned = state.shifts.filter(sh => sh.company === company && sh.task === tName && sh.date === date &&
+            sh.startTime < endTime && sh.endTime > startTime).reduce((sum, sh) => sum + (sh.soldiers?.length || 0), 0);
+        opt.textContent = needed > 0 ? `${tName} (${assigned}/${needed})` : tName;
+        opt.style.color = (needed > 0 && assigned >= needed) ? '#C62828' : '';
+    });
 
     renderShiftRoleSlots();
 }
@@ -6802,16 +6814,29 @@ function shiftCoversDate(sh, dateStr) {
 function openModal(id) {
     document.getElementById(id).classList.add('active');
     document.body.classList.add('modal-open');
+    // Push history state so mobile back button closes modal
+    history.pushState({ modal: id }, '');
 }
 function closeModal(id) {
     const el = document.getElementById(id);
+    if (!el) return;
     el.classList.remove('active');
     el.style.zIndex = '';
-    // Only remove if no other modals are open
     if (!document.querySelector('.modal-overlay.active')) {
         document.body.classList.remove('modal-open');
     }
 }
+// Handle mobile back button — close topmost modal
+window.addEventListener('popstate', function(e) {
+    const activeModal = document.querySelector('.modal-overlay.active');
+    if (activeModal) {
+        activeModal.classList.remove('active');
+        activeModal.style.zIndex = '';
+        if (!document.querySelector('.modal-overlay.active')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+});
 
 function showUpdateBanner() {
     if (document.getElementById('swUpdateBanner')) return; // already shown
