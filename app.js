@@ -4050,10 +4050,13 @@ function openAddShift(company, preSelectTask) {
     if (multiRow) multiRow.style.display = 'none';
     // Reset preset buttons
     document.querySelectorAll('.shift-preset-btn').forEach(b => b.classList.remove('active'));
-    updateShiftOptions();
-    if (preSelectTask) {
-        const taskSel = document.getElementById('shiftTask');
-        if (taskSel) taskSel.value = preSelectTask;
+    // Force rebuild task list so previous selection doesn't persist
+    const tSel = document.getElementById('shiftTask');
+    if (tSel) { tSel.dataset.company = ''; tSel.innerHTML = ''; }
+    updateShiftOptions(true);
+    if (preSelectTask && tSel) {
+        tSel.value = preSelectTask;
+        renderShiftRoleSlots();
     }
     openModal('addShiftModal');
 }
