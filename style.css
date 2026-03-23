@@ -974,7 +974,14 @@ textarea { font-family: inherit; }
 
 /* ==================== Main Content with Sidebar ==================== */
 #mainApp { display: flex; flex-direction: column; min-height: 100vh; }
-.tab-content { margin-right: 260px; transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden; }
+.tab-content { margin-right: 260px; transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.2) transparent; }
+.tab-content::-webkit-scrollbar { width: 8px; }
+.tab-content::-webkit-scrollbar-track { background: transparent; }
+.tab-content::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+.tab-content::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
+[data-theme="dark"] .tab-content { scrollbar-color: rgba(255,255,255,0.2) transparent; }
+[data-theme="dark"] .tab-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+[data-theme="dark"] .tab-content::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
 .tab-content.active { flex: 1; }
 .tab-content.expanded { margin-right: 0; }
 .app-footer { margin-top: auto; }
