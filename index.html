@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v288';
+    var _cb = 'v289';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -764,24 +764,25 @@
                 ניתן לשלוח קישור לחתימה בוואטסאפ.
             </div>
         </div>
-        <div class="company-tabs" style="margin-bottom:12px;">
-            <button class="company-tab-btn active" data-comp="all" onclick="setWeaponsCompany('all',this)">כל הפלוגות</button>
-            <button class="company-tab-btn" data-comp="a" onclick="setWeaponsCompany('a',this)">פלוגה א</button>
-            <button class="company-tab-btn" data-comp="b" onclick="setWeaponsCompany('b',this)">פלוגה ב</button>
-            <button class="company-tab-btn" data-comp="c" onclick="setWeaponsCompany('c',this)">פלוגה ג</button>
-            <button class="company-tab-btn" data-comp="d" onclick="setWeaponsCompany('d',this)">פלוגה ד</button>
-            <button class="company-tab-btn" data-comp="hq" onclick="setWeaponsCompany('hq',this)">חפ"קים</button>
-            <button class="company-tab-btn" data-comp="palsam" onclick="setWeaponsCompany('palsam',this)">פלס"ם</button>
+        <div class="company-tabs" style="margin-bottom:12px;gap:4px;">
+            <button class="company-tab-btn active" data-comp="all" onclick="setWeaponsCompany('all',this)" style="font-size:0.8em;padding:5px 10px;">הכל</button>
+            <button class="company-tab-btn" data-comp="a" onclick="setWeaponsCompany('a',this)" style="font-size:0.8em;padding:5px 10px;">א</button>
+            <button class="company-tab-btn" data-comp="b" onclick="setWeaponsCompany('b',this)" style="font-size:0.8em;padding:5px 10px;">ב</button>
+            <button class="company-tab-btn" data-comp="c" onclick="setWeaponsCompany('c',this)" style="font-size:0.8em;padding:5px 10px;">ג</button>
+            <button class="company-tab-btn" data-comp="d" onclick="setWeaponsCompany('d',this)" style="font-size:0.8em;padding:5px 10px;">ד</button>
+            <button class="company-tab-btn" data-comp="hq" onclick="setWeaponsCompany('hq',this)" style="font-size:0.8em;padding:5px 10px;">חפ"ק</button>
+            <button class="company-tab-btn" data-comp="palsam" onclick="setWeaponsCompany('palsam',this)" style="font-size:0.8em;padding:5px 10px;">פלס"ם</button>
         </div>
         <select id="weaponsSendCompany" style="display:none;"><option value="all" selected></option></select>
         <div class="quick-stats" id="weaponsStats"></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
             <div class="filter-buttons" style="margin:0;">
                 <button class="filter-btn active" onclick="setWeaponsFilter('all',this)">הכל</button>
                 <button class="filter-btn" onclick="setWeaponsFilter('signed',this)">נחתם</button>
+                <button class="filter-btn" onclick="setWeaponsFilter('inprogress',this)">בתהליך</button>
                 <button class="filter-btn" onclick="setWeaponsFilter('unsigned',this)">טרם נחתם</button>
             </div>
-            <div class="search-bar" style="flex:1;min-width:160px;margin:0;">
+            <div class="search-bar" style="max-width:180px;margin:0;">
                 <span class="search-icon"><i data-lucide="search"></i></span>
                 <input type="text" id="weaponsSearch" placeholder="חיפוש..." oninput="renderWeaponsTab()">
             </div>

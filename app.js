@@ -11510,10 +11510,22 @@ function renderWeaponsTab() {
     if (query) soldiers = soldiers.filter(s => s.name.toLowerCase().includes(query));
 
     // Apply filter
+    const waSentIdsFilter = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
     if (weaponsFilter === 'signed') {
         soldiers = soldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; });
+    } else if (weaponsFilter === 'inprogress') {
+        soldiers = soldiers.filter(s => {
+            const e = getEasyDoStatus(s);
+            if (e && e.status === 'completed') return false;
+            return waSentIdsFilter.has(s.id) || (e && e.status === 'in_progress');
+        });
     } else if (weaponsFilter === 'unsigned') {
-        soldiers = soldiers.filter(s => { const e = getEasyDoStatus(s); return !e || e.status !== 'completed'; });
+        soldiers = soldiers.filter(s => {
+            const e = getEasyDoStatus(s);
+            if (e && e.status === 'completed') return false;
+            if (waSentIdsFilter.has(s.id) || (e && e.status === 'in_progress')) return false;
+            return true;
+        });
     }
 
     // Stats — filtered by selected company
