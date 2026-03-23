@@ -996,7 +996,7 @@ function saveState() {
 function cleanupOldData() {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = localDateStr(cutoff);
     const oldShifts = state.shifts.filter(sh => sh.date < cutoffStr).length;
     const oldLeaves = state.leaves.filter(l => l.endDate < cutoffStr).length;
     const oldRollCalls = state.rollCalls ? state.rollCalls.filter(rc => rc.date < cutoffStr).length : 0;
@@ -1359,7 +1359,7 @@ async function init() {
     if (_el('leaveStart')) _el('leaveStart').value = today;
     if (_el('rotGroupStartDate')) _el('rotGroupStartDate').value = today;
     const d4 = new Date(); d4.setDate(d4.getDate() + 4);
-    if (_el('leaveEnd')) _el('leaveEnd').value = d4.toISOString().split('T')[0];
+    if (_el('leaveEnd')) _el('leaveEnd').value = localDateStr(d4);
     updateShiftOptions();
     checkSession();
 
@@ -2081,7 +2081,7 @@ function renderDashboard() {
 
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    const sixMonthsStr = sixMonthsAgo.toISOString().split('T')[0];
+    const sixMonthsStr = localDateStr(sixMonthsAgo);
     const needsRange = state.soldiers.filter(s => {
         if (!canView(s.company)) return false;
         const wp = state.weaponsData.find(w => w.soldierId === s.id);
@@ -2259,10 +2259,10 @@ function updateNotifications() {
     const notifications = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = localDateStr(today);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const tomorrowStr = localDateStr(tomorrow);
 
     // 1. Rotation changes happening today/tomorrow
     state.rotationGroups.forEach(g => {
@@ -2798,7 +2798,7 @@ function renderRotationGroups() {
                 </div>
                 <div style="text-align:left;">
                     <div style="font-size:0.75em;">שינוי הבא:</div>
-                    <div style="font-size:0.85em;font-weight:700;">${formatDate(nextChange.toISOString().split('T')[0])}</div>
+                    <div style="font-size:0.85em;font-weight:700;">${formatDate(localDateStr(nextChange))}</div>
                 </div>
             </div>
             <div class="rotation-group-body">
@@ -2883,8 +2883,8 @@ function renderCalendar() {
     for (let i = 0; i < 7; i++) {
         const day = new Date(weekStart);
         day.setDate(weekStart.getDate() + i);
-        const dateStr = day.toISOString().split('T')[0];
-        const isToday = dateStr === today.toISOString().split('T')[0];
+        const dateStr = localDateStr(day);
+        const isToday = dateStr === localDateStr(today);
 
         // Get shifts for this day
         const dayShifts = state.shifts.filter(sh => {
@@ -3393,10 +3393,10 @@ function sendWhatsAppCompose() {
 function generateWhatsAppNotifications() {
     const notifications = [];
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = localDateStr(today);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const tomorrowStr = localDateStr(tomorrow);
 
     // 1. Shift reminders (tomorrow's shifts)
     state.shifts.filter(sh => sh.date === tomorrowStr).forEach(sh => {
@@ -4804,13 +4804,13 @@ function openAutoSchedule(compKey) {
     _autoScheduleCompany = compKey;
     _autoScheduleProposal = null;
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = localDateStr(today);
     const endWeek = new Date(today); endWeek.setDate(endWeek.getDate() + (6 - endWeek.getDay()));
     const startEl = document.getElementById('autoSchedStart');
     const endEl = document.getElementById('autoSchedEnd');
     startEl.value = todayStr;
     startEl.min = todayStr;
-    endEl.value = endWeek.toISOString().slice(0, 10);
+    endEl.value = localDateStr(endWeek);
     endEl.min = todayStr;
     document.getElementById('autoSchedPreview').innerHTML = '<div style="text-align:center;color:var(--text-light);padding:40px;">בחר טווח תאריכים ולחץ "הצע שיבוץ"</div>';
     document.getElementById('autoSchedFooter').style.display = 'none';
@@ -4905,7 +4905,7 @@ function generateScheduleProposal(compKey, startDate, endDate) {
         // Simple check: don't assign to morning if did night before
         const prevDate = new Date(date + 'T00:00:00');
         prevDate.setDate(prevDate.getDate() - 1);
-        const prevDateStr = prevDate.toISOString().slice(0, 10);
+        const prevDateStr = localDateStr(prevDate);
         const nightKey = getUsedKey(prevDateStr, '22:00', '06:00');
         if (usedMap[nightKey] && usedMap[nightKey].has(solId) && startTime < '14:00') return false;
         return true;
@@ -4926,7 +4926,7 @@ function generateScheduleProposal(compKey, startDate, endDate) {
     let d = new Date(startDate + 'T00:00:00');
     const end = new Date(endDate + 'T00:00:00');
     while (d <= end) {
-        dates.push(d.toISOString().slice(0, 10));
+        dates.push(localDateStr(d));
         d.setDate(d.getDate() + 1);
     }
 
@@ -4934,7 +4934,7 @@ function generateScheduleProposal(compKey, startDate, endDate) {
     function isLeavingTomorrow(solId, date) {
         const tomorrow = new Date(date + 'T00:00:00');
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+        const tomorrowStr = localDateStr(tomorrow);
         return state.leaves.some(l => l.soldierId === solId && l.startDate === tomorrowStr);
     }
 
@@ -5544,7 +5544,7 @@ function openTrainingEventModal(editId) {
         document.getElementById('teNotes').value = evt.notes || '';
     } else {
         document.getElementById('teEventName').value = '';
-        document.getElementById('teDate').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('teDate').value = new localDateStr(Date());
         document.getElementById('teTime').value = '';
         compSelect.value = (!currentUser || currentUser.unit === 'gdudi') ? '' : currentUser.unit;
         document.getElementById('teCommander').value = '';
@@ -5608,7 +5608,7 @@ function saveTrainingEvent() {
             if (eventData.company && s.company !== eventData.company) return false;
             if (eventData.unit && s.section !== eventData.unit) return false;
             // Exclude soldiers on leave today
-            const today = eventData.trainingDate || new Date().toISOString().slice(0, 10);
+            const today = eventData.trainingDate || new localDateStr(Date());
             const onLeave = state.leaves.some(l => l.soldierId === s.id && l.startDate <= today && l.endDate >= today);
             return !onLeave;
         });
@@ -6196,7 +6196,7 @@ function openShootingExecutionModal(editId) {
         compSelect.value = exec.company || '';
         document.getElementById('seFilledBy').value = exec.filledBy || '';
     } else {
-        document.getElementById('seDate').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('seDate').value = new localDateStr(Date());
         compSelect.value = (!currentUser || currentUser.unit === 'gdudi') ? '' : currentUser.unit;
         document.getElementById('seFilledBy').value = currentUser ? currentUser.name : '';
     }
@@ -6671,7 +6671,7 @@ function getNextShiftStart(shiftTimes, afterTime) {
 function getNextDay(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
     d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    return localDateStr(d);
 }
 
 // ==================== LEAVE ====================
@@ -6684,7 +6684,7 @@ function openAddLeave(company) {
     document.getElementById('leaveStart').value = today;
     document.getElementById('leaveStartTime').value = '08:00';
     const d4 = new Date(); d4.setDate(d4.getDate() + 4);
-    document.getElementById('leaveEnd').value = d4.toISOString().split('T')[0];
+    document.getElementById('leaveEnd').value = localDateStr(d4);
     document.getElementById('leaveEndTime').value = '07:59';
     // Show multi-select, hide single display
     document.getElementById('leaveSoldierGroup').style.display = '';
@@ -6881,11 +6881,13 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// Return today's date as YYYY-MM-DD in local timezone (avoids UTC midnight off-by-one in Israel)
-function localToday() {
-    const d = new Date();
+// Return a date as YYYY-MM-DD in local timezone (avoids UTC midnight off-by-one in Israel)
+function localDateStr(d) {
+    if (!d) d = new Date();
+    if (typeof d === 'string') return d; // already a string
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+function localToday() { return localDateStr(new Date()); }
 
 // Check if a shift covers a specific date (supports endDate for multi-day shifts)
 function shiftCoversDate(sh, dateStr) {
@@ -7628,7 +7630,7 @@ function exportAllData() {
     const jsonSheet = XLSX.utils.aoa_to_sheet([['_BACKUP_JSON_'], [JSON.stringify(fullData)]]);
     XLSX.utils.book_append_sheet(wb, jsonSheet, '_גיבוי_מלא_');
 
-    XLSX.writeFile(wb, `battalion_backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `battalion_backup_${new localDateStr(Date())}.xlsx`);
     showToast('נתונים יוצאו לאקסל בהצלחה');
 }
 
@@ -7731,7 +7733,7 @@ function exportCompanyData(compKey) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${comp.name}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `${comp.name}_${new localDateStr(Date())}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
@@ -7953,7 +7955,7 @@ function saveRollCall() {
     const record = {
         id: 'rc_' + Date.now(),
         company: compKey,
-        date: now.toISOString().split('T')[0],
+        date: localDateStr(now),
         time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         author: currentUser ? currentUser.name : 'מערכת',
         entries: {}
@@ -8192,10 +8194,10 @@ function renderReport1() {
     // Determine which day to show detail for
     let focusDateStr;
     if (range === 'day') {
-        focusDateStr = days[0].toISOString().split('T')[0];
+        focusDateStr = localDateStr(days[0]);
     } else {
         // Multi-day: use selected day or today (if in range), or first day
-        const dayStrs = days.map(d => d.toISOString().split('T')[0]);
+        const dayStrs = days.map(d => localDateStr(d));
         if (report1SelectedDay && dayStrs.includes(report1SelectedDay)) {
             focusDateStr = report1SelectedDay;
         } else if (dayStrs.includes(todayStr)) {
@@ -8226,7 +8228,7 @@ function renderReport1() {
 
     // Build daily summaries for all days (for day strip)
     const dailySummaries = days.map(d => {
-        const ds = d.toISOString().split('T')[0];
+        const ds = localDateStr(d);
         const inOp = isDateInOperation(ds);
         if (!inOp) return { active: 0, base: 0, home: 0, notserving: 0, outOfOp: true };
         let active = 0, base = 0, home = 0, notserving = 0;
@@ -8266,7 +8268,7 @@ function renderReport1() {
             for (let pad = 0; pad < firstDow; pad++) { html += '<div class="r1-cal-cell empty"></div>'; cellIdx++; }
             days.forEach((d, i) => {
                 if (cellIdx > 0 && cellIdx % 7 === 0) html += '</div><div class="r1-cal-row">';
-                const ds = d.toISOString().split('T')[0];
+                const ds = localDateStr(d);
                 const isToday = ds === todayStr;
                 const isSelected = ds === focusDateStr;
                 const sum = dailySummaries[i];
@@ -8292,7 +8294,7 @@ function renderReport1() {
             // Regular day strip for week/month
             html += '<div class="r1-day-strip">';
             days.forEach((d, i) => {
-                const ds = d.toISOString().split('T')[0];
+                const ds = localDateStr(d);
                 const isToday = ds === todayStr;
                 const isSelected = ds === focusDateStr;
                 const isWeekend = d.getDay() === 5 || d.getDay() === 6;
@@ -8569,7 +8571,7 @@ function renderSpecialistsPanel() {
             if (soldiers.length === 0) {
                 tableHtml = '<div class="empty-state" style="margin-top:16px;"><p>לא נמצאו ' + esc(spec.name) + '</p></div>';
             } else {
-                const todayStr = new Date().toISOString().split('T')[0];
+                const todayStr = new localDateStr(Date());
                 const rows = soldiers.map(s => {
                     const status = getSoldierRealtimeStatus(s);
                     const compName = companyData[s.company]?.name || s.company;
@@ -8620,7 +8622,7 @@ function generateMorningReport() {
     const container = document.getElementById('morningReportContent');
     if (!container) return;
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = localDateStr(now);
     const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeDisplay = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
@@ -8667,7 +8669,7 @@ function generateMorningReport() {
     for (let d = 1; d <= 3; d++) {
         const futureDate = new Date(now);
         futureDate.setDate(futureDate.getDate() + d);
-        const fStr = futureDate.toISOString().split('T')[0];
+        const fStr = localDateStr(futureDate);
         const leaving = state.leaves.filter(l => l.startDate === fStr);
         const returning = state.leaves.filter(l => l.endDate === fStr);
         if (leaving.length > 0 || returning.length > 0) {
@@ -8721,7 +8723,7 @@ function generateMorningReport() {
 
 function getMorningReportText() {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = localDateStr(now);
     const dateDisplay = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeDisplay = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
     const companies = allCompanyKeys();
@@ -8789,7 +8791,7 @@ function exportMorningReportPDF() {
     if (typeof html2pdf === 'undefined') { showToast('ספריית PDF לא נטענה', 'error'); return; }
     html2pdf().set({
         margin: 10,
-        filename: `דוח_בוקר_${new Date().toISOString().split('T')[0]}.pdf`,
+        filename: `דוח_בוקר_${new localDateStr(Date())}.pdf`,
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }).from(el).save();
@@ -10770,7 +10772,7 @@ function exportEquipmentCSV() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `צלמ_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `צלמ_${new localDateStr(Date())}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     showToast('צל"מ יוצא ל-CSV');
@@ -11144,7 +11146,7 @@ function doFilteredExportCSV() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `צלמ_מסונן_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `צלמ_מסונן_${new localDateStr(Date())}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     closeModal('exportFilterModal');
@@ -11179,7 +11181,7 @@ function doFilteredExportPDF() {
             </tr>`).join('')}</tbody>
         </table>
     </div>`;
-    generatePDF(htmlContent, `צלמ_מסונן_${new Date().toISOString().split('T')[0]}`);
+    generatePDF(htmlContent, `צלמ_מסונן_${new localDateStr(Date())}`);
     closeModal('exportFilterModal');
 }
 
@@ -11456,7 +11458,7 @@ function renderRestrictedTab(tabName, message) {
 function openRangeResetSummary() {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    const sixMonthsStr = sixMonthsAgo.toISOString().split('T')[0];
+    const sixMonthsStr = localDateStr(sixMonthsAgo);
 
     const byCompany = {};
     ALL_COMPANIES.forEach(k => { if (canView(k)) byCompany[k] = []; });
@@ -13540,7 +13542,7 @@ function exportPakalCSV() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `פקל_גדודי_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `פקל_גדודי_${new localDateStr(Date())}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
