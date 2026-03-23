@@ -7387,6 +7387,16 @@ function updateTask(compKey, index, field, value) {
         t.commanders = t.perShift.commanders * value;
         t.officers = t.perShift.officers * value;
         t.drivers = (t.perShift.drivers || 0) * value;
+        // Sync shifts to linked tasks (e.g. כ"כ gets same rotations as its source)
+        companyData[compKey].tasks.forEach(other => {
+            if (other.linkedTo === t.name) {
+                other.shifts = value;
+                other.soldiers = other.perShift.soldiers * value;
+                other.commanders = other.perShift.commanders * value;
+                other.officers = other.perShift.officers * value;
+                other.drivers = (other.perShift.drivers || 0) * value;
+            }
+        });
     } else {
         t.perShift[field] = value;
         t[field] = value * t.shifts;
@@ -7446,7 +7456,9 @@ function linkTask(compKey, taskIndex, sourceTaskName) {
     if (!sourceTaskName) return;
     const t = companyData[compKey].tasks[taskIndex];
     t.linkedTo = sourceTaskName;
-    // Keep manpower as-is — just mark as shared (not counted twice)
+    // Sync shifts (rotations) from source task
+    const source = companyData[compKey].tasks.find(x => x.name === sourceTaskName);
+    if (source && source.shifts) t.shifts = source.shifts;
     saveTasksToStorage();
     renderTaskEditor();
     showToast(`${t.name} — כ״א משותף עם ${sourceTaskName} (לא נספר פעמיים)`, 'success');
