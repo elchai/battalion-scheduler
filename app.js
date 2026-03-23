@@ -11421,6 +11421,14 @@ function parseCSV(csv) {
 
 // ==================== WEAPONS PROJECT ====================
 
+function setWeaponsCompany(comp, btn) {
+    const hiddenSelect = document.getElementById('weaponsSendCompany');
+    if (hiddenSelect) hiddenSelect.value = comp;
+    document.querySelectorAll('#tab-weapons .company-tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderWeaponsTab();
+}
+
 function setWeaponsFilter(filter, btn) {
     weaponsFilter = filter;
     document.querySelectorAll('#tab-weapons .filter-btn').forEach(b => b.classList.remove('active'));
@@ -11496,16 +11504,16 @@ function renderWeaponsTab() {
         soldiers = soldiers.filter(s => { const e = getEasyDoStatus(s); return !e || e.status !== 'completed'; });
     }
 
-    // Stats
+    // Stats — filtered by selected company
     const statsEl = document.getElementById('weaponsStats');
     if (statsEl) {
-        const total = state.soldiers.length;
-        const easyDoSigned = state.soldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; }).length;
-        // "בתהליך" = received WA message (weapons context) but didn't complete EasyDo form
+        const statSoldiers = compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers;
+        const total = statSoldiers.length;
+        const easyDoSigned = statSoldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; }).length;
         const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
-        const easyDoInProgress = state.soldiers.filter(s => {
+        const easyDoInProgress = statSoldiers.filter(s => {
             const e = getEasyDoStatus(s);
-            if (e && e.status === 'completed') return false; // already signed
+            if (e && e.status === 'completed') return false;
             return waSentIds.has(s.id) || (e && e.status === 'in_progress');
         }).length;
         const notStarted = total - easyDoSigned - easyDoInProgress;
