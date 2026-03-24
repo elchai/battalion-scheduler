@@ -339,17 +339,23 @@ function checkAndSendReminders() {
     // Only send between 08:00-22:00
     const hour = now.getHours();
     if (hour < 8 || hour >= 22) return;
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     const fiveMinMs = 5 * 60 * 1000;
     let sent = 0;
 
     state.shifts.forEach(sh => {
         if (!sh.soldiers || !sh.soldiers.length) return;
-        // Calculate shift start datetime
         const shiftStart = new Date(sh.date + 'T' + (sh.startTime || '00:00') + ':00');
-        // Check if shift starts within the 2h window (±5 min)
-        const diff = shiftStart.getTime() - now.getTime();
-        if (diff < (2 * 60 * 60 * 1000 - fiveMinMs) || diff > (2 * 60 * 60 * 1000 + fiveMinMs)) return;
+        const diffMs = shiftStart.getTime() - now.getTime();
+        const diffHours = diffMs / (60 * 60 * 1000);
+
+        // Two send windows:
+        // 1. Normal: shift in ~2 hours (and current hour is 8-22)
+        // 2. Overnight: it's ~22:00 now and shift is early morning (before 10:00 tomorrow)
+        const isNormalWindow = Math.abs(diffMs - 2 * 60 * 60 * 1000) < fiveMinMs;
+        const isOvernightWindow = hour >= 21 && diffHours > 2 && diffHours <= 12 &&
+            shiftStart.getHours() < 10;
+
+        if (!isNormalWindow && !isOvernightWindow) return;
 
         sh.soldiers.forEach(solId => {
             const key = `${sh.id}_${solId}_${sh.date}`;
@@ -358,15 +364,27 @@ function checkAndSendReminders() {
             if (!sol || !sol.phone) return;
 
             const taskName = sh.task || sh.shiftName || 'משמרת';
-            const template = settings.reminderTemplate || 'שלום {שם} 👋\nשים לב! בעוד שעתיים בשעה {שעה} אתה אמור להתחיל את המשימה ב{משימה}.\nבהצלחה!';
-            const msg = template.replace(/\{שם\}/g, sol.name).replace(/\{שעה\}/g, sh.startTime).replace(/\{משימה\}/g, taskName);
+            // Build dynamic time description
+            let timeDesc;
+            if (diffHours <= 2.5) {
+                timeDesc = 'בעוד שעתיים';
+            } else if (diffHours <= 4) {
+                timeDesc = `בעוד ${Math.round(diffHours)} שעות`;
+            } else {
+                timeDesc = 'מחר בבוקר';
+            }
+            const template = settings.reminderTemplate || 'שלום {שם} 👋\nשים לב! {זמן} בשעה {שעה} אתה אמור להתחיל את המשימה ב{משימה}.\nבהצלחה!';
+            const msg = template
+                .replace(/\{שם\}/g, sol.name)
+                .replace(/\{שעה\}/g, sh.startTime)
+                .replace(/\{משימה\}/g, taskName)
+                .replace(/\{זמן\}/g, timeDesc);
             sendGreenApiMessage(sol.phone, msg);
             _sentReminders.add(key);
             sent++;
         });
     });
 
-    // Persist sent reminders (keep last 500 to prevent bloat)
     if (sent > 0) {
         const arr = Array.from(_sentReminders).slice(-500);
         localStorage.setItem(CONFIG.storagePrefix + 'SentReminders', JSON.stringify(arr));
@@ -7174,9 +7192,9 @@ function renderSettingsTab() {
     <!-- Shift Reminder Template -->
     <div class="settings-card">
         <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:middle;margin-left:6px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.106 1.519 5.834L.052 23.476a.5.5 0 00.607.607l5.642-1.467A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.38-1.572l-.386-.232-3.348.87.87-3.348-.232-.386A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg> תבנית הודעת תזכורת (WhatsApp)</h3>
-        <p style="font-size:0.78em;color:var(--text-light);margin-bottom:8px;">הודעה שנשלחת אוטומטית לחייל שעתיים לפני המשמרת. משתנים: {שם} {שעה} {משימה}</p>
+        <p style="font-size:0.78em;color:var(--text-light);margin-bottom:8px;">הודעה שנשלחת אוטומטית לחייל לפני המשמרת (08:00-22:00 בלבד). משתנים: {שם} {שעה} {משימה} {זמן}</p>
         <textarea id="reminderTemplate" rows="3" style="width:100%;resize:vertical;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:0.9em;font-family:inherit;background:var(--card);color:var(--text);direction:rtl;"
-            onchange="settings.reminderTemplate=this.value;saveSettings();">${esc(settings.reminderTemplate || 'שלום {שם} 👋\nשים לב! בעוד שעתיים בשעה {שעה} אתה אמור להתחיל את המשימה ב{משימה}.\nבהצלחה!')}</textarea>
+            onchange="settings.reminderTemplate=this.value;saveSettings();">${esc(settings.reminderTemplate || 'שלום {שם} 👋\nשים לב! {זמן} בשעה {שעה} אתה אמור להתחיל את המשימה ב{משימה}.\nבהצלחה!')}</textarea>
     </div>
 
     <!-- Training Types -->
