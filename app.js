@@ -320,6 +320,8 @@ const _sentReminders = new Set();
 
 function startShiftReminders() {
     if (_shiftReminderInterval) return;
+    // NEVER send reminders in demo mode
+    if (CONFIG.isDemo) return;
     // Load sent reminders from localStorage
     try {
         const saved = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + 'SentReminders') || '[]');
@@ -332,8 +334,11 @@ function startShiftReminders() {
 }
 
 function checkAndSendReminders() {
-    if (!CONFIG.greenApi) return;
+    if (!CONFIG.greenApi || CONFIG.isDemo) return;
     const now = new Date();
+    // Only send between 08:00-22:00
+    const hour = now.getHours();
+    if (hour < 8 || hour >= 22) return;
     const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     const fiveMinMs = 5 * 60 * 1000;
     let sent = 0;

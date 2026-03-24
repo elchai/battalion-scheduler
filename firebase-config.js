@@ -88,11 +88,11 @@ function showFirebaseOfflineBanner(show) {
     const banner = document.getElementById('firebaseOfflineBanner');
     if (banner) banner.style.display = show ? '' : 'none';
 
-    if (show && !_firebaseAlertSent) {
+    if (show && !_firebaseAlertSent && !CONFIG.isDemo) {
         // Wait 10 minutes before sending WhatsApp — ignore brief disconnects
         if (!_firebaseOfflineTimer) {
             _firebaseOfflineTimer = setTimeout(() => {
-                if (!firestoreReady && typeof sendGreenApiMessage === 'function' && CONFIG.adminPhone) {
+                if (!firestoreReady && !CONFIG.isDemo && typeof sendGreenApiMessage === 'function' && CONFIG.adminPhone) {
                     sendGreenApiMessage(CONFIG.adminPhone, '⚠ שים לב! Firebase לא מחובר כבר 10 דקות במערכת ניהול הגדוד.\nהנתונים נשמרים מקומית בלבד ולא מסונכרנים.\nיש לבדוק את חיבור ה-Firestore.');
                     _firebaseAlertSent = true;
                 }
