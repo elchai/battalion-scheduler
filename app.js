@@ -292,11 +292,12 @@ function isSoldierView() {
 // ==================== GREEN API WHATSAPP ====================
 function sendGreenApiWhatsApp(firstName, phone) {
     if (!CONFIG.greenApi) return;
-    sendGreenApiMessage(phone, `שלום ${firstName} 😎\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`);
+    sendGreenApiMessage(phone, `שלום ${firstName} 😎\nאני שמח לראות שאתה מתעניין במערכת!\nאם יש שאלות אתה מוזמן לפנות אלי כאן\nבהצלחה!\nאלחי פיין`, true);
 }
 
-function sendGreenApiMessage(phone, message) {
+function sendGreenApiMessage(phone, message, isWelcome) {
     if (!CONFIG.greenApi) return;
+    if (CONFIG.isDemo && !isWelcome) return;
     const { idInstance, apiTokenInstance, apiUrl } = CONFIG.greenApi;
     if (!idInstance || !apiTokenInstance) return;
     let cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
