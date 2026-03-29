@@ -79,7 +79,7 @@ function renderConstraintsListContent() {
 
         let details = '';
         if (type === 'date_block') {
-            details = `${c.startDate || ''} — ${c.endDate || ''}`;
+            details = `${c.startDate ? formatDate(c.startDate) : ''} — ${c.endDate ? formatDate(c.endDate) : ''}`;
             if (c.reason) details += ` (${esc(c.reason)})`;
         } else if (type === 'no_nights') {
             details = c.reason || 'לא למשמרות לילה';

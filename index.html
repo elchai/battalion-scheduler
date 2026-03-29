@@ -15,7 +15,7 @@
     var _isDemo = location.pathname.includes('/demo') || location.search.includes('demo');
     </script>
     <script>
-    var _cb = 'v293';
+    var _cb = 'v294';
     if (_isDemo) {
         document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
     } else {
@@ -952,6 +952,16 @@
                         <option value="מ1">מ1</option><option value="מ2">מ2</option><option value="מ3">מ3</option><option value="מ4">מ4</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>הגבלת משימות</label>
+                <select id="soldierTaskRestriction">
+                    <option value="">ללא הגבלה — ניתן לשבץ בכל משימה</option>
+                    <option value="hafak_only">חפ"ק בלבד</option>
+                    <option value="static_only">עמדות סטטיות בלבד</option>
+                    <option value="no_night">ללא משמרות לילה</option>
+                    <option value="light_duty">תפקוד קל בלבד</option>
+                </select>
             </div>
             <div class="form-group" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
                 <label style="font-weight:600;">תקופות שירות (פיצול)</label>

@@ -690,7 +690,7 @@ function renderSoldierShifts() {
         const badge = isMine ? '<span style="background:var(--primary);color:white;font-size:0.72em;padding:2px 8px;border-radius:10px;margin-right:8px;">אני משובץ</span>' : '';
         return `<div style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;border-right:4px solid ${borderColor};">
             <div style="font-weight:600;">${esc(sh.name || sh.type || 'משמרת')} ${badge}</div>
-            <div style="font-size:0.82em;color:var(--text-light);">${sh.date || ''} ${sh.time || ''}</div>
+            <div style="font-size:0.82em;color:var(--text-light);">${sh.date ? formatDate(sh.date) : ''} ${sh.time || ''}</div>
             ${sh.notes ? `<div style="font-size:0.82em;margin-top:4px;">${esc(sh.notes)}</div>` : ''}
         </div>`;
     }).join('');
@@ -2551,7 +2551,7 @@ function renderCompanyTab(compKey) {
             ${editSoldiers ? `<button class="btn btn-add" onclick="openAddSoldier('${compKey}')">+ הוספת חייל</button>` : ''}
             ${editShifts ? `<button class="btn btn-success" onclick="openAddShift('${compKey}')">+ שיבוץ למשמרת</button>
             <button class="btn btn-warning" onclick="openAddLeave('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> יציאה הביתה</button>
-            <button class="btn btn-special" onclick="openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
+            <button class="btn btn-special" onclick="_autoScheduleTaskFilter=null;openAutoSchedule('${compKey}')">שיבוץ אוטומטי</button>` : ''}
             ${editConstraints ? `<button class="btn btn-danger" onclick="openConstraints('${compKey}')">אילוצים</button>` : ''}
             <button class="btn btn-export" onclick="exportCompanyData('${compKey}')">ייצוא CSV</button>
             <button class="btn btn-special" onclick="toggleCompanyView('${compKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-left:4px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> תצוגת מ"פ</button>
@@ -2573,6 +2573,7 @@ function renderCompanyTab(compKey) {
                         <th>נהג</th>
                         <th>סבבים</th>
                         <th>משובצים</th>
+                        ${editShifts ? '<th>שיבוץ</th>' : ''}
                     </tr></thead>
                     <tbody>
                         ${comp.tasks.map(t => {
@@ -2588,6 +2589,7 @@ function renderCompanyTab(compKey) {
                                 <td>${t.perShift.drivers || 0}</td>
                                 <td>${t.shifts || '-'}</td>
                                 <td>${assigned}/${totalNeeded}</td>
+                                ${editShifts ? `<td style="text-align:center;"><button class="btn btn-special btn-sm" onclick="event.stopPropagation();openAutoScheduleForTask('${compKey}','${esc(t.name)}')" title="שיבוץ אוטומטי למשימה זו" style="font-size:0.75em;padding:3px 8px;">⚡</button></td>` : ''}
                             </tr>`;
                         }).join('')}
                         ${(() => {
@@ -2602,6 +2604,7 @@ function renderCompanyTab(compKey) {
                                 <td><strong>${sDrv}</strong></td>
                                 <td>-</td>
                                 <td><strong>${grand}</strong></td>
+                                ${editShifts ? '<td></td>' : ''}
                             </tr>`;
                         })()}
                     </tbody>
@@ -3685,6 +3688,7 @@ function openAddSoldier(company) {
     document.getElementById('soldierShirtSize').value = '';
     document.getElementById('soldierPantsSize').value = '';
     document.getElementById('soldierNotes').value = '';
+    document.getElementById('soldierTaskRestriction').value = '';
     renderServicePeriods([]);
     openModal('addSoldierModal');
     setTimeout(() => document.getElementById('soldierFirstName').focus(), 100);
@@ -3746,6 +3750,7 @@ function openSoldierProfile(id) {
             ${sol.shoeSize ? `<div class="sp-info-item"><span class="sp-label">מידת נעליים</span><span class="sp-value">${esc(sol.shoeSize)}</span></div>` : ''}
             ${sol.shirtSize ? `<div class="sp-info-item"><span class="sp-label">מידת חולצה</span><span class="sp-value">${esc(sol.shirtSize)}</span></div>` : ''}
             ${sol.pantsSize ? `<div class="sp-info-item"><span class="sp-label">מידת מכנס</span><span class="sp-value">${esc(sol.pantsSize)}</span></div>` : ''}
+            ${sol.taskRestriction ? `<div class="sp-info-item"><span class="sp-label">הגבלת משימות</span><span class="sp-value" style="color:var(--danger);font-weight:600;">${getTaskRestrictionLabel(sol.taskRestriction)}</span></div>` : ''}
             ${sol.notes ? `<div class="sp-info-item" style="grid-column:1/-1;"><span class="sp-label">הערות</span><span class="sp-value">${esc(sol.notes)}</span></div>` : ''}
         </div>
     </div>`;
@@ -3836,7 +3841,7 @@ function openSoldierProfile(id) {
         html += `<details class="sp-section"><summary><h4 style="display:inline;">תרגילים (${soldierExercises.length}) — ממוצע: ${avgRat}</h4></summary><div class="sp-list">`;
         soldierExercises.slice(0, 10).forEach(ex => {
             const evt = (state.trainingEvents || []).find(e => e.id === ex.trainingEventId);
-            html += `<div class="sp-list-item"><span>${evt ? esc(evt.eventName) : '—'}</span><span>${ex.trainingDate || ''}</span><span style="font-weight:600;">${ex.commanderRating}</span></div>`;
+            html += `<div class="sp-list-item"><span>${evt ? esc(evt.eventName) : '—'}</span><span>${ex.trainingDate ? formatDate(ex.trainingDate) : ''}</span><span style="font-weight:600;">${ex.commanderRating}</span></div>`;
         });
         html += `</div></details>`;
     }
@@ -3849,7 +3854,7 @@ function openSoldierProfile(id) {
         html += `<details class="sp-section"><summary><h4 style="display:inline;">ירי (${soldierShootingResults.length} מקצים) — ממוצע: ${shootAvg}%</h4></summary><div class="sp-list">`;
         soldierShootingResults.slice(0, 10).forEach(r => {
             const drill = (state.shootingDrills || []).find(d => d.id === r.drillId);
-            html += `<div class="sp-list-item"><span>${drill ? esc(drill.drillName) : '—'}</span><span>${r.executionDate || ''}</span><span style="font-weight:700;color:${r.scorePercentage >= 80 ? '#2e7d32' : r.scorePercentage >= 60 ? '#ff9800' : '#c62828'};">${r.scorePercentage}%</span></div>`;
+            html += `<div class="sp-list-item"><span>${drill ? esc(drill.drillName) : '—'}</span><span>${r.executionDate ? formatDate(r.executionDate) : ''}</span><span style="font-weight:700;color:${r.scorePercentage >= 80 ? '#2e7d32' : r.scorePercentage >= 60 ? '#ff9800' : '#c62828'};">${r.scorePercentage}%</span></div>`;
         });
         html += `</div></details>`;
     }
@@ -3893,6 +3898,7 @@ function openEditSoldier(id) {
     document.getElementById('soldierShirtSize').value = sol.shirtSize || '';
     document.getElementById('soldierPantsSize').value = sol.pantsSize || '';
     document.getElementById('soldierNotes').value = sol.notes || '';
+    document.getElementById('soldierTaskRestriction').value = sol.taskRestriction || '';
     renderServicePeriods(sol.servicePeriods || []);
     openModal('addSoldierModal');
 }
@@ -3924,6 +3930,7 @@ function saveSoldier() {
             sol.shirtSize = document.getElementById('soldierShirtSize').value;
             sol.pantsSize = document.getElementById('soldierPantsSize').value;
             sol.notes = document.getElementById('soldierNotes').value.trim();
+            sol.taskRestriction = document.getElementById('soldierTaskRestriction').value;
             sol.servicePeriods = getServicePeriodsFromForm();
             // If all service periods removed → mark as not arrived
             if (sol.servicePeriods.length === 0 && !sol.notArrived) {
@@ -3953,6 +3960,7 @@ function saveSoldier() {
             shirtSize: document.getElementById('soldierShirtSize').value,
             pantsSize: document.getElementById('soldierPantsSize').value,
             notes: document.getElementById('soldierNotes').value.trim(),
+            taskRestriction: document.getElementById('soldierTaskRestriction').value,
             servicePeriods: getServicePeriodsFromForm()
         };
         state.soldiers.push(soldier);
@@ -4454,17 +4462,18 @@ function renderShiftRoleSlots(restoreSoldiers) {
 
     const soldiers = state.soldiers.filter(s => s.company === company)
         .sort((a, b) => {
-            const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime);
-            const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime);
+            const aStatus = getSoldierShiftStatus(a.id, date, startTime, endTime, taskName);
+            const bStatus = getSoldierShiftStatus(b.id, date, startTime, endTime, taskName);
             if (aStatus.available !== bStatus.available) return aStatus.available ? -1 : 1;
             return a.name.localeCompare(b.name, 'he');
         });
 
     function slotHtml(role, idx, label, preselect) {
         const options = soldiers.map(s => {
-            const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
+            const status = getSoldierShiftStatus(s.id, date, startTime, endTime, taskName);
             let info = '';
             if (status.notArrived) info = ' ❌ לא גויס';
+            else if (status.restricted) info = ` ⛔ ${status.assignedTo}`;
             else if (status.onLeave) info = ' 🏠 בבית';
             else if (status.assignedTo && status.assignedTo.startsWith('בין משמרות')) info = ` 🕐 ${status.assignedTo}`;
             else if (status.assignedTo) info = ` ← ${status.assignedTo}`;
@@ -4575,11 +4584,18 @@ function getSoldierRestWindowStatus(soldierId, date, startTime) {
 }
 
 // Check soldier status for a specific date/time
-function getSoldierShiftStatus(soldierId, date, startTime, endTime) {
+function getSoldierShiftStatus(soldierId, date, startTime, endTime, taskName) {
     const soldier = state.soldiers.find(s => s.id === soldierId);
     // Check notArrived — warn but allow assignment
     if (soldier && soldier.notArrived) {
         return { available: false, onLeave: false, assignedTo: 'לא גויס', notArrived: true };
+    }
+    // Check task restriction
+    if (soldier && taskName) {
+        const restrictionMsg = checkTaskRestriction(soldier, taskName, startTime, endTime);
+        if (restrictionMsg) {
+            return { available: false, onLeave: false, assignedTo: restrictionMsg, restricted: true };
+        }
     }
     // Check service periods (פיצול)
     if (soldier && !isSoldierActiveOnDate(soldier, date)) {
@@ -4823,9 +4839,18 @@ function replaceInShift(shiftId, oldSoldierId, newSoldierId) {
 // ==================== AUTO SCHEDULE ENGINE ====================
 let _autoScheduleProposal = null;
 let _autoScheduleCompany = null;
+let _autoScheduleTaskFilter = null; // When set, only schedule this specific task
+
+function openAutoScheduleForTask(compKey, taskName) {
+    _autoScheduleTaskFilter = taskName;
+    openAutoSchedule(compKey);
+    // Update title to show task name
+    document.getElementById('autoScheduleTitle').textContent = `שיבוץ אוטומטי — ${compName(compKey)} — ${taskName}`;
+}
 
 function openAutoSchedule(compKey) {
     _autoScheduleCompany = compKey;
+    if (!_autoScheduleTaskFilter) _autoScheduleTaskFilter = null; // reset when opened normally
     _autoScheduleProposal = null;
     const today = new Date();
     const todayStr = localDateStr(today);
@@ -4969,8 +4994,11 @@ function generateScheduleProposal(compKey, startDate, endDate) {
             if (isUsed(date, startTime, endTime, s.id)) return false;
             if (initiativeLocked.has(s.id)) return false;
             if (!hasEnoughRest(s.id, date, startTime)) return false;
+            // Check task restriction
+            const restrictionMsg = checkTaskRestriction(s, taskName, startTime, endTime);
+            if (restrictionMsg) return false;
             // Check existing shift status
-            const status = getSoldierShiftStatus(s.id, date, startTime, endTime);
+            const status = getSoldierShiftStatus(s.id, date, startTime, endTime, taskName);
             if (!status.available) return false;
             // Role filter
             if (roleFilter === 'officer' && !isOfficer(s)) return false;
@@ -5008,7 +5036,10 @@ function generateScheduleProposal(compKey, startDate, endDate) {
     dates.forEach(date => {
         const dayProposal = { date, tasks: [] };
 
-        comp.tasks.forEach(task => {
+        const tasksToSchedule = _autoScheduleTaskFilter
+            ? comp.tasks.filter(t => t.name === _autoScheduleTaskFilter)
+            : comp.tasks;
+        tasksToSchedule.forEach(task => {
             const shifts = shiftTimes[task.shifts] || shiftTimes[1];
             const taskProposal = { task: task.name, shifts: [] };
 
@@ -5510,7 +5541,7 @@ function renderTrainingEventsTab() {
                         <div style="font-weight:700;font-size:1.05em;">${esc(evt.eventName)}</div>
                         <div style="font-size:0.82em;color:var(--text-light);margin-top:4px;">
                             ${exerciseType ? esc(exerciseType.name) : ''}
-                            ${evt.trainingDate ? ' • ' + evt.trainingDate : ''}
+                            ${evt.trainingDate ? ' • ' + formatDate(evt.trainingDate) : ''}
                             ${evt.trainingTime ? ' ' + evt.trainingTime : ''}
                             ${evt.company ? ' • ' + compName(evt.company) : ''}
                             ${evt.unit ? ' מח\' ' + evt.unit : ''}
@@ -6007,7 +6038,7 @@ function renderShootingExecutionsView() {
                 <div>
                     <div style="font-weight:700;">${drill ? esc(drill.drillName) : 'מקצה לא ידוע'}</div>
                     <div style="font-size:0.82em;color:var(--text-light);margin-top:2px;">
-                        ${exec.executionDate || ''} • ${compName(exec.company)}
+                        ${exec.executionDate ? formatDate(exec.executionDate) : ''} • ${compName(exec.company)}
                         ${exec.unit ? ' מח\' ' + exec.unit : ''}
                         ${exec.filledBy ? ' • מילא: ' + esc(exec.filledBy) : ''}
                     </div>
@@ -6912,6 +6943,52 @@ function localDateStr(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 function localToday() { return localDateStr(new Date()); }
+
+// ==================== TASK RESTRICTION HELPERS ====================
+const TASK_RESTRICTION_LABELS = {
+    hafak_only: 'חפ"ק בלבד',
+    static_only: 'עמדות סטטיות בלבד',
+    no_night: 'ללא משמרות לילה',
+    light_duty: 'תפקוד קל בלבד'
+};
+
+function getTaskRestrictionLabel(restriction) {
+    return TASK_RESTRICTION_LABELS[restriction] || restriction || '';
+}
+
+// Check if a soldier's task restriction allows assignment to a given task/shift
+// Returns null if allowed, or a message string if blocked
+function checkTaskRestriction(soldier, taskName, startTime, endTime) {
+    if (!soldier || !soldier.taskRestriction) return null;
+    const r = soldier.taskRestriction;
+    const tn = (taskName || '').toLowerCase();
+
+    if (r === 'hafak_only') {
+        // Only allow tasks containing חפ"ק or חפק
+        if (!tn.includes('חפ') && !tn.includes('מטה') && !tn.includes('אג"מ') && !tn.includes('אגמ')) {
+            return 'מוגבל לחפ"ק בלבד';
+        }
+    } else if (r === 'static_only') {
+        // Only static positions — block patrols, initiatives, mobile tasks
+        const mobileTasks = ['סיור', 'יזומ', 'כוננות', 'ניידת', 'פטרול', 'אבטח'];
+        if (mobileTasks.some(mt => tn.includes(mt))) {
+            return 'מוגבל לעמדות סטטיות בלבד';
+        }
+    } else if (r === 'no_night') {
+        // Block night shifts (22:00-06:00)
+        const st = startTime || '00:00';
+        if (st >= '22:00' || st < '06:00') {
+            return 'ללא משמרות לילה';
+        }
+    } else if (r === 'light_duty') {
+        // Block combat/heavy tasks
+        const heavyTasks = ['סיור', 'יזומ', 'כוננות', 'ניידת', 'פטרול', 'אבטח', 'שמירה חמושה'];
+        if (heavyTasks.some(ht => tn.includes(ht))) {
+            return 'תפקוד קל בלבד';
+        }
+    }
+    return null;
+}
 
 // Check if a shift covers a specific date (supports endDate for multi-day shifts)
 function shiftCoversDate(sh, dateStr) {
@@ -13673,7 +13750,7 @@ function renderTasksPage() {
                 const srcTask = companyData[k]?.tasks?.find(x => x.name === t.linkedTo);
                 if (srcTask) needed = (srcTask.perShift?.soldiers || 0) + (srcTask.perShift?.commanders || 0) + (srcTask.perShift?.officers || 0) + (srcTask.perShift?.drivers || 0);
             }
-            const assignedShifts = state.shifts.filter(sh => sh.company === k && sh.task === t.name && sh.date === todayStr);
+            const assignedShifts = state.shifts.filter(sh => sh.company === k && sh.task === t.name && shiftCoversDate(sh, todayStr));
             const assignedSoldiers = [];
             const assignedIds = new Set();
             assignedShifts.forEach(sh => {
@@ -13732,7 +13809,7 @@ function renderTasksPage() {
             const shiftTimes = getTaskShiftTimes(taskDef);
             const slotNeeded = taskDef ? ((taskDef.perShift?.soldiers || 0) + (taskDef.perShift?.commanders || 0) + (taskDef.perShift?.officers || 0) + (taskDef.perShift?.drivers || 0)) : 0;
             const shiftsHtml = slotNeeded > 0 ? shiftTimes.map(s => {
-                const cnt = state.shifts.filter(sh => sh.company === comp.key && sh.task === t.name && sh.startTime === s.start && sh.date === todayStr).reduce((acc, sh) => acc + (sh.soldiers?.length || 0), 0);
+                const cnt = state.shifts.filter(sh => sh.company === comp.key && sh.task === t.name && sh.startTime === s.start && shiftCoversDate(sh, todayStr)).reduce((acc, sh) => acc + (sh.soldiers?.length || 0), 0);
                 const ok = cnt >= slotNeeded;
                 const cls = ok ? 'shift-pill-ok' : cnt === 0 ? 'shift-pill-empty' : '';
                 return `<span class="shift-pill ${cls}">${s.start} ${cnt}/${slotNeeded}</span>`;
