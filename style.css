@@ -2008,6 +2008,8 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .role-slot-group select option:checked { background: var(--primary); color: #fff; }
 @media(max-width:768px) { .role-slots-grid { grid-template-columns: 1fr; } }
 .company-tab-btn { border: 2px solid transparent; border-radius: 8px; padding: 5px 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; background: var(--bg); }
+.company-tab-btn[data-comp="all"] { color: #1a237e; border-color: #1a237e40; }
+.company-tab-btn[data-comp="all"].active { background: #1a237e !important; }
 .company-tab-btn[data-comp="a"] { color: #C62828; border-color: #C6282840; }
 .company-tab-btn[data-comp="b"] { color: #2E7D32; border-color: #2E7D3240; }
 .company-tab-btn[data-comp="c"] { color: #1565C0; border-color: #1565C040; }
