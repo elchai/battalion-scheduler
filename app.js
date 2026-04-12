@@ -442,7 +442,13 @@ function doLogin() {
     };
 
     localStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
-    activateApp();
+
+    // Sign in to Firebase Auth (anonymous) for Firestore security rules
+    if (typeof firebaseSignInAnonymously === 'function') {
+        firebaseSignInAnonymously().then(() => activateApp());
+    } else {
+        activateApp();
+    }
 }
 
 // Backwards compat aliases
@@ -489,7 +495,12 @@ function doDemoLogin() {
 
     currentUser = { name, unit: 'gdudi', personalId: '', company: 'gdudi', role: '' };
     localStorage.setItem(CONFIG.storagePrefix + 'User', JSON.stringify(currentUser));
-    activateApp();
+
+    if (typeof firebaseSignInAnonymously === 'function') {
+        firebaseSignInAnonymously().then(() => activateApp());
+    } else {
+        activateApp();
+    }
 }
 
 function renderRoleHolders() {
@@ -823,7 +834,12 @@ function checkSession() {
             if (!currentUser.role && state.soldiers.length) {
                 detectUserRole();
             }
-            activateApp();
+            // Sign in to Firebase Auth for Firestore security
+            if (typeof firebaseSignInAnonymously === 'function') {
+                firebaseSignInAnonymously().then(() => activateApp());
+            } else {
+                activateApp();
+            }
             return true;
         } catch {
             localStorage.removeItem(CONFIG.storagePrefix + 'User');
@@ -986,32 +1002,17 @@ function saveState() {
     try {
         localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
     } catch (e) {
-        // localStorage quota exceeded — aggressively trim data and retry
-        console.warn('localStorage quota exceeded, trimming data...');
-        // Signatures are heaviest (base64 images) — strip from old equipment entries
-        if (state.personalEquipment && state.personalEquipment.length > 50) {
-            state.personalEquipment = state.personalEquipment.slice(0, 50);
-        }
-        (state.personalEquipment || []).forEach(pe => { if (pe.signature) delete pe.signature; });
-        // Strip old signatureLog entries (base64 heavy)
-        if (state.signatureLog && state.signatureLog.length > 20) state.signatureLog = state.signatureLog.slice(-20);
-        (state.signatureLog || []).forEach(sl => { if (sl.signatureData) delete sl.signatureData; });
-        if (state.weaponsData && state.weaponsData.length > 100) state.weaponsData = state.weaponsData.slice(0, 100);
-        if (state.training && state.training.length > 200) state.training = state.training.slice(0, 200);
-        if (state.shifts && state.shifts.length > 200) {
-            const today = localToday();
-            const todayShifts = state.shifts.filter(sh => sh.date === today);
-            const others = state.shifts.filter(sh => sh.date !== today).slice(-200 + todayShifts.length);
-            state.shifts = [...others, ...todayShifts];
-        }
-        if (state.trainingExercises && state.trainingExercises.length > 500) state.trainingExercises = state.trainingExercises.slice(-500);
-        if (state.shootingResults && state.shootingResults.length > 500) state.shootingResults = state.shootingResults.slice(-500);
-        if (state.leaves && state.leaves.length > 200) state.leaves = state.leaves.slice(-200);
+        // localStorage quota exceeded — save to Firebase only, do NOT trim state data
+        console.warn('localStorage quota exceeded — saving to Firebase only');
+        showToast('האחסון המקומי מלא — הנתונים נשמרים בענן בלבד. מומלץ לנקות מטמון הדפדפן.', 'error');
+        // Try saving a minimal local copy (without heavy base64 data) for offline fallback
         try {
-            localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(state));
-            console.log('localStorage saved after trim');
+            const lightState = JSON.parse(JSON.stringify(state));
+            (lightState.personalEquipment || []).forEach(pe => { delete pe.signature; });
+            (lightState.signatureLog || []).forEach(sl => { delete sl.signatureData; });
+            localStorage.setItem(CONFIG.storagePrefix + 'State_v2', JSON.stringify(lightState));
         } catch (e2) {
-            console.error('localStorage still full after trim:', e2);
+            console.warn('localStorage still full even after stripping signatures — cloud only');
         }
     }
     if (typeof firebaseSaveState === 'function') firebaseSaveState();
@@ -11437,6 +11438,20 @@ function confirmImportEquipment() {
 
 let easyDoCompletions = []; // [{name, company, completedAt}]
 
+// Validate EasyDo row — reject garbage rows (old form responses, test data, etc.)
+function _isValidEasyDoRow(firstName, lastName, personalNum, idNumber) {
+    // Must have personalNum OR idNumber — otherwise useless for matching
+    const hasId = !!(personalNum || idNumber);
+    // Must have a real first+last name (at least 2 chars each, not a role/rank)
+    const hasName = firstName.length >= 2 && lastName.length >= 2;
+    // Reject known role/rank strings that appear instead of names
+    const junkPatterns = /^(לוחם|סמ"פ|סמבצ|מפ\s|חמ"ל|חמל|ש"ג|שג|סיור|מטבח|כוננות|פלוגה|פלס"ם|אג"מ|מודיעין|נהג|חובש|קשר|מפקד|תורן|סמ"ח|מ"כ|מ"מ)/i;
+    if (junkPatterns.test(firstName) && !hasId) return false;
+    // If no ID and no proper name → skip
+    if (!hasId && !hasName) return false;
+    return true;
+}
+
 async function syncWeaponsEasyDoStatus(silent) {
     if (!CONFIG.weaponsSheetId) return;
     try {
@@ -11448,23 +11463,32 @@ async function syncWeaponsEasyDoStatus(silent) {
         // Columns: A=חותמת זמן, B=אימייל, C=ניקוד, D=פלוגה, E=שם פרטי,
         // F=שם משפחה, G=ת.ז, H=מ.א, I=שנת לידה, ...
         easyDoCompletions = [];
+        let skipped = 0;
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             const personalNum = (row[7] || '').trim(); // H = מ.א
+            const idNumber = (row[6] || '').trim();    // G = ת.ז
             const firstName = (row[4] || '').trim();   // E = שם פרטי
             const lastName = (row[5] || '').trim();     // F = שם משפחה
             const name = (firstName + ' ' + lastName).trim();
-            if (!name && !personalNum) continue;
+
+            // Skip invalid/garbage rows
+            if (!_isValidEasyDoRow(firstName, lastName, personalNum, idNumber)) {
+                skipped++;
+                continue;
+            }
+
             easyDoCompletions.push({
                 name: name,
                 personalNum: personalNum,
+                idNumber: idNumber,
                 company: (row[3] || '').trim(),     // D = פלוגה
                 completedAt: (row[0] || '').trim(),  // A = חותמת זמן
                 status: 'completed'
             });
         }
-        if (!silent) showToast(`נטענו ${easyDoCompletions.length} רשומות סטטוס`, 'success');
-        console.log(`EasyDo status: ${easyDoCompletions.length} completions loaded`);
+        if (!silent) showToast(`נטענו ${easyDoCompletions.length} רשומות תקינות${skipped ? ` (${skipped} שורות זבל נדחו)` : ''}`, 'success');
+        console.log(`EasyDo status: ${easyDoCompletions.length} valid, ${skipped} rejected`);
     } catch (err) {
         console.warn('EasyDo status sync error:', err);
     }
@@ -11487,23 +11511,76 @@ function formatEasyDoDate(dateStr) {
     return dateStr;
 }
 
+// Normalize personalId / ת.ז — strip spaces, dashes, leading zeros for comparison
+function _normId(id) {
+    if (!id) return '';
+    return String(id).trim().replace(/[\s\-]/g, '').replace(/^0+/, '');
+}
+
+// Normalize Hebrew name for comparison — remove quotes, double-spaces, diacritics
+function _normName(name) {
+    if (!name) return '';
+    return name.trim().toLowerCase()
+        .replace(/["'״׳]/g, '')        // remove quotes
+        .replace(/\s+/g, ' ')          // collapse whitespace
+        .replace(/[ְֱֲֳִֵֶַָֹֻּׁׂ]/g, ''); // remove Hebrew diacritics (nikkud)
+}
+
 function getEasyDoStatus(soldier) {
     if (!easyDoCompletions.length) return null;
-    // Match by מ.א. (personalId) first — most reliable
+
+    // 1. Match by מ.א. (personalId) — normalized
     if (soldier.personalId) {
-        const pid = soldier.personalId.trim();
-        const match = easyDoCompletions.find(c => c.personalNum && c.personalNum === pid);
-        if (match) return match;
+        const pid = _normId(soldier.personalId);
+        if (pid) {
+            const match = easyDoCompletions.find(c => c.personalNum && _normId(c.personalNum) === pid);
+            if (match) return match;
+        }
     }
-    // Fallback: match by name
-    const solName = soldier.name.trim().toLowerCase();
-    const solLastName = solName.split(' ').pop();
-    let match = easyDoCompletions.find(c => c.name.trim().toLowerCase() === solName);
-    if (!match) match = easyDoCompletions.find(c => c.name.trim().toLowerCase() === solLastName);
-    if (!match) match = easyDoCompletions.find(c => {
-        const cName = c.name.trim().toLowerCase();
-        return solName.includes(cName) || cName.includes(solLastName);
-    });
+
+    // 2. Match by ת.ז. (idNumber) if available — column G is also stored
+    if (soldier.idNumber) {
+        const tid = _normId(soldier.idNumber);
+        if (tid) {
+            const match = easyDoCompletions.find(c => c.idNumber && _normId(c.idNumber) === tid);
+            if (match) return match;
+        }
+    }
+
+    // 3. Match by name — multiple strategies
+    const solName = _normName(soldier.name);
+    const solParts = solName.split(' ');
+    const solFirst = solParts[0] || '';
+    const solLast = solParts[solParts.length - 1] || '';
+
+    // 3a. Exact full name
+    let match = easyDoCompletions.find(c => _normName(c.name) === solName);
+
+    // 3b. Reversed name order (שם משפחה + פרטי vs פרטי + משפחה)
+    if (!match && solParts.length >= 2) {
+        const reversed = solParts.slice(1).join(' ') + ' ' + solFirst;
+        match = easyDoCompletions.find(c => _normName(c.name) === reversed);
+    }
+
+    // 3c. Last name + first name initial match
+    if (!match) {
+        match = easyDoCompletions.find(c => {
+            const cName = _normName(c.name);
+            const cParts = cName.split(' ');
+            const cFirst = cParts[0] || '';
+            const cLast = cParts[cParts.length - 1] || '';
+            // Same last name + first name starts the same
+            if (cLast === solLast && cFirst && solFirst && (cFirst.startsWith(solFirst.substring(0, 3)) || solFirst.startsWith(cFirst.substring(0, 3)))) return true;
+            // Partial include on full name
+            if (solName.includes(cName) || cName.includes(solName)) return true;
+            // Last name contains
+            if (cLast && solLast && (cLast.includes(solLast) || solLast.includes(cLast))) {
+                if (cFirst && solFirst && cFirst[0] === solFirst[0]) return true;
+            }
+            return false;
+        });
+    }
+
     return match || null;
 }
 
@@ -11692,6 +11769,122 @@ function renderWeaponsTab() {
     });
     html += '</tbody></table></div></div>';
     container.innerHTML = html;
+}
+
+// ==================== WEAPONS REPORTS ====================
+
+function _getWeaponsReportData() {
+    const compFilter = document.getElementById('weaponsSendCompany')?.value || 'all';
+    let soldiers = [...state.soldiers];
+    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
+    const compNames = getCompNames();
+    const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
+
+    return soldiers.map(s => {
+        const easyDo = getEasyDoStatus(s);
+        let status, signDate;
+        if (easyDo && easyDo.status === 'completed') {
+            status = 'נחתם';
+            signDate = formatEasyDoDate(easyDo.completedAt);
+        } else if ((easyDo && easyDo.status === 'in_progress') || waSentIds.has(s.id)) {
+            status = 'בתהליך';
+            const waLog = (state.waSendLog || []).filter(l => l.soldierId === s.id && l.context === 'weapons' && l.status === 'sent').sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
+            signDate = waLog ? formatEasyDoDate(waLog.sentAt) : '';
+        } else {
+            status = 'טרם נחתם';
+            signDate = '';
+        }
+        return {
+            name: s.name,
+            company: compNames[s.company] || s.company,
+            personalId: s.personalId || '',
+            phone: s.phone || '',
+            status,
+            signDate
+        };
+    }).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+}
+
+function exportWeaponsCSV() {
+    const data = _getWeaponsReportData();
+    if (!data.length) { showToast('אין נתונים לייצוא', 'error'); return; }
+
+    const BOM = '\uFEFF';
+    let csv = BOM + 'שם,מסגרת,מ.א.,טלפון,סטטוס,תאריך חתימה\n';
+    data.forEach(r => {
+        csv += `"${r.name}","${r.company}","${r.personalId}","${r.phone}","${r.status}","${r.signDate}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `דוח_נשק_${localToday()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('קובץ CSV הורד בהצלחה');
+}
+
+function exportWeaponsPDF() {
+    const data = _getWeaponsReportData();
+    if (!data.length) { showToast('אין נתונים לייצוא', 'error'); return; }
+
+    const compFilter = document.getElementById('weaponsSendCompany')?.value || 'all';
+    const compNames = getCompNames();
+    const title = compFilter === 'all' ? 'דוח סטטוס טפסי נשק — כל הגדוד' : `דוח סטטוס טפסי נשק — ${compNames[compFilter] || compFilter}`;
+
+    const signed = data.filter(r => r.status === 'נחתם').length;
+    const inProgress = data.filter(r => r.status === 'בתהליך').length;
+    const notStarted = data.filter(r => r.status === 'טרם נחתם').length;
+    const total = data.length;
+    const pct = total > 0 ? Math.round(signed / total * 100) : 0;
+
+    let html = `<div dir="rtl" style="font-family:'Segoe UI','Arial',sans-serif;padding:30px;max-width:900px;margin:0 auto;">`;
+    html += `<div style="text-align:center;margin-bottom:24px;">
+        ${DOC_LOGO_BASE64 ? `<img src="${DOC_LOGO_BASE64}" style="height:60px;margin-bottom:8px;"><br>` : ''}
+        <h1 style="margin:0;font-size:22px;color:#1a237e;">${title}</h1>
+        <p style="margin:6px 0 0;color:#666;font-size:14px;">${formatDate(localToday())} | ${CONFIG.battalionName}</p>
+    </div>`;
+
+    // Summary
+    html += `<div style="display:flex;gap:16px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;">
+        <div style="padding:12px 20px;background:#e8f5e9;border-radius:8px;text-align:center;min-width:100px;"><div style="font-size:24px;font-weight:700;color:#2e7d32;">${signed}</div><div style="font-size:12px;color:#666;">נחתמו</div></div>
+        <div style="padding:12px 20px;background:#fff3e0;border-radius:8px;text-align:center;min-width:100px;"><div style="font-size:24px;font-weight:700;color:#e65100;">${inProgress}</div><div style="font-size:12px;color:#666;">בתהליך</div></div>
+        <div style="padding:12px 20px;background:#ffebee;border-radius:8px;text-align:center;min-width:100px;"><div style="font-size:24px;font-weight:700;color:#c62828;">${notStarted}</div><div style="font-size:12px;color:#666;">טרם נחתם</div></div>
+        <div style="padding:12px 20px;background:#e3f2fd;border-radius:8px;text-align:center;min-width:100px;"><div style="font-size:24px;font-weight:700;color:#1565c0;">${pct}%</div><div style="font-size:12px;color:#666;">אחוז השלמה</div></div>
+    </div>`;
+
+    // Table
+    html += `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:#1a237e;color:#fff;">
+            <th style="padding:10px 8px;text-align:right;">#</th>
+            <th style="padding:10px 8px;text-align:right;">שם</th>
+            <th style="padding:10px 8px;text-align:right;">מסגרת</th>
+            <th style="padding:10px 8px;text-align:right;">מ.א.</th>
+            <th style="padding:10px 8px;text-align:center;">סטטוס</th>
+            <th style="padding:10px 8px;text-align:right;">תאריך</th>
+        </tr></thead><tbody>`;
+
+    data.forEach((r, i) => {
+        const bg = i % 2 === 0 ? '#fff' : '#f8f9fa';
+        const statusColor = r.status === 'נחתם' ? '#2e7d32' : r.status === 'בתהליך' ? '#e65100' : '#c62828';
+        const statusBg = r.status === 'נחתם' ? '#e8f5e9' : r.status === 'בתהליך' ? '#fff3e0' : '#ffebee';
+        html += `<tr style="background:${bg};border-bottom:1px solid #eee;">
+            <td style="padding:8px;color:#999;">${i + 1}</td>
+            <td style="padding:8px;font-weight:600;">${r.name}</td>
+            <td style="padding:8px;">${r.company}</td>
+            <td style="padding:8px;">${r.personalId}</td>
+            <td style="padding:8px;text-align:center;"><span style="background:${statusBg};color:${statusColor};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">${r.status}</span></td>
+            <td style="padding:8px;font-size:12px;">${r.signDate}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table>`;
+    html += `<div style="text-align:center;font-size:0.8em;color:#999;margin-top:30px;">הופק ממערכת לניהול גדוד | ${CONFIG.developerName} ${CONFIG.developerPhoneDisplay} — ${formatDate(localToday())}</div>`;
+    html += `</div>`;
+
+    downloadPDF(html, `דוח_נשק_${localToday()}.pdf`);
+    showToast('PDF הורד בהצלחה');
 }
 
 function getCompanyCommander(compKey) {
