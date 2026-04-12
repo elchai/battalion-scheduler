@@ -11682,7 +11682,7 @@ function renderWeaponsTab() {
     const searchInput = document.getElementById('weaponsSearch');
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
-    let soldiers = [...state.soldiers];
+    let soldiers = [...state.soldiers].filter(s => !s.nispach); // Exclude attached soldiers
     // Apply company filter
     const compSelect = document.getElementById('weaponsSendCompany');
     const compFilter = compSelect ? compSelect.value : 'all';
@@ -11711,7 +11711,7 @@ function renderWeaponsTab() {
     // Stats — filtered by selected company
     const statsEl = document.getElementById('weaponsStats');
     if (statsEl) {
-        const statSoldiers = compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers;
+        const statSoldiers = (compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers).filter(s => !s.nispach);
         const total = statSoldiers.length;
         const easyDoSigned = statSoldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; }).length;
         const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
@@ -11775,7 +11775,7 @@ function renderWeaponsTab() {
 
 function _getWeaponsReportData() {
     const compFilter = document.getElementById('weaponsSendCompany')?.value || 'all';
-    let soldiers = [...state.soldiers];
+    let soldiers = [...state.soldiers].filter(s => !s.nispach);
     if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
     const compNames = getCompNames();
     const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
