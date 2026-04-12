@@ -771,9 +771,19 @@
             <button class="company-tab-btn" data-comp="c" onclick="setWeaponsCompany('c',this)" style="font-size:0.8em;padding:5px 10px;">ג</button>
             <button class="company-tab-btn" data-comp="d" onclick="setWeaponsCompany('d',this)" style="font-size:0.8em;padding:5px 10px;">ד</button>
             <button class="company-tab-btn" data-comp="hq" onclick="setWeaponsCompany('hq',this)" style="font-size:0.8em;padding:5px 10px;">חפ"ק</button>
+            <button class="company-tab-btn" data-comp="agam" onclick="setWeaponsCompany('agam',this)" style="font-size:0.8em;padding:5px 10px;">אג"מ</button>
             <button class="company-tab-btn" data-comp="palsam" onclick="setWeaponsCompany('palsam',this)" style="font-size:0.8em;padding:5px 10px;">פלס"ם</button>
         </div>
-        <select id="weaponsSendCompany" style="display:none;"><option value="all" selected></option></select>
+        <select id="weaponsSendCompany" style="display:none;">
+            <option value="all" selected>הכל</option>
+            <option value="a">א</option>
+            <option value="b">ב</option>
+            <option value="c">ג</option>
+            <option value="d">ד</option>
+            <option value="hq">חפ"ק</option>
+            <option value="agam">אג"מ</option>
+            <option value="palsam">פלס"ם</option>
+        </select>
         <div class="quick-stats" id="weaponsStats"></div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
             <div class="filter-buttons" style="margin:0;">
@@ -1580,6 +1590,7 @@
 
 <!-- Firebase SDK (loaded before app for sync) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>document.write('<script src="firebase-config.js?' + _cb + '"><\/script>');</script>
 
