@@ -2,8 +2,7 @@
  * EasyDo Weapons Form - Direct API Sync
  *
  * סורק טפסים חתומים ישירות מ-API של EasyDo (לא דרך Gmail).
- * מוריד קבצים מצורפים (צילום ת.ז + אישור רופא) ושומר ב-Google Drive.
- * מעדכן Google Sheets עם כל הנתונים + קישורים לקבצים.
+ * מעדכן Google Sheets עם כל הנתונים.
  *
  * כותב לטאב "תגובות לטופס 1" — אותו טאב של Google Forms.
  * מבנה העמודות (A-Z):
@@ -12,14 +11,14 @@
  *   J=שם האב, K=רחוב, L=מס' הבית, M=יישוב, N=מיקוד,
  *   O=טלפון נייד, P=טלפון נייח, Q=מקור הנשק, R=מטווח בנק"ל,
  *   S=תאריך גיוס, T=תאריך שחרור, U=מועד אישור רפואי, V=דרגה,
- *   W=הוסמכת כלוחם?, X=אישור רופא (קישור), Y=צילום ת.ז (קישור)
+ *   W=הוסמכת כלוחם?
  *
  * התקנה על החשבון הגדודי (gdud1875idf@gmail.com):
  * 1. פתח https://script.google.com
  * 2. צור פרויקט חדש בשם "EasyDo Sync"
  * 3. העתק את הקוד הזה ל-Code.gs
  * 4. הפעל את הפונקציה setup() פעם אחת (Run > setup)
- * 5. אשר הרשאות Sheets + Drive
+ * 5. אשר הרשאות Sheets
  * 6. הסקריפט ירוץ אוטומטית כל 10 דקות
  */
 
@@ -35,9 +34,6 @@ const EASYDO_TOKEN_KEY = 'EASYDO_TOKEN'; // stored in Script Properties
 const WEAPONS_SHEET_ID = '1paWndmcqlsaKZJLYDcI2KHRkO5b2nkNarQj6Vo16Uk0';
 const DATA_TAB_NAME = 'תגובות לטופס 1';
 const LOG_TAB_NAME = 'לוג סנכרון';
-
-// Google Drive folder name for attachments
-const DRIVE_ROOT_FOLDER = 'טפסי נשק - EasyDo';
 
 // Green API (WhatsApp) — הודעה אוטומטית לחייל אחרי חתימה
 const GREEN_API_ID = '7103258354';
@@ -74,8 +70,6 @@ const FIELDS = {
   isFighter:     'custom_field_699b2cd099f34',   // האם הוסמכת כלוחם
   unit:          'custom_field_699b2cd099f3b',
   signedDate:    'custom_field_699b2cd099f47',
-  doctorFile:    'custom_field_699b2cd099f77',   // file ID - אישור רופא (f77 מכיל בפועל את אישור הרופא)
-  idPhotoFile:   'custom_field_699b2cd099f6e',   // file ID - צילום תעודת זהות (f6e מכיל בפועל את צילום הת.ז)
 };
 
 // ========== הגדרה ראשונית ==========
@@ -107,14 +101,7 @@ function setup() {
     Logger.log('Created tab: ' + LOG_TAB_NAME);
   }
 
-  // 3. Create Drive folders
-  const rootFolder = getOrCreateFolder_(null, DRIVE_ROOT_FOLDER);
-  for (const [tid, info] of Object.entries(TEMPLATES)) {
-    getOrCreateFolder_(rootFolder, info.name);
-  }
-  Logger.log('Drive folders created under: ' + DRIVE_ROOT_FOLDER);
-
-  // 4. Set up trigger
+  // 3. Set up trigger
   const triggers = ScriptApp.getProjectTriggers();
   const existing = triggers.find(t => t.getHandlerFunction() === 'syncNewForms');
   if (!existing) {
@@ -169,12 +156,11 @@ function syncNewForms_() {
     if (idNum) processedIds.add(idNum);
   }
 
-  const rootFolder = getOrCreateFolder_(null, DRIVE_ROOT_FOLDER);
   let totalAdded = 0;
 
   for (const [templateId, templateInfo] of Object.entries(TEMPLATES)) {
     try {
-      const added = processTemplate_(token, templateId, templateInfo, dataTab, processedIds, rootFolder);
+      const added = processTemplate_(token, templateId, templateInfo, dataTab, processedIds);
       totalAdded += added;
     } catch (err) {
       Logger.log('Error processing template ' + templateId + ' (' + templateInfo.name + '): ' + err.message);
@@ -192,7 +178,7 @@ function syncNewForms_() {
 
 // ========== עיבוד template ==========
 
-function processTemplate_(token, templateId, templateInfo, dataTab, processedIds, rootFolder) {
+function processTemplate_(token, templateId, templateInfo, dataTab, processedIds) {
   // Fetch all signed forms for this template
   const response = callEasyDoAPI_(token, 'POST', '/templates/' + templateId + '/data-table', {
     page: 1,
@@ -206,7 +192,7 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
     return 0;
   }
 
-  const companyFolder = getOrCreateFolder_(rootFolder, templateInfo.name);
+  // Process signed forms
   let added = 0;
 
   for (const item of response.data) {
@@ -242,56 +228,6 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
     // Determine actual weapon source — skip fixed "הגנה גזרתית" text
     const weaponSource = resolveWeaponSource_(rawWeaponSource, rawWeaponType);
 
-    // Download attachments to Google Drive
-    const idPhotoFileId = data[FIELDS.idPhotoFile];
-    const doctorFileId  = data[FIELDS.doctorFile];
-
-    const soldierFolderName = firstName + ' ' + lastName + ' - ' + idNumber;
-    const soldierFolder = getOrCreateFolder_(companyFolder, soldierFolderName);
-
-    let doctorUrl = '';
-    let idPhotoUrl = '';
-
-    if (doctorFileId) {
-      try {
-        const file = downloadEasyDoFile_(token, form.id, doctorFileId, soldierFolder, 'אישור_רופא_' + idNumber);
-        if (file) doctorUrl = file.getUrl();
-      } catch (e) {
-        Logger.log('Error downloading doctor file for ' + firstName + ' ' + lastName + ': ' + e.message);
-      }
-    }
-
-    if (idPhotoFileId) {
-      try {
-        const file = downloadEasyDoFile_(token, form.id, idPhotoFileId, soldierFolder, 'צילום_תז_' + idNumber);
-        if (file) idPhotoUrl = file.getUrl();
-      } catch (e) {
-        Logger.log('Error downloading ID photo for ' + firstName + ' ' + lastName + ': ' + e.message);
-      }
-    }
-
-    // Download the signed form PDF
-    let signedPdfUrl = '';
-    try {
-      const pdfFile = downloadSignedFormPDF_(token, form.id, soldierFolder, 'טופס_חתום_' + idNumber);
-      if (pdfFile) {
-        pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        signedPdfUrl = pdfFile.getUrl();
-      }
-    } catch (e) {
-      Logger.log('Error downloading signed PDF for ' + firstName + ' ' + lastName + ': ' + e.message);
-    }
-
-    // Send WhatsApp with signed document link (once per soldier, ever)
-    if (phone && signedPdfUrl && !isWaPaused_() && !hasWaBeenSent_(idNumber)) {
-      try {
-        sendWhatsApp_(phone, firstName + ' ' + lastName, signedPdfUrl);
-        markWaSent_(idNumber);
-      } catch (e) {
-        Logger.log('Error sending WhatsApp to ' + firstName + ' ' + lastName + ': ' + e.message);
-      }
-    }
-
     // Timestamp
     const timestamp = form.signed_date ? new Date(form.signed_date) : new Date();
 
@@ -326,8 +262,6 @@ function processTemplate_(token, templateId, templateInfo, dataTab, processedIds
       signedDate,        // U - מועד אישור רפואי בטופס הבקשה
       rank,              // V - דרגה נוכחית בצה"ל
       isFighter,         // W - האם הוסמכת כלוחם?
-      idPhotoUrl,        // X - נא לצרף אישור רופא חתום (בפועל: צילום ת.ז)
-      doctorUrl,         // Y - נא לצרף צילום תעודת זהות (בפועל: אישור רופא)
     ]);
 
     processedIds.add(idNumber);
@@ -368,68 +302,6 @@ function callEasyDoAPI_(token, method, path, payload) {
   }
 
   return JSON.parse(response.getContentText());
-}
-
-function downloadEasyDoFile_(token, formId, fileId, folder, fileName) {
-  const url = EASYDO_API + '/forms/' + formId + '/download/' + fileId;
-  const options = {
-    method: 'get',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-    },
-    muteHttpExceptions: true,
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  const code = response.getResponseCode();
-
-  if (code !== 200) {
-    Logger.log('Download failed for file ' + fileId + ': HTTP ' + code);
-    return null;
-  }
-
-  const blob = response.getBlob();
-
-  // Detect file extension from content type
-  const contentType = blob.getContentType();
-  let ext = '.pdf';
-  if (contentType && contentType.includes('image/jpeg')) ext = '.jpg';
-  else if (contentType && contentType.includes('image/png')) ext = '.png';
-  else if (contentType && contentType.includes('application/pdf')) ext = '.pdf';
-
-  blob.setName(fileName + ext);
-
-  // Check if file already exists in folder (avoid duplicates)
-  const existingFiles = folder.getFilesByName(fileName + ext);
-  if (existingFiles.hasNext()) {
-    return existingFiles.next();
-  }
-
-  return folder.createFile(blob);
-}
-
-function downloadSignedFormPDF_(token, formId, folder, fileName) {
-  const fullName = fileName + '.pdf';
-
-  // Return existing file if already downloaded
-  const existingFiles = folder.getFilesByName(fullName);
-  if (existingFiles.hasNext()) return existingFiles.next();
-
-  const url = EASYDO_API + '/forms/' + formId + '/download';
-  const response = UrlFetchApp.fetch(url, {
-    method: 'get',
-    headers: { 'Authorization': 'Bearer ' + token },
-    muteHttpExceptions: true,
-  });
-
-  if (response.getResponseCode() !== 200) {
-    Logger.log('Signed PDF download failed for form ' + formId + ': HTTP ' + response.getResponseCode());
-    return null;
-  }
-
-  const blob = response.getBlob();
-  blob.setName(fullName);
-  return folder.createFile(blob);
 }
 
 // ========== WhatsApp (Green API) ==========
@@ -505,24 +377,6 @@ function sendWhatsApp_(phone, fullName, pdfUrl) {
 }
 
 // ========== עזרים ==========
-
-function getOrCreateFolder_(parent, name) {
-  let iterator;
-  if (parent) {
-    iterator = parent.getFoldersByName(name);
-  } else {
-    iterator = DriveApp.getFoldersByName(name);
-  }
-
-  if (iterator.hasNext()) {
-    return iterator.next();
-  }
-
-  if (parent) {
-    return parent.createFolder(name);
-  }
-  return DriveApp.createFolder(name);
-}
 
 function appendLog_(ss, action, details) {
   let logTab = ss.getSheetByName(LOG_TAB_NAME);
