@@ -11739,7 +11739,19 @@ function renderWeaponsTab() {
         return;
     }
 
-    let html = '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr><th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>תאריך חתימה</th><th></th></tr></thead><tbody>';
+    const canDelete = isAdmin();
+    let html = '';
+    // Bulk action bar (shown when items are selected)
+    html += `<div id="weaponsBulkBar" style="display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:8px;padding:10px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:12px;">
+        <span style="font-weight:600;color:#e65100;"><span id="weaponsSelectedCount">0</span> חיילים נבחרו</span>
+        <div style="display:flex;gap:6px;">
+            ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteSelectedWeaponsSoldiers()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-left:3px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg> מחק נבחרים</button>` : ''}
+            <button class="btn btn-cancel btn-sm" onclick="clearWeaponsSelection()">נקה בחירה</button>
+        </div>
+    </div>`;
+    html += '<div class="task-table-wrapper"><div class="table-scroll"><table><thead><tr>';
+    html += `<th style="width:32px;text-align:center;"><input type="checkbox" id="weaponsSelectAll" onclick="toggleWeaponsSelectAll(this.checked)" style="cursor:pointer;" title="בחר הכל"></th>`;
+    html += '<th>שם</th><th>מסגרת</th><th>מ.א.</th><th>סטטוס</th><th>תאריך חתימה</th><th></th></tr></thead><tbody>';
     const waSentIdsSet = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
     soldiers.forEach(s => {
         const easyDo = getEasyDoStatus(s);
@@ -11758,17 +11770,88 @@ function renderWeaponsTab() {
         }
         const waPhone = s.phone ? s.phone.replace(/[^0-9]/g, '').replace(/^0/, '972') : '';
         const waBtn = waPhone ? `<a href="#" onclick="sendWeaponsSingleWA('${s.id}');return false;" title="שלח הודעת טופס נשק" style="color:#25D366;display:inline-flex;cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.106 1.519 5.834L.052 23.476a.5.5 0 00.607.607l5.642-1.467A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.38-1.572l-.386-.232-3.348.87.87-3.348-.232-.386A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg></a>` : '';
+        const delBtn = canDelete ? `<button onclick="deleteSingleWeaponsSoldier('${s.id}')" title="מחק חייל" style="background:transparent;border:none;cursor:pointer;color:#c62828;padding:2px 6px;margin-right:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg></button>` : '';
         html += `<tr>
+            <td style="text-align:center;"><input type="checkbox" class="weapons-row-check" data-soldier-id="${s.id}" onclick="updateWeaponsSelectionBar()" style="cursor:pointer;"></td>
             <td style="font-weight:600;">${esc(s.name)}</td>
             <td>${esc(companyNames[s.company] || s.company)}</td>
             <td>${esc(s.personalId) || '-'}</td>
             <td>${easyDoHtml}</td>
             <td>${dateHtml}</td>
-            <td>${waBtn}</td>
+            <td style="white-space:nowrap;">${waBtn}${delBtn}</td>
         </tr>`;
     });
     html += '</tbody></table></div></div>';
     container.innerHTML = html;
+}
+
+function getWeaponsSelectedIds() {
+    return Array.from(document.querySelectorAll('.weapons-row-check:checked')).map(cb => cb.dataset.soldierId);
+}
+
+function updateWeaponsSelectionBar() {
+    const ids = getWeaponsSelectedIds();
+    const bar = document.getElementById('weaponsBulkBar');
+    const count = document.getElementById('weaponsSelectedCount');
+    if (bar) bar.style.display = ids.length > 0 ? 'flex' : 'none';
+    if (count) count.textContent = ids.length;
+    // Sync select-all checkbox state
+    const selectAll = document.getElementById('weaponsSelectAll');
+    const all = document.querySelectorAll('.weapons-row-check');
+    if (selectAll && all.length > 0) {
+        selectAll.checked = ids.length === all.length;
+        selectAll.indeterminate = ids.length > 0 && ids.length < all.length;
+    }
+}
+
+function toggleWeaponsSelectAll(checked) {
+    document.querySelectorAll('.weapons-row-check').forEach(cb => { cb.checked = checked; });
+    updateWeaponsSelectionBar();
+}
+
+function clearWeaponsSelection() {
+    document.querySelectorAll('.weapons-row-check').forEach(cb => { cb.checked = false; });
+    const selectAll = document.getElementById('weaponsSelectAll');
+    if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+    updateWeaponsSelectionBar();
+}
+
+async function deleteSingleWeaponsSoldier(id) {
+    if (!isAdmin()) { showToast('אין הרשאה', 'error'); return; }
+    const sol = state.soldiers.find(s => s.id === id);
+    if (!sol) return;
+    if (!await customConfirm(`למחוק את ${sol.name}? פעולה זו בלתי הפיכה.`)) return;
+    _removeSoldierData(id);
+    saveState();
+    renderWeaponsTab();
+    renderOverview && renderOverview();
+    updateGlobalStats && updateGlobalStats();
+    showToast(`${sol.name} נמחק`);
+}
+
+async function deleteSelectedWeaponsSoldiers() {
+    if (!isAdmin()) { showToast('אין הרשאה', 'error'); return; }
+    const ids = getWeaponsSelectedIds();
+    if (ids.length === 0) { showToast('לא נבחרו חיילים', 'error'); return; }
+    if (!await customConfirm(`למחוק ${ids.length} חיילים? פעולה זו בלתי הפיכה.`)) return;
+    ids.forEach(id => _removeSoldierData(id));
+    saveState();
+    renderWeaponsTab();
+    renderOverview && renderOverview();
+    updateGlobalStats && updateGlobalStats();
+    showToast(`${ids.length} חיילים נמחקו`);
+}
+
+// Helper to remove all soldier-related data (shared with deleteSoldier)
+function _removeSoldierData(id) {
+    state.soldiers = state.soldiers.filter(s => s.id !== id);
+    state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
+    state.leaves = state.leaves.filter(l => l.soldierId !== id);
+    (state.rotationGroups || []).forEach(g => { g.soldiers = (g.soldiers || []).filter(sid => sid !== id); });
+    state.signatureLog = (state.signatureLog || []).filter(l => l.soldierId !== id);
+    state.weaponsData = (state.weaponsData || []).filter(w => w.soldierId !== id);
+    state.personalEquipment = (state.personalEquipment || []).filter(p => p.soldierId !== id);
+    state.training = (state.training || []).filter(t => t.soldierId !== id);
 }
 
 // ==================== WEAPONS REPORTS ====================
