@@ -11443,7 +11443,7 @@ async function syncWeaponsEasyDoStatus(silent) {
     try {
         // Cache-bust the gviz URL so we don't get stale data
         const cb = Date.now();
-        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('תגובות לטופס 1')}&_cb=${cb}`;
+        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('Form_Responses')}&_cb=${cb}`;
         const resp = await fetch(url, { cache: 'no-store' });
         if (!resp.ok) { if (!silent) console.warn('EasyDo status sheet not found'); return; }
         const csv = await resp.text();

@@ -5,7 +5,7 @@
  * מוריד קבצים מצורפים (צילום ת.ז + אישור רופא) ושומר ב-Google Drive.
  * מעדכן Google Sheets עם כל הנתונים + קישורים לקבצים.
  *
- * כותב לטאב "תגובות לטופס 1" — אותו טאב של Google Forms.
+ * כותב לטאב "Form_Responses" — אותו טאב של Google Forms.
  * מבנה העמודות (A-Z):
  *   A=חותמת זמן, B=כתובת אימייל, C=ניקוד, D=מאיזו פלוגה?,
  *   E=שם פרטי, F=שם משפחה, G=תעודת זהות, H=מספר אישי, I=שנת לידה,
@@ -33,7 +33,7 @@ const EASYDO_TOKEN_KEY = 'EASYDO_TOKEN'; // stored in Script Properties
 
 // Google Sheets — כותב לטאב התגובות הקיים של Google Forms
 const WEAPONS_SHEET_ID = '1paWndmcqlsaKZJLYDcI2KHRkO5b2nkNarQj6Vo16Uk0';
-const DATA_TAB_NAME = 'תגובות לטופס 1';
+const DATA_TAB_NAME = 'Form_Responses';
 const LOG_TAB_NAME = 'לוג סנכרון';
 
 // Google Drive folder name for attachments
