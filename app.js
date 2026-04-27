@@ -11438,32 +11438,20 @@ function confirmImportEquipment() {
 
 let easyDoCompletions = []; // [{name, company, completedAt}]
 
-// Validate EasyDo row — reject garbage rows (old form responses, test data, etc.)
-function _isValidEasyDoRow(firstName, lastName, personalNum, idNumber) {
-    // Must have personalNum OR idNumber — otherwise useless for matching
-    const hasId = !!(personalNum || idNumber);
-    // Must have a real first+last name (at least 2 chars each, not a role/rank)
-    const hasName = firstName.length >= 2 && lastName.length >= 2;
-    // Reject known role/rank strings that appear instead of names
-    const junkPatterns = /^(לוחם|סמ"פ|סמבצ|מפ\s|חמ"ל|חמל|ש"ג|שג|סיור|מטבח|כוננות|פלוגה|פלס"ם|אג"מ|מודיעין|נהג|חובש|קשר|מפקד|תורן|סמ"ח|מ"כ|מ"מ)/i;
-    if (junkPatterns.test(firstName) && !hasId) return false;
-    // If no ID and no proper name → skip
-    if (!hasId && !hasName) return false;
-    return true;
-}
-
 async function syncWeaponsEasyDoStatus(silent) {
     if (!CONFIG.weaponsSheetId) return;
     try {
-        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('תגובות לטופס 1')}`;
-        const resp = await fetch(url);
+        // Cache-bust the gviz URL so we don't get stale data
+        const cb = Date.now();
+        const url = `https://docs.google.com/spreadsheets/d/${CONFIG.weaponsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('תגובות לטופס 1')}&_cb=${cb}`;
+        const resp = await fetch(url, { cache: 'no-store' });
         if (!resp.ok) { if (!silent) console.warn('EasyDo status sheet not found'); return; }
         const csv = await resp.text();
         const rows = parseCSV(csv);
         // Columns: A=חותמת זמן, B=אימייל, C=ניקוד, D=פלוגה, E=שם פרטי,
         // F=שם משפחה, G=ת.ז, H=מ.א, I=שנת לידה, ...
         easyDoCompletions = [];
-        let skipped = 0;
+        let skippedNoId = 0;
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             const personalNum = (row[7] || '').trim(); // H = מ.א
@@ -11472,11 +11460,8 @@ async function syncWeaponsEasyDoStatus(silent) {
             const lastName = (row[5] || '').trim();     // F = שם משפחה
             const name = (firstName + ' ' + lastName).trim();
 
-            // Skip invalid/garbage rows
-            if (!_isValidEasyDoRow(firstName, lastName, personalNum, idNumber)) {
-                skipped++;
-                continue;
-            }
+            // Only requirement: must have either personalNum OR idNumber (to match against)
+            if (!personalNum && !idNumber) { skippedNoId++; continue; }
 
             easyDoCompletions.push({
                 name: name,
@@ -11487,8 +11472,26 @@ async function syncWeaponsEasyDoStatus(silent) {
                 status: 'completed'
             });
         }
-        if (!silent) showToast(`נטענו ${easyDoCompletions.length} רשומות תקינות${skipped ? ` (${skipped} שורות זבל נדחו)` : ''}`, 'success');
-        console.log(`EasyDo status: ${easyDoCompletions.length} valid, ${skipped} rejected`);
+        // Diagnostic: how many matched vs unmatched
+        const matched = easyDoCompletions.filter(c => state.soldiers.some(s => {
+            if (s.personalId && _normId(s.personalId) === _normId(c.personalNum)) return true;
+            if (s.idNumber && _normId(s.idNumber) === _normId(c.idNumber)) return true;
+            return _normName(s.name) === _normName(c.name);
+        })).length;
+        const unmatched = easyDoCompletions.length - matched;
+
+        if (!silent) {
+            showToast(`נטענו ${easyDoCompletions.length} חתימות מהגליון | התאמה: ${matched} | ללא התאמה: ${unmatched}`, 'success');
+        }
+        console.log(`EasyDo: ${rows.length - 1} rows | loaded: ${easyDoCompletions.length} | matched: ${matched} | unmatched: ${unmatched} | skipped no-id: ${skippedNoId}`);
+        if (unmatched > 0) {
+            const unmatchedList = easyDoCompletions.filter(c => !state.soldiers.some(s => {
+                if (s.personalId && _normId(s.personalId) === _normId(c.personalNum)) return true;
+                if (s.idNumber && _normId(s.idNumber) === _normId(c.idNumber)) return true;
+                return _normName(s.name) === _normName(c.name);
+            }));
+            console.log('Unmatched EasyDo records (no soldier in system):', unmatchedList);
+        }
     } catch (err) {
         console.warn('EasyDo status sync error:', err);
     }
