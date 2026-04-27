@@ -172,7 +172,9 @@ function syncNewForms_() {
   const rootFolder = getOrCreateFolder_(null, DRIVE_ROOT_FOLDER);
   let totalAdded = 0;
 
-  for (const [templateId, templateInfo] of Object.entries(TEMPLATES)) {
+  const templateEntries = Object.entries(TEMPLATES);
+  for (let t = 0; t < templateEntries.length; t++) {
+    const [templateId, templateInfo] = templateEntries[t];
     try {
       const added = processTemplate_(token, templateId, templateInfo, dataTab, processedIds, rootFolder);
       totalAdded += added;
@@ -180,6 +182,8 @@ function syncNewForms_() {
       Logger.log('Error processing template ' + templateId + ' (' + templateInfo.name + '): ' + err.message);
       appendLog_(ss, 'שגיאה', templateInfo.name + ': ' + err.message);
     }
+    // Pause between templates to avoid EasyDo bandwidth quota
+    if (t < templateEntries.length - 1) Utilities.sleep(2000);
   }
 
   if (totalAdded > 0) {
@@ -193,146 +197,182 @@ function syncNewForms_() {
 // ========== עיבוד template ==========
 
 function processTemplate_(token, templateId, templateInfo, dataTab, processedIds, rootFolder) {
-  // Fetch all signed forms for this template
-  const response = callEasyDoAPI_(token, 'POST', '/templates/' + templateId + '/data-table', {
-    page: 1,
-    per_page: 100,
-    sort_by: 'created_at',
-    sort_direction: 'desc'
-  });
+  // Fetch all signed forms for this template — retry on bandwidth quota
+  let response = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      response = callEasyDoAPI_(token, 'POST', '/templates/' + templateId + '/data-table', {
+        page: 1,
+        per_page: 100,
+        sort_by: 'created_at',
+        sort_direction: 'desc'
+      });
+      break;
+    } catch (e) {
+      const isBandwidth = String(e.message || '').toLowerCase().includes('bandwidth');
+      if (isBandwidth && attempt < 3) {
+        const waitSec = 30 * attempt;
+        Logger.log('Bandwidth quota for template ' + templateId + ' — waiting ' + waitSec + 's (attempt ' + attempt + '/3)');
+        Utilities.sleep(waitSec * 1000);
+        continue;
+      }
+      throw e;
+    }
+  }
 
   if (!response || !response.data) {
     Logger.log('No data for template ' + templateId);
     return 0;
   }
 
-  const companyFolder = getOrCreateFolder_(rootFolder, templateInfo.name);
+  // Try to set up Drive folder for this company — but don't fail if Drive errors
+  let companyFolder = null;
+  try {
+    companyFolder = getOrCreateFolder_(rootFolder, templateInfo.name);
+  } catch (e) {
+    Logger.log('Drive unavailable for ' + templateInfo.name + ' — sheet sync only: ' + e.message);
+  }
+
   let added = 0;
 
   for (const item of response.data) {
-    const form = item.form;
-    const data = item.data || {};
-
-    // Skip non-signed forms
-    if (form.status !== 'signed') continue;
-
-    // Skip already processed (by ת.ז)
-    const idNumber = String(data[FIELDS.idNumber] || '').trim();
-    if (!idNumber) continue;
-    if (processedIds.has(idNumber)) continue;
-
-    // Extract all fields
-    const firstName    = data[FIELDS.firstName] || '';
-    const lastName     = data[FIELDS.lastName] || '';
-    const personalNum  = data[FIELDS.personalNum] || '';
-    const birthYear    = data[FIELDS.birthYear] || '';
-    const fatherName   = data[FIELDS.fatherName] || '';
-    const fullAddress  = data[FIELDS.address] || '';
-    const phone        = data[FIELDS.phone] || '';
-    const landline     = data[FIELDS.landline] || '';
-    const rawWeaponSource = data[FIELDS.weaponSource] || '';
-    const rawWeaponType   = data[FIELDS.weaponType] || '';
-    const rangeDate    = data[FIELDS.rangeDate] || '';
-    const enlistDate   = data[FIELDS.enlistDate] || '';
-    const releaseDate  = data[FIELDS.releaseDate] || '';
-    const rank         = data[FIELDS.rank] || '';
-    const isFighter    = data[FIELDS.isFighter] || '';
-    const signedDate   = data[FIELDS.signedDate] || '';
-
-    // Determine actual weapon source — skip fixed "הגנה גזרתית" text
-    const weaponSource = resolveWeaponSource_(rawWeaponSource, rawWeaponType);
-
-    // Download attachments to Google Drive
-    const idPhotoFileId = data[FIELDS.idPhotoFile];
-    const doctorFileId  = data[FIELDS.doctorFile];
-
-    const soldierFolderName = firstName + ' ' + lastName + ' - ' + idNumber;
-    const soldierFolder = getOrCreateFolder_(companyFolder, soldierFolderName);
-
-    let doctorUrl = '';
-    let idPhotoUrl = '';
-
-    if (doctorFileId) {
-      try {
-        const file = downloadEasyDoFile_(token, form.id, doctorFileId, soldierFolder, 'אישור_רופא_' + idNumber);
-        if (file) doctorUrl = file.getUrl();
-      } catch (e) {
-        Logger.log('Error downloading doctor file for ' + firstName + ' ' + lastName + ': ' + e.message);
-      }
-    }
-
-    if (idPhotoFileId) {
-      try {
-        const file = downloadEasyDoFile_(token, form.id, idPhotoFileId, soldierFolder, 'צילום_תז_' + idNumber);
-        if (file) idPhotoUrl = file.getUrl();
-      } catch (e) {
-        Logger.log('Error downloading ID photo for ' + firstName + ' ' + lastName + ': ' + e.message);
-      }
-    }
-
-    // Download the signed form PDF
-    let signedPdfUrl = '';
     try {
-      const pdfFile = downloadSignedFormPDF_(token, form.id, soldierFolder, 'טופס_חתום_' + idNumber);
-      if (pdfFile) {
-        pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        signedPdfUrl = pdfFile.getUrl();
+      const form = item.form;
+      const data = item.data || {};
+
+      // Skip non-signed forms
+      if (form.status !== 'signed') continue;
+
+      // Skip already processed (by ת.ז)
+      const idNumber = String(data[FIELDS.idNumber] || '').trim();
+      if (!idNumber) continue;
+      if (processedIds.has(idNumber)) continue;
+
+      // Extract all fields
+      const firstName    = data[FIELDS.firstName] || '';
+      const lastName     = data[FIELDS.lastName] || '';
+      const personalNum  = data[FIELDS.personalNum] || '';
+      const birthYear    = data[FIELDS.birthYear] || '';
+      const fatherName   = data[FIELDS.fatherName] || '';
+      const fullAddress  = data[FIELDS.address] || '';
+      const phone        = data[FIELDS.phone] || '';
+      const landline     = data[FIELDS.landline] || '';
+      const rawWeaponSource = data[FIELDS.weaponSource] || '';
+      const rawWeaponType   = data[FIELDS.weaponType] || '';
+      const rangeDate    = data[FIELDS.rangeDate] || '';
+      const enlistDate   = data[FIELDS.enlistDate] || '';
+      const releaseDate  = data[FIELDS.releaseDate] || '';
+      const rank         = data[FIELDS.rank] || '';
+      const isFighter    = data[FIELDS.isFighter] || '';
+      const signedDate   = data[FIELDS.signedDate] || '';
+
+      // Determine actual weapon source — skip fixed "הגנה גזרתית" text
+      const weaponSource = resolveWeaponSource_(rawWeaponSource, rawWeaponType);
+
+      // Try to download attachments — non-fatal if Drive/quota errors
+      const idPhotoFileId = data[FIELDS.idPhotoFile];
+      const doctorFileId  = data[FIELDS.doctorFile];
+
+      let soldierFolder = null;
+      if (companyFolder) {
+        try {
+          const soldierFolderName = firstName + ' ' + lastName + ' - ' + idNumber;
+          soldierFolder = getOrCreateFolder_(companyFolder, soldierFolderName);
+        } catch (e) {
+          Logger.log('Could not create soldier folder for ' + firstName + ' ' + lastName + ': ' + e.message);
+        }
       }
-    } catch (e) {
-      Logger.log('Error downloading signed PDF for ' + firstName + ' ' + lastName + ': ' + e.message);
-    }
 
-    // Send WhatsApp with signed document link (once per soldier, ever)
-    if (phone && signedPdfUrl && !isWaPaused_() && !hasWaBeenSent_(idNumber)) {
-      try {
-        sendWhatsApp_(phone, firstName + ' ' + lastName, signedPdfUrl);
-        markWaSent_(idNumber);
-      } catch (e) {
-        Logger.log('Error sending WhatsApp to ' + firstName + ' ' + lastName + ': ' + e.message);
+      let doctorUrl = '';
+      let idPhotoUrl = '';
+      let signedPdfUrl = '';
+
+      if (soldierFolder) {
+        if (doctorFileId) {
+          try {
+            const file = downloadEasyDoFile_(token, form.id, doctorFileId, soldierFolder, 'אישור_רופא_' + idNumber);
+            if (file) doctorUrl = file.getUrl();
+          } catch (e) {
+            Logger.log('Error downloading doctor file for ' + firstName + ' ' + lastName + ': ' + e.message);
+          }
+        }
+
+        if (idPhotoFileId) {
+          try {
+            const file = downloadEasyDoFile_(token, form.id, idPhotoFileId, soldierFolder, 'צילום_תז_' + idNumber);
+            if (file) idPhotoUrl = file.getUrl();
+          } catch (e) {
+            Logger.log('Error downloading ID photo for ' + firstName + ' ' + lastName + ': ' + e.message);
+          }
+        }
+
+        try {
+          const pdfFile = downloadSignedFormPDF_(token, form.id, soldierFolder, 'טופס_חתום_' + idNumber);
+          if (pdfFile) {
+            pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            signedPdfUrl = pdfFile.getUrl();
+          }
+        } catch (e) {
+          Logger.log('Error downloading signed PDF for ' + firstName + ' ' + lastName + ': ' + e.message);
+        }
       }
+
+      // Send WhatsApp with signed document link (once per soldier, ever)
+      if (phone && signedPdfUrl && !isWaPaused_() && !hasWaBeenSent_(idNumber)) {
+        try {
+          sendWhatsApp_(phone, firstName + ' ' + lastName, signedPdfUrl);
+          markWaSent_(idNumber);
+        } catch (e) {
+          Logger.log('Error sending WhatsApp to ' + firstName + ' ' + lastName + ': ' + e.message);
+        }
+      }
+
+      // Timestamp
+      const timestamp = form.signed_date ? new Date(form.signed_date) : new Date();
+
+      // Company name for column D
+      const companyHeb = templateInfo.name;
+
+      // Parse address into components
+      const addr = parseAddress_(fullAddress);
+
+      // Write row matching Google Forms column structure (A-Z):
+      dataTab.appendRow([
+        timestamp,         // A - חותמת זמן
+        '',                // B - כתובת אימייל (אין ב-EasyDo)
+        '',                // C - ניקוד
+        companyHeb,        // D - מאיזו פלוגה?
+        firstName,         // E - שם פרטי
+        lastName,          // F - שם משפחה
+        idNumber,          // G - תעודת זהות
+        personalNum,       // H - מספר אישי
+        birthYear,         // I - שנת לידה
+        fatherName,        // J - שם האב
+        addr.street,       // K - רחוב
+        addr.number,       // L - מס' הבית
+        addr.city,         // M - יישוב
+        addr.zip,          // N - מיקוד
+        phone,             // O - טלפון נייד
+        landline,          // P - טלפון נייח
+        weaponSource,      // Q - מקור הנשק
+        rangeDate,         // R - מתי עברת מטווח בנק"ל
+        enlistDate,        // S - תאריך גיוס לצה"ל
+        releaseDate,       // T - תאריך שחרור מצה"ל
+        signedDate,        // U - מועד אישור רפואי בטופס הבקשה
+        rank,              // V - דרגה נוכחית בצה"ל
+        isFighter,         // W - האם הוסמכת כלוחם?
+        idPhotoUrl,        // X - נא לצרף אישור רופא חתום (בפועל: צילום ת.ז)
+        doctorUrl,         // Y - נא לצרף צילום תעודת זהות (בפועל: אישור רופא)
+      ]);
+
+      processedIds.add(idNumber);
+      added++;
+      Logger.log('Added: ' + firstName + ' ' + lastName + ' (' + templateInfo.name + ')');
+    } catch (perItemErr) {
+      Logger.log('Skipping form due to error: ' + perItemErr.message);
     }
-
-    // Timestamp
-    const timestamp = form.signed_date ? new Date(form.signed_date) : new Date();
-
-    // Company name for column D
-    const companyHeb = templateInfo.name;
-
-    // Parse address into components
-    const addr = parseAddress_(fullAddress);
-
-    // Write row matching Google Forms column structure (A-Z):
-    dataTab.appendRow([
-      timestamp,         // A - חותמת זמן
-      '',                // B - כתובת אימייל (אין ב-EasyDo)
-      '',                // C - ניקוד
-      companyHeb,        // D - מאיזו פלוגה?
-      firstName,         // E - שם פרטי
-      lastName,          // F - שם משפחה
-      idNumber,          // G - תעודת זהות
-      personalNum,       // H - מספר אישי
-      birthYear,         // I - שנת לידה
-      fatherName,        // J - שם האב
-      addr.street,       // K - רחוב
-      addr.number,       // L - מס' הבית
-      addr.city,         // M - יישוב
-      addr.zip,          // N - מיקוד
-      phone,             // O - טלפון נייד
-      landline,          // P - טלפון נייח
-      weaponSource,      // Q - מקור הנשק
-      rangeDate,         // R - מתי עברת מטווח בנק"ל
-      enlistDate,        // S - תאריך גיוס לצה"ל
-      releaseDate,       // T - תאריך שחרור מצה"ל
-      signedDate,        // U - מועד אישור רפואי בטופס הבקשה
-      rank,              // V - דרגה נוכחית בצה"ל
-      isFighter,         // W - האם הוסמכת כלוחם?
-      idPhotoUrl,        // X - נא לצרף אישור רופא חתום (בפועל: צילום ת.ז)
-      doctorUrl,         // Y - נא לצרף צילום תעודת זהות (בפועל: אישור רופא)
-    ]);
-
-    processedIds.add(idNumber);
-    added++;
-    Logger.log('Added: ' + firstName + ' ' + lastName + ' (' + templateInfo.name + ')');
+    // Small delay between items to avoid hitting EasyDo bandwidth quota on file downloads
+    Utilities.sleep(500);
   }
 
   return added;
