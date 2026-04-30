@@ -1313,6 +1313,171 @@ function clearBrokenCheckColumn() {
   Logger.log('Cleared ' + (lastRow - 1) + ' rows in column F');
 }
 
+// ========== אבחון EasyDo + סנכרון מלא ==========
+
+/**
+ * סופר כמה טפסים חתומים יש ב-EasyDo בפועל פר תבנית — מצביע על הפער
+ * בין EasyDo לבין הגליון.
+ * הרץ: Run > countEasyDoSigners
+ */
+function countEasyDoSigners() {
+  const token = PropertiesService.getScriptProperties().getProperty(EASYDO_TOKEN_KEY);
+  if (!token) { Logger.log('No token. Run setup() first.'); return; }
+
+  Logger.log('=== ספירת חתימות ב-EasyDo (לא בגליון) ===');
+  let grandTotal = 0;
+  for (const [templateId, info] of Object.entries(TEMPLATES)) {
+    let total = 0, signed = 0, page = 1;
+    while (true) {
+      let resp;
+      try {
+        resp = callEasyDoAPI_(token, 'POST', '/templates/' + templateId + '/data-table', {
+          page: page, per_page: 100, sort_by: 'created_at', sort_direction: 'desc'
+        });
+      } catch (e) {
+        Logger.log('  ' + info.name + ' page ' + page + ' error: ' + e.message);
+        break;
+      }
+      if (!resp || !resp.data || !resp.data.length) break;
+      total += resp.data.length;
+      signed += resp.data.filter(item => item.form && item.form.status === 'signed').length;
+      if (resp.data.length < 100) break;
+      page++;
+      Utilities.sleep(800); // pacing
+      if (page > 50) { Logger.log('  ' + info.name + ' aborted at page 50'); break; }
+    }
+    Logger.log(info.name + ' (' + templateId + '): ' + signed + ' signed / ' + total + ' total');
+    grandTotal += signed;
+  }
+  Logger.log('=== סה"כ חתומים ב-EasyDo: ' + grandTotal + ' ===');
+}
+
+/**
+ * סנכרון מלא — דופף את כל הדפים מ-EasyDo (לא רק 100 ראשונים).
+ * השתמש בזה כדי להחזיר חתימות ישנות שלא נטענו.
+ * הרץ: Run > syncAllPages
+ */
+function syncAllPages() {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch (e) { Logger.log('Lock busy'); return; }
+  try { syncAllPages_(); } finally { lock.releaseLock(); }
+}
+
+function syncAllPages_() {
+  const token = PropertiesService.getScriptProperties().getProperty(EASYDO_TOKEN_KEY);
+  if (!token) { Logger.log('No token'); return; }
+  const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+  const dataTab = ss.getSheetByName(DATA_TAB_NAME);
+  if (!dataTab) { Logger.log('Tab missing'); return; }
+
+  const existingData = dataTab.getDataRange().getValues();
+  const processedIds = new Set();
+  for (let i = 1; i < existingData.length; i++) {
+    const idNum = String(existingData[i][6]).trim();
+    if (idNum) processedIds.add(idNum);
+  }
+  Logger.log('Existing IDs in sheet: ' + processedIds.size);
+
+  const rootFolder = (function() { try { return getOrCreateFolder_(null, DRIVE_ROOT_FOLDER); } catch (e) { return null; } })();
+  let totalAdded = 0;
+
+  for (const [templateId, templateInfo] of Object.entries(TEMPLATES)) {
+    let page = 1, addedThisTemplate = 0;
+    while (true) {
+      let resp;
+      try {
+        resp = callEasyDoAPI_(token, 'POST', '/templates/' + templateId + '/data-table', {
+          page: page, per_page: 100, sort_by: 'created_at', sort_direction: 'desc'
+        });
+      } catch (e) {
+        Logger.log(templateInfo.name + ' page ' + page + ' err: ' + e.message);
+        break;
+      }
+      if (!resp || !resp.data || !resp.data.length) break;
+      // Process this page using existing logic
+      const added = processFormsBatch_(token, templateInfo, dataTab, processedIds, rootFolder, resp.data);
+      addedThisTemplate += added;
+      if (resp.data.length < 100) break;
+      page++;
+      Utilities.sleep(1500);
+      if (page > 50) { Logger.log(templateInfo.name + ' aborted at page 50'); break; }
+    }
+    Logger.log(templateInfo.name + ': added ' + addedThisTemplate);
+    totalAdded += addedThisTemplate;
+    Utilities.sleep(2000);
+  }
+
+  appendLog_(ss, 'סנכרון מלא', 'נוספו ' + totalAdded + ' טפסים מכל הדפים');
+  Logger.log('=== Total added across all pages: ' + totalAdded + ' ===');
+}
+
+// Helper: process a batch of forms (extracted from processTemplate_)
+function processFormsBatch_(token, templateInfo, dataTab, processedIds, rootFolder, items) {
+  let companyFolder = null;
+  if (rootFolder) {
+    try { companyFolder = getOrCreateFolder_(rootFolder, templateInfo.name); }
+    catch (e) { Logger.log('Drive unavail for ' + templateInfo.name); }
+  }
+  let added = 0;
+  for (const item of items) {
+    try {
+      const form = item.form;
+      const data = item.data || {};
+      if (form.status !== 'signed') continue;
+      const idNumber = String(data[FIELDS.idNumber] || '').trim();
+      if (!idNumber || processedIds.has(idNumber)) continue;
+
+      const firstName = data[FIELDS.firstName] || '';
+      const lastName = data[FIELDS.lastName] || '';
+      const personalNum = data[FIELDS.personalNum] || '';
+      const birthYear = data[FIELDS.birthYear] || '';
+      const fatherName = data[FIELDS.fatherName] || '';
+      const fullAddress = data[FIELDS.address] || '';
+      const phone = data[FIELDS.phone] || '';
+      const landline = data[FIELDS.landline] || '';
+      const weaponSource = resolveWeaponSource_(data[FIELDS.weaponSource] || '', data[FIELDS.weaponType] || '');
+      const rangeDate = data[FIELDS.rangeDate] || '';
+      const enlistDate = data[FIELDS.enlistDate] || '';
+      const releaseDate = data[FIELDS.releaseDate] || '';
+      const rank = data[FIELDS.rank] || '';
+      const isFighter = data[FIELDS.isFighter] || '';
+      const signedDate = data[FIELDS.signedDate] || '';
+
+      // Drive downloads (non-fatal)
+      let doctorUrl = '', idPhotoUrl = '';
+      let soldierFolder = null;
+      if (companyFolder) {
+        try { soldierFolder = getOrCreateFolder_(companyFolder, firstName + ' ' + lastName + ' - ' + idNumber); } catch (e) {}
+      }
+      if (soldierFolder) {
+        if (data[FIELDS.doctorFile]) {
+          try { const f = downloadEasyDoFile_(token, form.id, data[FIELDS.doctorFile], soldierFolder, 'אישור_רופא_' + idNumber); if (f) doctorUrl = f.getUrl(); } catch (e) {}
+        }
+        if (data[FIELDS.idPhotoFile]) {
+          try { const f = downloadEasyDoFile_(token, form.id, data[FIELDS.idPhotoFile], soldierFolder, 'צילום_תז_' + idNumber); if (f) idPhotoUrl = f.getUrl(); } catch (e) {}
+        }
+      }
+
+      const timestamp = form.signed_date ? new Date(form.signed_date) : new Date();
+      const addr = parseAddress_(fullAddress);
+
+      dataTab.appendRow([
+        timestamp, '', '', templateInfo.name,
+        firstName, lastName, idNumber, personalNum, birthYear, fatherName,
+        addr.street, addr.number, addr.city, addr.zip,
+        phone, landline, weaponSource, rangeDate, enlistDate, releaseDate,
+        signedDate, rank, isFighter, idPhotoUrl, doctorUrl
+      ]);
+      processedIds.add(idNumber);
+      added++;
+    } catch (e) {
+      Logger.log('Skip form: ' + e.message);
+    }
+    Utilities.sleep(300);
+  }
+  return added;
+}
+
 // ========== ניקוי ==========
 
 function removeTrigger() {
