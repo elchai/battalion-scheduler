@@ -11451,6 +11451,7 @@ async function syncWeaponsEasyDoStatus(silent) {
         // Columns: A=חותמת זמן, B=אימייל, C=ניקוד, D=פלוגה, E=שם פרטי,
         // F=שם משפחה, G=ת.ז, H=מ.א, I=שנת לידה, ...
         easyDoCompletions = [];
+        _easyDoIndexes = null; // invalidate cached indexes
         let skippedNoId = 0;
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
@@ -11472,12 +11473,23 @@ async function syncWeaponsEasyDoStatus(silent) {
                 status: 'completed'
             });
         }
-        // Diagnostic: how many matched vs unmatched
-        const matched = easyDoCompletions.filter(c => state.soldiers.some(s => {
-            if (s.personalId && _normId(s.personalId) === _normId(c.personalNum)) return true;
-            if (s.idNumber && _normId(s.idNumber) === _normId(c.idNumber)) return true;
-            return _normName(s.name) === _normName(c.name);
-        })).length;
+        // Diagnostic: O(N) — uses indexed lookup
+        _buildEasyDoIndexes();
+        const soldierPids = new Set(state.soldiers.map(s => s.personalId ? _normId(s.personalId) : '').filter(Boolean));
+        const soldierTids = new Set(state.soldiers.map(s => s.idNumber ? _normId(s.idNumber) : '').filter(Boolean));
+        const soldierNames = new Set(state.soldiers.map(s => _normName(s.name)).filter(Boolean));
+        let matched = 0;
+        const unmatchedList = [];
+        for (const c of easyDoCompletions) {
+            const cPid = c.personalNum ? _normId(c.personalNum) : '';
+            const cTid = c.idNumber ? _normId(c.idNumber) : '';
+            const cName = _normName(c.name || '');
+            if ((cPid && soldierPids.has(cPid)) || (cTid && soldierTids.has(cTid)) || (cName && soldierNames.has(cName))) {
+                matched++;
+            } else {
+                if (unmatchedList.length < 50) unmatchedList.push(c); // cap for console
+            }
+        }
         const unmatched = easyDoCompletions.length - matched;
 
         if (!silent) {
@@ -11485,12 +11497,7 @@ async function syncWeaponsEasyDoStatus(silent) {
         }
         console.log(`EasyDo: ${rows.length - 1} rows | loaded: ${easyDoCompletions.length} | matched: ${matched} | unmatched: ${unmatched} | skipped no-id: ${skippedNoId}`);
         if (unmatched > 0) {
-            const unmatchedList = easyDoCompletions.filter(c => !state.soldiers.some(s => {
-                if (s.personalId && _normId(s.personalId) === _normId(c.personalNum)) return true;
-                if (s.idNumber && _normId(s.idNumber) === _normId(c.idNumber)) return true;
-                return _normName(s.name) === _normName(c.name);
-            }));
-            console.log('Unmatched EasyDo records (no soldier in system):', unmatchedList);
+            console.log(`Unmatched EasyDo records (showing first ${unmatchedList.length}):`, unmatchedList);
         }
     } catch (err) {
         console.warn('EasyDo status sync error:', err);
@@ -11529,62 +11536,59 @@ function _normName(name) {
         .replace(/[ְֱֲֳִֵֶַָֹֻּׁׂ]/g, ''); // remove Hebrew diacritics (nikkud)
 }
 
+// Indexes built once after sync — avoids O(N×M) on every status lookup
+let _easyDoIndexes = null;
+
+function _buildEasyDoIndexes() {
+    const byPid = new Map();
+    const byTid = new Map();
+    const byName = new Map();
+    for (const c of easyDoCompletions) {
+        if (c.personalNum) {
+            const k = _normId(c.personalNum);
+            if (k && !byPid.has(k)) byPid.set(k, c);
+        }
+        if (c.idNumber) {
+            const k = _normId(c.idNumber);
+            if (k && !byTid.has(k)) byTid.set(k, c);
+        }
+        if (c.name) {
+            const k = _normName(c.name);
+            if (k && !byName.has(k)) byName.set(k, c);
+        }
+    }
+    _easyDoIndexes = { byPid, byTid, byName };
+}
+
 function getEasyDoStatus(soldier) {
     if (!easyDoCompletions.length) return null;
+    if (!_easyDoIndexes) _buildEasyDoIndexes();
+    const { byPid, byTid, byName } = _easyDoIndexes;
 
-    // 1. Match by מ.א. (personalId) — normalized
+    // 1. Match by מ.א. (personalId) — O(1)
     if (soldier.personalId) {
         const pid = _normId(soldier.personalId);
-        if (pid) {
-            const match = easyDoCompletions.find(c => c.personalNum && _normId(c.personalNum) === pid);
-            if (match) return match;
-        }
+        if (pid && byPid.has(pid)) return byPid.get(pid);
     }
 
-    // 2. Match by ת.ז. (idNumber) if available — column G is also stored
+    // 2. Match by ת.ז. (idNumber) — O(1)
     if (soldier.idNumber) {
         const tid = _normId(soldier.idNumber);
-        if (tid) {
-            const match = easyDoCompletions.find(c => c.idNumber && _normId(c.idNumber) === tid);
-            if (match) return match;
-        }
+        if (tid && byTid.has(tid)) return byTid.get(tid);
     }
 
-    // 3. Match by name — multiple strategies
+    // 3. Exact name match — O(1)
     const solName = _normName(soldier.name);
+    if (byName.has(solName)) return byName.get(solName);
+
+    // 3b. Reversed name order — O(1)
     const solParts = solName.split(' ');
-    const solFirst = solParts[0] || '';
-    const solLast = solParts[solParts.length - 1] || '';
-
-    // 3a. Exact full name
-    let match = easyDoCompletions.find(c => _normName(c.name) === solName);
-
-    // 3b. Reversed name order (שם משפחה + פרטי vs פרטי + משפחה)
-    if (!match && solParts.length >= 2) {
-        const reversed = solParts.slice(1).join(' ') + ' ' + solFirst;
-        match = easyDoCompletions.find(c => _normName(c.name) === reversed);
+    if (solParts.length >= 2) {
+        const reversed = solParts.slice(1).join(' ') + ' ' + solParts[0];
+        if (byName.has(reversed)) return byName.get(reversed);
     }
 
-    // 3c. Last name + first name initial match
-    if (!match) {
-        match = easyDoCompletions.find(c => {
-            const cName = _normName(c.name);
-            const cParts = cName.split(' ');
-            const cFirst = cParts[0] || '';
-            const cLast = cParts[cParts.length - 1] || '';
-            // Same last name + first name starts the same
-            if (cLast === solLast && cFirst && solFirst && (cFirst.startsWith(solFirst.substring(0, 3)) || solFirst.startsWith(cFirst.substring(0, 3)))) return true;
-            // Partial include on full name
-            if (solName.includes(cName) || cName.includes(solName)) return true;
-            // Last name contains
-            if (cLast && solLast && (cLast.includes(solLast) || solLast.includes(cLast))) {
-                if (cFirst && solFirst && cFirst[0] === solFirst[0]) return true;
-            }
-            return false;
-        });
-    }
-
-    return match || null;
+    return null;
 }
 
 function parseCSV(csv) {
