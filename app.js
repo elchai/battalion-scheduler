@@ -11693,7 +11693,12 @@ function renderWeaponsTab() {
     // Apply company filter
     const compSelect = document.getElementById('weaponsSendCompany');
     const compFilter = compSelect ? compSelect.value : 'all';
-    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
+    const GDUDI_COMPS = ['hq', 'agam', 'palsam'];
+    if (compFilter === 'gdudi') {
+        soldiers = soldiers.filter(s => GDUDI_COMPS.includes(s.company));
+    } else if (compFilter !== 'all') {
+        soldiers = soldiers.filter(s => s.company === compFilter);
+    }
     if (query) soldiers = soldiers.filter(s => s.name.toLowerCase().includes(query));
 
     // Apply filter
@@ -11718,7 +11723,7 @@ function renderWeaponsTab() {
     // Stats — filtered by selected company
     const statsEl = document.getElementById('weaponsStats');
     if (statsEl) {
-        const statSoldiers = (compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers).filter(s => !s.nispach && !(s.unit && s.unit.includes('מסופח')));
+        const statSoldiers = (compFilter === 'gdudi' ? state.soldiers.filter(s => GDUDI_COMPS.includes(s.company)) : compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers).filter(s => !s.nispach && !(s.unit && s.unit.includes('מסופח')));
         const total = statSoldiers.length;
         const easyDoSigned = statSoldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; }).length;
         const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
@@ -11866,7 +11871,12 @@ function _removeSoldierData(id) {
 function _getWeaponsReportData() {
     const compFilter = document.getElementById('weaponsSendCompany')?.value || 'all';
     let soldiers = [...state.soldiers].filter(s => !s.nispach && !(s.unit && s.unit.includes('מסופח')));
-    if (compFilter !== 'all') soldiers = soldiers.filter(s => s.company === compFilter);
+    const GDUDI_COMPS = ['hq', 'agam', 'palsam'];
+    if (compFilter === 'gdudi') {
+        soldiers = soldiers.filter(s => GDUDI_COMPS.includes(s.company));
+    } else if (compFilter !== 'all') {
+        soldiers = soldiers.filter(s => s.company === compFilter);
+    }
     const compNames = getCompNames();
     const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
 

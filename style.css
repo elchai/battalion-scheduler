@@ -2017,6 +2017,8 @@ select option.option-on-leave { background: #FFEBEE; color: #C62828; }
 .company-tab-btn[data-comp="hq"] { color: #546E7A; border-color: #546E7A40; }
 .company-tab-btn[data-comp="agam"] { color: #00796B; border-color: #00796B40; }
 .company-tab-btn[data-comp="palsam"] { color: #6A1B9A; border-color: #6A1B9A40; }
+.company-tab-btn[data-comp="gdudi"] { color: #4527A0; border-color: #4527A040; }
+.company-tab-btn[data-comp="gdudi"].active { background: #4527A0 !important; }
 .company-tab-btn.active { color: #fff !important; border-color: transparent !important; }
 .company-tab-btn[data-comp="a"].active { background: #C62828 !important; }
 .company-tab-btn[data-comp="b"].active { background: #2E7D32 !important; }
