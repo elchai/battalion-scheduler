@@ -35,6 +35,7 @@ const EASYDO_TOKEN_KEY = 'EASYDO_TOKEN'; // stored in Script Properties
 const WEAPONS_SHEET_ID = '1paWndmcqlsaKZJLYDcI2KHRkO5b2nkNarQj6Vo16Uk0';
 const DATA_TAB_NAME = 'Form_Responses';
 const LOG_TAB_NAME = 'לוג סנכרון';
+const SUMMARY_TAB_NAME = 'סיכום';
 
 // Google Drive folder name for attachments
 const DRIVE_ROOT_FOLDER = 'טפסי נשק - EasyDo';
@@ -1132,6 +1133,76 @@ function cleanDriveFiles() {
   }
 
   Logger.log('Total deleted: ' + deleted + ' soldier folders. Now run resetEasyDoAndSync().');
+}
+
+// ========== עדכון לשונית סיכום ==========
+
+/**
+ * מעדכן את לשונית הסיכום כך שפלס"ם + 1875 גדודי מאוחדים תחת "גדודי".
+ * סופר חתימות ייחודיות לפי ת.ז (G) מתוך Form_Responses, מקובץ לפי פלוגה (D).
+ * הרץ: Run > updateSummary
+ */
+function updateSummary() {
+  const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+  const dataTab = ss.getSheetByName(DATA_TAB_NAME);
+  if (!dataTab) { Logger.log('Form_Responses tab not found'); return; }
+
+  // Map EasyDo company names → unified labels
+  const COMPANY_MAP = {
+    "פלוגה א'": 'פלוגה א\'',
+    "פלוגה ב'": 'פלוגה ב\'',
+    "פלוגה ג'": 'פלוגה ג\'',
+    "פלוגה ד'": 'פלוגה ד\'',
+    'פלס"ם': 'גדודי',
+    '1875 גדודי': 'גדודי',
+  };
+
+  // Display order
+  const ORDER = ['פלוגה א\'', 'פלוגה ב\'', 'פלוגה ג\'', 'פלוגה ד\'', 'גדודי'];
+
+  // Count unique IDs per unified company
+  const lastRow = dataTab.getLastRow();
+  if (lastRow <= 1) { Logger.log('No data'); return; }
+  const data = dataTab.getRange(1, 1, lastRow, Math.max(8, dataTab.getLastColumn())).getValues();
+  const counts = {};
+  ORDER.forEach(c => counts[c] = new Set());
+
+  for (let i = 1; i < data.length; i++) {
+    const compRaw = String(data[i][3] || '').trim(); // D = פלוגה
+    const idNum = String(data[i][6] || '').trim();   // G = ת.ז
+    if (!idNum) continue;
+    const unified = COMPANY_MAP[compRaw];
+    if (unified && counts[unified]) counts[unified].add(idNum);
+  }
+
+  // Build/update summary tab
+  let summaryTab = ss.getSheetByName(SUMMARY_TAB_NAME);
+  if (!summaryTab) {
+    summaryTab = ss.insertSheet(SUMMARY_TAB_NAME);
+  } else {
+    summaryTab.clearContents();
+  }
+
+  // Header
+  summaryTab.getRange(1, 1, 1, 2).setValues([['פלוגה', 'נתונים לפי הדרייב']]);
+  summaryTab.getRange(1, 1, 1, 2).setFontWeight('bold');
+
+  // Rows
+  let total = 0;
+  const rows = ORDER.map(c => {
+    const cnt = counts[c].size;
+    total += cnt;
+    return [c, cnt];
+  });
+  summaryTab.getRange(2, 1, rows.length, 2).setValues(rows);
+
+  // Total row
+  summaryTab.getRange(2 + rows.length, 1, 1, 2).setValues([['סה"כ', total]]);
+  summaryTab.getRange(2 + rows.length, 1, 1, 2).setFontWeight('bold');
+
+  Logger.log('Summary updated. Total: ' + total);
+  ORDER.forEach(c => Logger.log('  ' + c + ': ' + counts[c].size));
+  appendLog_(ss, 'עדכון סיכום', 'סה"כ ' + total + ' חתימות');
 }
 
 // ========== ניקוי ==========
