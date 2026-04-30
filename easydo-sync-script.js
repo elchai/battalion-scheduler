@@ -1205,6 +1205,114 @@ function updateSummary() {
   appendLog_(ss, 'עדכון סיכום', 'סה"כ ' + total + ' חתימות');
 }
 
+// ========== עדכון לשונית "מערכת ניהול גדודי" ==========
+
+const SYSTEM_TAB_NAME = 'מערכת ניהול גדודי 09.04';
+
+/**
+ * מעדכן את עמודות D (סטטוס) ו-E (תאריך חתימה) בלשונית "מערכת ניהול גדודי 09.04"
+ * לפי נתוני Form_Responses. מחליף את נוסחאות XLOOKUP השבורות בערכים מחושבים.
+ *
+ * מבנה הלשונית (עמודות):
+ *   A=שם, B=מסגרת, C=מ.א., D=סטטוס, E=תאריך חתימה, F=בדיקה (לא נוגעים)
+ *
+ * הרץ: Run > updateSystemStatuses
+ */
+function updateSystemStatuses() {
+  const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+  const dataTab = ss.getSheetByName(DATA_TAB_NAME);
+  const sysTab = ss.getSheetByName(SYSTEM_TAB_NAME);
+  if (!dataTab) { Logger.log('Form_Responses tab not found'); return; }
+  if (!sysTab) { Logger.log('System tab not found: ' + SYSTEM_TAB_NAME); return; }
+
+  // 1. Build personalId → completedAt map from Form_Responses
+  const formData = dataTab.getRange(1, 1, dataTab.getLastRow(), 8).getValues();
+  const pidToDate = new Map();
+  for (let i = 1; i < formData.length; i++) {
+    const personalNum = String(formData[i][7] || '').trim().replace(/^0+/, ''); // H = מ.א
+    const timestamp = formData[i][0];
+    if (personalNum) {
+      // Format date as DD-MM-YYYY HH:MM
+      let dateStr = '';
+      if (timestamp instanceof Date) {
+        const dd = String(timestamp.getDate()).padStart(2, '0');
+        const mm = String(timestamp.getMonth() + 1).padStart(2, '0');
+        const yyyy = timestamp.getFullYear();
+        const hh = String(timestamp.getHours()).padStart(2, '0');
+        const mn = String(timestamp.getMinutes()).padStart(2, '0');
+        dateStr = `${dd}-${mm}-${yyyy} ${hh}:${mn}`;
+      } else if (timestamp) {
+        dateStr = String(timestamp);
+      }
+      pidToDate.set(personalNum, dateStr);
+    }
+  }
+
+  Logger.log('Loaded ' + pidToDate.size + ' unique signers from Form_Responses');
+
+  // 2. Read system tab
+  const sysLastRow = sysTab.getLastRow();
+  const sysLastCol = Math.max(6, sysTab.getLastColumn());
+  if (sysLastRow <= 1) { Logger.log('System tab is empty'); return; }
+
+  const sysData = sysTab.getRange(1, 1, sysLastRow, sysLastCol).getValues();
+
+  // 3. Update D (status) and E (date) for each row
+  let signed = 0, notSigned = 0;
+  const newStatuses = []; // for column D
+  const newDates = [];    // for column E
+
+  for (let i = 1; i < sysData.length; i++) {
+    const personalNum = String(sysData[i][2] || '').trim().replace(/^0+/, ''); // C = מ.א
+    if (!personalNum) {
+      newStatuses.push([sysData[i][3]]); // keep existing
+      newDates.push([sysData[i][4]]);
+      continue;
+    }
+
+    if (pidToDate.has(personalNum)) {
+      newStatuses.push(['נחתם']);
+      newDates.push([pidToDate.get(personalNum)]);
+      signed++;
+    } else {
+      // Preserve "בתהליך" if WA was sent (date in column E starts with "WA:")
+      const existingDate = String(sysData[i][4] || '').trim();
+      const existingStatus = String(sysData[i][3] || '').trim();
+      if (existingStatus === 'בתהליך' || existingDate.startsWith('WA:')) {
+        newStatuses.push(['בתהליך']);
+        newDates.push([existingDate]);
+      } else {
+        newStatuses.push(['טרם נחתם']);
+        newDates.push(['-']);
+      }
+      notSigned++;
+    }
+  }
+
+  // 4. Bulk write
+  if (newStatuses.length > 0) {
+    sysTab.getRange(2, 4, newStatuses.length, 1).setValues(newStatuses); // D
+    sysTab.getRange(2, 5, newDates.length, 1).setValues(newDates);       // E
+  }
+
+  Logger.log('Updated ' + (newStatuses.length) + ' rows | Signed: ' + signed + ' | Not signed: ' + notSigned);
+  appendLog_(ss, 'עדכון סטטוסים', signed + ' חתמו, ' + notSigned + ' טרם');
+}
+
+/**
+ * מנקה את עמודה F ("בדיקה") מנוסחאות XLOOKUP שבורות.
+ * הרץ: Run > clearBrokenCheckColumn
+ */
+function clearBrokenCheckColumn() {
+  const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+  const sysTab = ss.getSheetByName(SYSTEM_TAB_NAME);
+  if (!sysTab) { Logger.log('System tab not found'); return; }
+  const lastRow = sysTab.getLastRow();
+  if (lastRow <= 1) return;
+  sysTab.getRange(2, 6, lastRow - 1, 1).clearContent(); // Column F
+  Logger.log('Cleared ' + (lastRow - 1) + ' rows in column F');
+}
+
 // ========== ניקוי ==========
 
 function removeTrigger() {
