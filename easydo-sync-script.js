@@ -623,35 +623,53 @@ function syncAll() {
 
 /**
  * מנקה כפילויות מהטבלה לפי תעודת זהות (עמודה G, index 6)
- * משאיר רק את השורה האחרונה לכל ת.ז
+ * משאיר רק את השורה האחרונה לכל ת.ז.
+ * שיטה: bulk read → dedupe in memory → clear → bulk write back
+ * הרבה יותר מהיר מ-deleteRow בלולאה (נמנע מ-Exceeded maximum execution time)
  */
 function removeDuplicates() {
   const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
   const dataTab = ss.getSheetByName(DATA_TAB_NAME);
-  if (!dataTab) return;
+  if (!dataTab) { Logger.log('Tab not found'); return; }
 
-  const data = dataTab.getDataRange().getValues();
+  const lastRow = dataTab.getLastRow();
+  const lastCol = dataTab.getLastColumn();
+  if (lastRow <= 1) { Logger.log('No data to dedupe'); return; }
+
+  Logger.log('Reading ' + lastRow + ' rows × ' + lastCol + ' cols...');
+  const data = dataTab.getRange(1, 1, lastRow, lastCol).getValues();
+
+  const header = data[0];
+  // Keep LATEST entry per ת.ז: walk bottom→top, first hit wins, then reverse
   const seen = new Set();
-  const rowsToDelete = [];
-
-  // Go bottom-up so we keep the LAST entry for each ת.ז
+  const keptReversed = [];
   for (let i = data.length - 1; i >= 1; i--) {
-    const idNum = String(data[i][6]).trim(); // column G = תעודת זהות
-    if (!idNum) continue;
-    if (seen.has(idNum)) {
-      rowsToDelete.push(i + 1); // 1-based row number
-    } else {
-      seen.add(idNum);
+    const row = data[i];
+    const idNum = String(row[6] || '').trim(); // G = תעודת זהות
+    if (!idNum) {
+      // Keep rows without an ID as-is (don't dedupe them)
+      keptReversed.push(row);
+      continue;
     }
+    if (seen.has(idNum)) continue;
+    seen.add(idNum);
+    keptReversed.push(row);
+  }
+  const kept = keptReversed.reverse();
+  const removedCount = (data.length - 1) - kept.length;
+
+  Logger.log('Original: ' + (data.length - 1) + ' rows | Kept: ' + kept.length + ' | Removed: ' + removedCount);
+
+  // Clear all data rows (keep header), then bulk write deduped rows
+  if (lastRow > 1) {
+    dataTab.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+  }
+  if (kept.length > 0) {
+    dataTab.getRange(2, 1, kept.length, lastCol).setValues(kept);
   }
 
-  // rowsToDelete is already in descending order (bottom-first from the loop above)
-  // Delete directly — bottom-up preserves row numbers
-  for (const rowNum of rowsToDelete) {
-    dataTab.deleteRow(rowNum);
-  }
-
-  Logger.log('Removed ' + rowsToDelete.length + ' duplicate rows. Kept latest entry per ID.');
+  Logger.log('Removed ' + removedCount + ' duplicate rows. Kept ' + kept.length + ' unique entries.');
+  appendLog_(ss, 'הסרת כפילויות', 'הוסרו ' + removedCount + ' שורות, נשארו ' + kept.length);
 }
 
 /**
