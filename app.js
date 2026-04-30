@@ -1625,6 +1625,15 @@ function parseCombatSheet(csv, companyKey) {
         const role = f[7].trim();
         const cert = f[8].trim();
 
+        // Detect "מסופח" / attached soldier from notes columns (10, 12, 14) and from section text
+        const notes1 = (f[10] || '').trim();
+        const notes2 = (f[12] || '').trim();
+        const notes3 = (f[14] || '').trim();
+        const isAttached =
+            (section && section.includes('מסופח')) ||
+            (staffType && staffType.includes('מסופח')) ||
+            notes1.includes('מסופח') || notes2.includes('מסופח') || notes3.includes('מסופח');
+
         const unitLabel = section ? `מחלקה ${section}` : (staffType === 'סגל' ? 'סגל' : compNames[companyKey]);
         const existing = state.soldiers.find(s => s.personalId === id && s.fromSheets);
         soldiers.push({
@@ -1635,6 +1644,7 @@ function parseCombatSheet(csv, companyKey) {
             role: role || (staffType === 'סגל' ? 'מפקד' : 'לוחם'),
             rank: staffType || '', fromSheets: true,
             arrival, certification: cert || '',
+            attached: isAttached,
             notArrived: !['מגיע','כן','הגיע','v','V','1','גויס',''].includes(arrival)
         });
     }
@@ -11689,7 +11699,7 @@ function renderWeaponsTab() {
     const searchInput = document.getElementById('weaponsSearch');
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
-    let soldiers = [...state.soldiers].filter(s => !s.nispach && !(s.unit && s.unit.includes('מסופח'))); // Exclude attached soldiers
+    let soldiers = [...state.soldiers].filter(s => !s.nispach && !s.attached && !(s.unit && s.unit.includes('מסופח'))); // Exclude attached soldiers
     // Apply company filter
     const compSelect = document.getElementById('weaponsSendCompany');
     const compFilter = compSelect ? compSelect.value : 'all';
@@ -11723,7 +11733,7 @@ function renderWeaponsTab() {
     // Stats — filtered by selected company
     const statsEl = document.getElementById('weaponsStats');
     if (statsEl) {
-        const statSoldiers = (compFilter === 'gdudi' ? state.soldiers.filter(s => GDUDI_COMPS.includes(s.company)) : compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers).filter(s => !s.nispach && !(s.unit && s.unit.includes('מסופח')));
+        const statSoldiers = (compFilter === 'gdudi' ? state.soldiers.filter(s => GDUDI_COMPS.includes(s.company)) : compFilter !== 'all' ? state.soldiers.filter(s => s.company === compFilter) : state.soldiers).filter(s => !s.nispach && !s.attached && !(s.unit && s.unit.includes('מסופח')));
         const total = statSoldiers.length;
         const easyDoSigned = statSoldiers.filter(s => { const e = getEasyDoStatus(s); return e && e.status === 'completed'; }).length;
         const waSentIds = new Set((state.waSendLog || []).filter(l => l.context === 'weapons' && l.status === 'sent').map(l => l.soldierId));
@@ -11870,7 +11880,7 @@ function _removeSoldierData(id) {
 
 function _getWeaponsReportData() {
     const compFilter = document.getElementById('weaponsSendCompany')?.value || 'all';
-    let soldiers = [...state.soldiers].filter(s => !s.nispach && !(s.unit && s.unit.includes('מסופח')));
+    let soldiers = [...state.soldiers].filter(s => !s.nispach && !s.attached && !(s.unit && s.unit.includes('מסופח')));
     const GDUDI_COMPS = ['hq', 'agam', 'palsam'];
     if (compFilter === 'gdudi') {
         soldiers = soldiers.filter(s => GDUDI_COMPS.includes(s.company));
