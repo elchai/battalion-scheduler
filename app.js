@@ -4026,7 +4026,9 @@ async function deleteSoldier(id) {
     const sol = state.soldiers.find(s => s.id === id);
     if (!isAdmin() && (!sol || !canEditSoldierDetails(sol.company))) { showToast('אין הרשאה', 'error'); return; }
     if (CONFIG.skipPassword && id.startsWith('demo_')) { showToast('לא ניתן למחוק נתוני דמו', 'error'); return; }
-    if (!await customConfirm(`למחוק את ${sol ? sol.name : 'חייל זה'}? פעולה זו בלתי הפיכה.`)) return;
+    if (!await customConfirm(`למחוק את ${sol ? sol.name : 'חייל זה'}? פעולה זו בלתי הפיכה — תוסר גם מהגיליון הגדודי.`)) return;
+    const personalId = sol && sol.personalId;
+    const company = sol && sol.company;
     state.soldiers = state.soldiers.filter(s => s.id !== id);
     state.shifts.forEach(sh => { sh.soldiers = sh.soldiers.filter(sid => sid !== id); });
     state.leaves = state.leaves.filter(l => l.soldierId !== id);
@@ -4039,7 +4041,29 @@ async function deleteSoldier(id) {
     if (sol) renderCompanyTab(sol.company);
     renderOverview();
     updateGlobalStats();
+    if (personalId) await _deleteSoldierFromMainSheet([personalId], company);
     showToast('חייל נמחק');
+}
+
+// Calls the Apps Script webhook to delete the soldier's row from the main battalion sheet
+async function _deleteSoldierFromMainSheet(personalIds, company) {
+    if (!CONFIG.mainSoldiersWebhookUrl || !personalIds || !personalIds.length) return;
+    try {
+        const resp = await fetch(CONFIG.mainSoldiersWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'deleteSoldier', personalIds, company: company || '' }),
+            redirect: 'follow'
+        });
+        const json = await resp.json().catch(() => null);
+        if (json && json.ok) {
+            console.log(`Main sheet: removed ${json.deleted} rows`, json.perTab || {});
+        } else {
+            console.warn('Main sheet delete webhook failed:', json);
+        }
+    } catch (e) {
+        console.warn('Main sheet delete webhook error:', e);
+    }
 }
 
 // ==================== SOLDIER TRANSFER ====================

@@ -30,6 +30,10 @@ const CONFIG = {
     sheetId: '1JedoEvaQyHtNVYF7lwJwNSV0lu8e97k2kwCJuSRaGTE',
     nispachimSheetId: '1mZOPiEIzRHj_lDqJWgh56JRkjTFvTWmx-GiVbr7Wwl4',
 
+    // Web App endpoint for the main soldiers sheet (Apps Script project "Main Soldiers Sync")
+    // Update this URL after deploying main-soldiers-script.js as a Web App
+    mainSoldiersWebhookUrl: '',
+
     // --- נתיבים ---
     deployPath: '/battalion-scheduler',
     logoPath: 'logo.png',
