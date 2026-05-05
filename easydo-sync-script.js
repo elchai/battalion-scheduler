@@ -1478,6 +1478,69 @@ function processFormsBatch_(token, templateInfo, dataTab, processedIds, rootFold
   return added;
 }
 
+// ========== Web App endpoint — מחיקה מהגליון מתוך המערכת ==========
+
+/**
+ * Web App endpoint. Deploy as web app (Deploy → New deployment → Web app,
+ * Execute as: Me, Who has access: Anyone).
+ *
+ * הקוד תומך בשתי פעולות:
+ *   { action: 'deleteByPersonalId', personalIds: [...] }
+ *   { action: 'deleteByIdNumber', idNumbers: [...] }
+ *
+ * עמודה G = ת.ז (idNumber), עמודה H = מ.א (personalNum)
+ */
+function doPost(e) {
+  try {
+    const params = JSON.parse(e.postData.contents);
+    const action = params.action || '';
+
+    if (action === 'deleteByPersonalId' || action === 'deleteByIdNumber') {
+      const colIdx = action === 'deleteByPersonalId' ? 7 : 6; // H or G
+      const targets = (action === 'deleteByPersonalId' ? params.personalIds : params.idNumbers) || [];
+      const normalized = new Set(targets.map(t => String(t).trim().replace(/[\s\-]/g, '').replace(/^0+/, '')));
+
+      const ss = SpreadsheetApp.openById(WEAPONS_SHEET_ID);
+      const dataTab = ss.getSheetByName(DATA_TAB_NAME);
+      if (!dataTab) return _jsonResponse_({ ok: false, error: 'Tab not found' });
+
+      const lastRow = dataTab.getLastRow();
+      const lastCol = dataTab.getLastColumn();
+      if (lastRow <= 1) return _jsonResponse_({ ok: true, deleted: 0 });
+
+      const data = dataTab.getRange(1, 1, lastRow, lastCol).getValues();
+      const kept = [data[0]]; // header
+      let deleted = 0;
+      for (let i = 1; i < data.length; i++) {
+        const val = String(data[i][colIdx] || '').trim().replace(/[\s\-]/g, '').replace(/^0+/, '');
+        if (val && normalized.has(val)) {
+          deleted++;
+        } else {
+          kept.push(data[i]);
+        }
+      }
+
+      // Clear data rows and write back
+      dataTab.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+      if (kept.length > 1) {
+        dataTab.getRange(2, 1, kept.length - 1, lastCol).setValues(kept.slice(1));
+      }
+
+      appendLog_(ss, 'מחיקה מהמערכת', 'הוסרו ' + deleted + ' שורות (' + action + ')');
+      return _jsonResponse_({ ok: true, deleted: deleted });
+    }
+
+    return _jsonResponse_({ ok: false, error: 'Unknown action: ' + action });
+  } catch (err) {
+    return _jsonResponse_({ ok: false, error: String(err) });
+  }
+}
+
+function _jsonResponse_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 // ========== ניקוי ==========
 
 function removeTrigger() {

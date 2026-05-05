@@ -11842,12 +11842,14 @@ async function deleteSingleWeaponsSoldier(id) {
     if (!isAdmin()) { showToast('אין הרשאה', 'error'); return; }
     const sol = state.soldiers.find(s => s.id === id);
     if (!sol) return;
-    if (!await customConfirm(`למחוק את ${sol.name}? פעולה זו בלתי הפיכה.`)) return;
+    if (!await customConfirm(`למחוק את ${sol.name}? פעולה זו בלתי הפיכה — תוסר גם מהגליון.`)) return;
+    const personalIds = sol.personalId ? [sol.personalId] : [];
     _removeSoldierData(id);
     saveState();
     renderWeaponsTab();
     renderOverview && renderOverview();
     updateGlobalStats && updateGlobalStats();
+    if (personalIds.length) await _deleteWeaponsFromSheet(personalIds);
     showToast(`${sol.name} נמחק`);
 }
 
@@ -11855,13 +11857,37 @@ async function deleteSelectedWeaponsSoldiers() {
     if (!isAdmin()) { showToast('אין הרשאה', 'error'); return; }
     const ids = getWeaponsSelectedIds();
     if (ids.length === 0) { showToast('לא נבחרו חיילים', 'error'); return; }
-    if (!await customConfirm(`למחוק ${ids.length} חיילים? פעולה זו בלתי הפיכה.`)) return;
+    if (!await customConfirm(`למחוק ${ids.length} חיילים? פעולה זו בלתי הפיכה — תוסר גם מהגליון.`)) return;
+    const personalIds = ids.map(id => state.soldiers.find(s => s.id === id)?.personalId).filter(Boolean);
     ids.forEach(id => _removeSoldierData(id));
     saveState();
     renderWeaponsTab();
     renderOverview && renderOverview();
     updateGlobalStats && updateGlobalStats();
+    if (personalIds.length) await _deleteWeaponsFromSheet(personalIds);
     showToast(`${ids.length} חיילים נמחקו`);
+}
+
+// Calls the Apps Script webhook to delete the soldiers' rows from Form_Responses
+async function _deleteWeaponsFromSheet(personalIds) {
+    if (!CONFIG.weaponsWebhookUrl || !personalIds.length) return;
+    try {
+        const resp = await fetch(CONFIG.weaponsWebhookUrl, {
+            method: 'POST',
+            // Apps Script doPost reads from e.postData.contents; use text/plain to avoid CORS preflight
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'deleteByPersonalId', personalIds }),
+            redirect: 'follow'
+        });
+        const json = await resp.json().catch(() => null);
+        if (json && json.ok) {
+            console.log(`Sheet sync: removed ${json.deleted} rows from Form_Responses`);
+        } else {
+            console.warn('Sheet delete webhook failed:', json);
+        }
+    } catch (e) {
+        console.warn('Sheet delete webhook error:', e);
+    }
 }
 
 // Helper to remove all soldier-related data (shared with deleteSoldier)
