@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a237e">
+    <title>מערכת ניהול גדודי | תעסוקה מבצעית</title>
+    <link rel="icon" id="favicon" href="demo/logo.png" type="image/png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" id="appleTouchIcon" href="demo/logo.png">
+    <link rel="stylesheet" href="style.css" id="mainStylesheet">
+    <script>
+    var _isDemo = true; // demo-only public build — always loads config-demo.js
+    </script>
+    <script>
+    var _cb = 'v306';
+    if (_isDemo) {
+        document.write('<script src="config-demo.js?' + _cb + '"><\/script>');
+    } else {
+        document.write('<script src="config.js?' + _cb + '"><\/script>');
+    }
+    </script>
+    <script>
+    document.getElementById('favicon').href = CONFIG.logoPath;
+    document.getElementById('appleTouchIcon').href = CONFIG.logoPath;
+    document.title = CONFIG.systemTitle + ' | ' + CONFIG.systemSubtitle;
+    // Cache-bust local assets
+    document.getElementById('mainStylesheet').href = 'style.css?' + _cb;
+
+    </script>
+    <script src="https://unpkg.com/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-box">
+        <img id="loginLogo" src="demo/logo.png" alt="" style="width:60px;height:60px;border-radius:50%;margin-bottom:6px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+        <h2 id="loginTitle">מערכת ניהול גדודי</h2>
+        <div class="subtitle" id="loginSubtitle">תעסוקה מבצעית</div>
+        <script>
+        document.getElementById('loginLogo').src = CONFIG.loginLogoPath || CONFIG.logoPath;
+        document.getElementById('loginLogo').alt = CONFIG.battalionName;
+        document.getElementById('loginTitle').textContent = CONFIG.systemTitle;
+        document.getElementById('loginSubtitle').textContent = CONFIG.systemSubtitle;
+        </script>
+
+        <!-- Combined Login -->
+        <div id="loginStep1">
+            <div class="login-field">
+                <label>מספר אישי (מ.א)</label>
+                <input type="text" id="loginPersonalId" placeholder="הזן מספר אישי" inputmode="numeric" autocomplete="off"
+                       oninput="typeof autoIdentifyByPersonalId==='function'&&autoIdentifyByPersonalId()"
+                       onkeypress="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+            </div>
+            <div class="login-field">
+                <label>סיסמה</label>
+                <input type="password" id="loginPassword" placeholder="הזן סיסמה" autocomplete="new-password"
+                       onkeypress="if(event.key==='Enter')doLogin()">
+            </div>
+            <div id="loginSoldierPreview" class="hidden" style="background:var(--card-bg,#f5f5f5);border-radius:10px;padding:12px;margin:8px 0;text-align:center;"></div>
+            <div id="roleHoldersList"></div>
+            <button class="login-btn" onclick="doLogin()">כניסה</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+
+        <!-- Demo mode: Step 1 — password only -->
+        <div id="loginDemoPassword" style="display:none;">
+            <div class="login-field">
+                <label>סיסמה</label>
+                <input type="password" id="loginDemoPass" placeholder="הזן סיסמה" autocomplete="off"
+                       onkeypress="if(event.key==='Enter')unlockDemo()">
+            </div>
+            <button class="login-btn" onclick="unlockDemo()">המשך</button>
+            <div class="login-error" id="loginDemoPassError"></div>
+        </div>
+
+        <!-- Demo mode: Step 2 — visitor details + WhatsApp -->
+        <div id="loginDemoFields" style="display:none;">
+            <div class="login-field">
+                <label>שם מלא</label>
+                <input type="text" id="loginDemoName" placeholder="הכנס את שמך" autocomplete="off">
+            </div>
+            <div class="login-field">
+                <label>אימייל</label>
+                <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email" dir="ltr">
+            </div>
+            <div class="login-field">
+                <label>טלפון נייד</label>
+                <input type="tel" id="loginPhone" placeholder="050-1234567" autocomplete="tel" dir="ltr">
+            </div>
+            <div id="loginWhatsAppNotice" style="display:none;background:linear-gradient(135deg,#25d366,#128c7e);color:white;padding:10px 14px;border-radius:10px;font-size:0.85em;font-weight:600;margin:8px 0;line-height:1.5;box-shadow:0 2px 8px rgba(37,211,102,0.3);">
+                <div style="display:flex;align-items:center;gap:10px;direction:rtl;">
+                    <span style="flex:1;text-align:right;">חשוב להיכנס עם הפרטים האמיתיים שלך<br>כדי שתקבל הודעת וואצאפ מיידית!</span>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;opacity:0.85;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.106 1.519 5.834L.052 23.476a.5.5 0 00.607.607l5.642-1.467A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.38-1.572l-.386-.232-3.348.87.87-3.348-.232-.386A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                </div>
+            </div>
+            <script>if (CONFIG.greenApi) document.getElementById('loginWhatsAppNotice').style.display = '';</script>
+            <button class="login-btn" onclick="doDemoLogin()">כניסה למערכת</button>
+            <div class="login-error" id="loginDemoError"></div>
+        </div>
+
+        <script>
+        if (CONFIG.skipPassword) {
+            document.getElementById('loginStep1').style.display = 'none';
+            if (CONFIG.demoRequirePassword) {
+                document.getElementById('loginDemoPassword').style.display = '';
+            } else {
+                document.getElementById('loginDemoFields').style.display = '';
+            }
+        }
+        </script>
+    </div>
+    <div class="login-footer">
+        מערכת מאובטחת - גישה מורשית בלבד<br>
+        <a id="loginDevCredit" href="" target="_blank" style="color:rgba(255,255,255,0.7);text-decoration:none;margin-top:6px;display:inline-block;"></a>
+        <script>
+        var _dc = document.getElementById('loginDevCredit');
+        _dc.href = 'https://wa.me/' + CONFIG.developerPhone;
+        _dc.textContent = 'נבנה ע"י ' + CONFIG.developerName + ' | ' + CONFIG.developerPhoneDisplay;
+        </script>
+    </div>
+</div>
+
+<div id="mainApp" style="display:none;">
+
+<!-- Firebase offline banner -->
+<div id="firebaseOfflineBanner" style="display:none;background:#d32f2f;color:#fff;padding:8px 16px;text-align:center;font-size:0.85em;font-weight:600;direction:rtl;position:sticky;top:0;z-index:999;">
+    ⚠ הנתונים לא מסונכרנים — Firebase לא מחובר. שינויים נשמרים מקומית בלבד.
+    <button onclick="location.reload()" style="background:#fff;color:#d32f2f;border:none;border-radius:4px;padding:2px 10px;margin-right:8px;cursor:pointer;font-weight:700;font-size:0.9em;">נסה שוב</button>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img class="sidebar-logo" id="sidebarLogo" src="demo/logo.png" alt="">
+        <div class="sidebar-brand">
+            <div class="sidebar-title" id="sidebarTitle">ניהול גדודי</div>
+            <div class="sidebar-subtitle" id="sidebarSubtitle">תעסוקה מבצעית</div>
+        </div>
+        <script>
+        document.getElementById('sidebarLogo').src = CONFIG.logoPath;
+        document.getElementById('sidebarLogo').alt = CONFIG.battalionName;
+        document.getElementById('sidebarSubtitle').textContent = CONFIG.systemSubtitle;
+        </script>
+        <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar()" aria-label="סגור תפריט">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <nav class="sidebar-nav">
+        <button class="sidebar-item tab-all active" onclick="switchTab('all')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>סקירה כללית</span>
+        </button>
+
+        <button class="sidebar-item tab-mydashboard" onclick="switchTab('mydashboard')" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+            <span>המסך שלי</span>
+        </button>
+        <div class="sidebar-section-label">כלים</div>
+        <button class="sidebar-item tab-morningreport" onclick="switchTab('morningreport')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="0.5"/><rect x="12" y="6" width="3" height="12" rx="0.5"/><rect x="17" y="13" width="3" height="5" rx="0.5"/></svg>
+            <span>דוח גדודי</span>
+        </button>
+        <button class="sidebar-item tab-rollcall" onclick="switchTab('rollcall')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <span>דו"ח 1</span>
+        </button>
+        <button class="sidebar-item tab-announcements" onclick="switchTab('announcements')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <span>הודעות</span>
+            <span class="sidebar-count tab-count" id="announcementBadge" style="display:none;">0</span>
+        </button>
+        <button class="sidebar-item tab-calendar" onclick="switchTab('calendar')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>לוח שבועי</span>
+        </button>
+        <button class="sidebar-item tab-whatsapp" onclick="switchTab('whatsapp')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            <span>הודעות WhatsApp</span>
+        </button>
+        <button class="sidebar-item tab-tasks" onclick="switchTab('tasks')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>משימות</span>
+        </button>
+        <button class="sidebar-item tab-constraints" onclick="switchTab('constraints')" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span>אילוצים</span>
+        </button>
+        <button class="sidebar-item tab-equipment" onclick="switchTab('equipment')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            <span>צל"מ וציוד</span>
+        </button>
+        <button class="sidebar-item tab-training" onclick="switchTab('training')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+            <span>אימונים</span>
+        </button>
+        <button class="sidebar-item tab-weapons" onclick="switchTab('weapons')">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;"><img src="m4.png" width="26" height="10" style="transform:rotate(-45deg);filter:brightness(0) invert(1);opacity:0.85;" alt=""></span>
+            <span>פרוייקט הנשקים</span>
+        </button>
+        <button class="sidebar-item tab-reports" onclick="switchTab('reports')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>ייצוא דוחות</span>
+        </button>
+
+        <div class="sidebar-section-label">פלוגות</div>
+        <div id="sidebarCompanyButtons"></div>
+        <script>
+        (function(){
+            var container = document.getElementById('sidebarCompanyButtons');
+            var combat = CONFIG.combatCompanies || [];
+            Object.entries(CONFIG.companies).forEach(function(e){
+                var key = e[0], comp = e[1];
+                var btn = document.createElement('button');
+                btn.className = 'sidebar-item tab-' + key;
+                btn.onclick = function(){ switchTab(key); };
+                var dot = '<span class="sidebar-dot" style="background:var(--pluga-' + key + ');"></span>';
+                var label = comp.name + (combat.includes(key) && comp.location ? ' (' + comp.location + ')' : '');
+                var count = combat.includes(key) ? '<span class="sidebar-count tab-count" id="sidebarCount-' + key + '">0</span>' : '';
+                btn.innerHTML = dot + '<span>' + label + '</span>' + count;
+                container.appendChild(btn);
+            });
+        })();
+        </script>
+
+        <button class="sidebar-item tab-settings" onclick="switchTab('settings')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            <span>הגדרות</span>
+        </button>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebarUser"></div>
+        <button class="sidebar-logout" onclick="doLogout()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            יציאה
+        </button>
+    </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Top Bar -->
+<div class="topbar" id="topbar">
+    <div class="topbar-right">
+        <button class="topbar-menu" onclick="toggleSidebar()" aria-label="תפריט">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="topbar-title">מערכת ניהול גדודי</h1>
+        <span class="topbar-badge">תעסוקה מבצעית</span>
+    </div>
+    <div class="topbar-stats">
+        <div class="topbar-stat">
+            <div class="topbar-stat-num" id="totalSoldiers">166</div>
+            <div class="topbar-stat-label">חיילים</div>
+        </div>
+        <div class="topbar-stat">
+            <div class="topbar-stat-num" id="totalCommanders">20</div>
+            <div class="topbar-stat-label">מפקדים</div>
+        </div>
+        <div class="topbar-stat">
+            <div class="topbar-stat-num" id="totalOfficers">12</div>
+            <div class="topbar-stat-label">קצינים</div>
+        </div>
+        <div class="topbar-stat">
+            <div class="topbar-stat-num" id="totalOnDuty">0</div>
+            <div class="topbar-stat-label">בבסיס</div>
+        </div>
+        <div class="topbar-stat">
+            <div class="topbar-stat-num" id="totalOnLeave">0</div>
+            <div class="topbar-stat-label">בבית</div>
+        </div>
+    </div>
+    <div class="topbar-search-wrap" id="topbarSearchWrap">
+        <input type="text" id="globalSearchInput" class="topbar-search-input" placeholder="חיפוש חייל..." oninput="onGlobalSearch(this.value)" onkeydown="onSearchKeydown(event)" autocomplete="off" dir="rtl" aria-label="חיפוש חייל">
+        <div class="topbar-search-results" id="globalSearchResults"></div>
+    </div>
+    <div class="topbar-left">
+        <div class="notif-wrapper">
+            <button class="topbar-bell" onclick="toggleNotifications()" title="התראות" aria-label="התראות">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+            </button>
+            <div class="notif-panel" id="notifPanel">
+                <div class="notif-panel-header">
+                    <span>התראות</span>
+                    <button class="notif-close" onclick="toggleNotifications()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="notif-list" id="notifList"></div>
+            </div>
+        </div>
+        <button class="topbar-bell" onclick="toggleDarkMode()" title="מצב כהה" aria-label="מצב כהה" id="darkModeBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="darkModeIcon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <span class="topbar-user" id="userBadge" title="משתמש מחובר"></span>
+        <button class="topbar-logout" onclick="doLogout()" aria-label="התנתק">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Custom confirm dialog -->
+<div class="modal-overlay" id="confirmDialog">
+    <div class="modal confirm-dialog">
+        <div class="confirm-icon" id="confirmIcon">&#9888;</div>
+        <p class="confirm-msg" id="confirmMsg"></p>
+        <div class="confirm-actions">
+            <button class="btn btn-danger" id="confirmYes">אישור</button>
+            <button class="btn btn-cancel" id="confirmNo">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Range Reset Summary Modal -->
+<div class="modal-overlay" id="rangeResetModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header">
+            <span>ריכוז חיילים לאיפוס מטווח</span>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('rangeResetModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="rangeResetContent" style=""></div>
+    </div>
+</div>
+
+<!-- Custom delete confirm dialog (requires typing "מחק") -->
+<div class="modal-overlay" id="deleteConfirmDialog">
+    <div class="modal confirm-dialog" style="max-width:420px">
+        <div class="confirm-icon" style="color:#d32f2f">&#9888;</div>
+        <p class="confirm-msg" id="deleteConfirmMsg" style="white-space:pre-line;font-size:0.95rem;line-height:1.6"></p>
+        <input type="text" id="deleteConfirmInput" autocomplete="off" placeholder='הקלד "מחק" כאן' style="width:100%;padding:10px 12px;border:2px solid #ccc;border-radius:8px;font-size:1rem;text-align:center;margin:8px 0 12px;direction:rtl" />
+        <div class="confirm-actions">
+            <button class="btn btn-danger" id="deleteConfirmYes" disabled>מחק</button>
+            <button class="btn btn-cancel" id="deleteConfirmNo">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== TAB: OVERVIEW ====== -->
+<div class="tab-content active" id="tab-all">
+    <div class="main-content">
+        <div class="dash-hero-stats" id="dashboardHeroStats"></div>
+
+        <!-- Dashboard Soldier Search -->
+        <div class="dash-search-box">
+            <div class="dash-search-row">
+                <div class="search-bar" style="flex:1;margin-bottom:0;">
+                    <span class="search-icon"><i data-lucide="search"></i></span>
+                    <input type="text" id="dashSoldierSearch" placeholder="חיפוש חייל - איפה הוא משובץ?" oninput="dashboardSoldierSearch()">
+                </div>
+                <input type="date" id="dashSearchDate" class="form-control" style="width:auto;" onchange="dashboardSoldierSearch()">
+            </div>
+            <div id="dashSearchResults" style="display:none;"></div>
+        </div>
+
+        <div class="dashboard-grid" id="dashboardGrid"></div>
+
+        <!-- Operational Mode Toggle + Alerts -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;" onclick="toggleOperationalMode()">
+                <div class="toggle-switch" id="opModeToggle">
+                    <div class="toggle-knob"></div>
+                </div>
+                מצב פעילות
+            </label>
+            <span id="opModeLabel" style="font-size:12px;color:var(--text-light);"></span>
+        </div>
+        <div id="dashboardAlerts"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="section-title" style="margin-bottom:0">
+                <div class="icon" style="background:#e3f2fd;color:var(--primary);"><i data-lucide="users"></i></div>
+                סקירת פלוגות
+            </div>
+            <button class="btn btn-sync sync-sheets-btn" onclick="syncFromGoogleSheets(false)"><i data-lucide="refresh-cw"></i> סנכרון מגוגל שיטס</button>
+        </div>
+        <div class="companies-grid" id="companiesGrid"></div>
+    </div>
+</div>
+
+<!-- ====== COMPANY TABS ====== -->
+<div class="tab-content" id="tab-a"><div class="main-content" id="content-a"></div></div>
+<div class="tab-content" id="tab-b"><div class="main-content" id="content-b"></div></div>
+<div class="tab-content" id="tab-c"><div class="main-content" id="content-c"></div></div>
+<div class="tab-content" id="tab-d"><div class="main-content" id="content-d"></div></div>
+<div class="tab-content" id="tab-hq"><div class="main-content" id="content-hq"></div></div>
+<div class="tab-content" id="tab-agam"><div class="main-content" id="content-agam"></div></div>
+<div class="tab-content" id="tab-palsam"><div class="main-content" id="content-palsam"></div></div>
+
+<!-- ====== TAB: TASKS ====== -->
+<div class="tab-content" id="tab-tasks">
+    <div class="main-content" id="content-tasks"></div>
+</div>
+
+<!-- ====== TAB: COMMANDER DASHBOARD ====== -->
+
+<!-- ====== TAB: WHATSAPP NOTIFICATIONS ====== -->
+<div class="tab-content" id="tab-whatsapp"><div class="main-content" id="content-whatsapp"></div></div>
+
+
+<!-- ====== TAB: CALENDAR ====== -->
+<div class="tab-content" id="tab-calendar">
+    <div class="main-content">
+        <div class="cal-header">
+            <button class="btn" style="background:var(--bg)" onclick="calendarNav(-1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h2 class="cal-title" id="calTitle"></h2>
+            <button class="btn" style="background:var(--bg)" onclick="calendarNav(1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="btn btn-primary" style="margin-right:auto;" onclick="calendarNav(0)">היום</button>
+            <select id="calCompanyFilter" onchange="renderCalendar()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;">
+                <option value="all">כל הפלוגות</option>
+                <option value="a">פלוגה א</option>
+                <option value="b">פלוגה ב</option>
+                <option value="c">פלוגה ג</option>
+                <option value="d">פלוגה ד</option>
+                <option value="hq">חפ"ק מג"ד</option>
+                <option value="palsam">פלס"ם</option>
+            </select>
+            <button class="btn btn-export" onclick="exportCalendarToPDF()" title="הורד לוח שבועי כ-PDF">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
+                PDF
+            </button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+    </div>
+</div>
+
+<!-- ====== TAB: ANNOUNCEMENTS ====== -->
+<div class="tab-content" id="tab-announcements">
+    <div class="main-content">
+        <div class="section-title">
+            <div class="icon" style="background:#e3f2fd;color:#1565c0;"><i data-lucide="megaphone"></i></div>
+            <h2>לוח הודעות</h2>
+        </div>
+        <div class="action-bar" style="margin-bottom:16px;">
+            <button class="btn btn-add" onclick="openNewAnnouncement()">+ הודעה חדשה</button>
+        </div>
+        <div id="announcementsContent"></div>
+    </div>
+</div>
+
+<!-- New Announcement Modal -->
+<div class="modal-overlay" id="newAnnouncementModal">
+    <div class="modal" style="max-width:500px;">
+        <div class="modal-header">
+            <h3 id="announcementModalTitle">הודעה חדשה</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('newAnnouncementModal')">&times;</button>
+        </div>
+        <div style="padding:0 20px 20px;">
+            <input type="hidden" id="announcementEditId">
+            <div class="form-group">
+                <label>כותרת</label>
+                <input type="text" id="announcementTitle" placeholder="כותרת ההודעה">
+            </div>
+            <div class="form-group">
+                <label>תוכן</label>
+                <textarea id="announcementBody" rows="5" placeholder="תוכן ההודעה..." style="width:100%;resize:vertical;"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>עדיפות</label>
+                    <select id="announcementPriority">
+                        <option value="normal">רגילה</option>
+                        <option value="urgent">דחופה</option>
+                        <option value="pinned">נעוצה</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveAnnouncement()" style="width:100%;">פרסם הודעה</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== TAB: ROLL CALL (MIFKAD) ====== -->
+<div class="tab-content" id="tab-rollcall">
+    <div class="main-content">
+        <div class="section-title">
+            <div class="icon" style="background:#e8f5e9;color:#2e7d32;"><i data-lucide="check-square"></i></div>
+            <h2>דו"ח 1 - נוכחות יומי</h2>
+        </div>
+        <div class="r1-controls">
+            <div class="r1-controls-row">
+                <select id="report1Company" onchange="renderReport1()" class="r1-select">
+                    <option value="all" selected>גדודי (כל הפלוגות)</option>
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="agam">אגם</option>
+                    <option value="palsam">פלס"ם</option>
+                    <option value="nispachim">נספחים</option>
+                </select>
+                <div class="r1-range-tabs" id="report1RangeTabs">
+                    <button class="r1-range-tab" data-range="day" onclick="setReport1Range('day')">היום</button>
+                    <button class="r1-range-tab active" data-range="week" onclick="setReport1Range('week')">שבוע</button>
+                    <button class="r1-range-tab" data-range="month" onclick="setReport1Range('month')">חודש</button>
+                    <button class="r1-range-tab" data-range="operation" onclick="setReport1Range('operation')">כל התקופה</button>
+                    <button class="r1-range-tab r1-table-btn" data-range="table" onclick="if(typeof toggleReport1TableView==='function')toggleReport1TableView()" title="טבלה חודשית"><i data-lucide="table" style="width:14px;height:14px;vertical-align:-2px;"></i> טבלה</button>
+                </div>
+            </div>
+            <div class="r1-controls-row r1-actions-row">
+                <div id="report1NavBtns" class="r1-nav-btns">
+                    <button class="btn btn-sm" onclick="report1Nav(-1)" title="הקודם">&rarr;</button>
+                    <button class="btn btn-sm btn-secondary" onclick="report1Nav(0)" title="חזור להיום" style="font-size:0.8em;padding:4px 10px;">עכשיו</button>
+                    <button class="btn btn-sm" onclick="report1Nav(1)" title="הבא">&larr;</button>
+                </div>
+                <div class="r1-export-btns">
+                    <button class="btn btn-export btn-sm" onclick="copyReport1Text()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> העתק</button>
+                    <button class="btn btn-export btn-sm" onclick="exportShavtzak()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+                </div>
+            </div>
+        </div>
+        <div id="report1Content"></div>
+    </div>
+</div>
+
+<!-- ====== TAB: MORNING REPORT ====== -->
+<div class="tab-content" id="tab-morningreport">
+    <div class="main-content">
+        <div class="section-title">
+            <div class="icon" style="background:#e3f2fd;color:#1a3a5c;"><i data-lucide="shield"></i></div>
+            <h2>דוח גדודי</h2>
+        </div>
+        <div class="sub-tabs" style="display:flex;gap:4px;margin-bottom:16px;">
+            <button class="btn btn-primary" id="morningSubBtnReport" onclick="switchMorningSubTab('report')">דוח גדודי</button>
+            <button class="btn btn-secondary" id="morningSubBtnSpecialists" onclick="switchMorningSubTab('specialists')">איתור פק"ליסטים</button>
+        </div>
+        <div id="morningSubReport">
+            <div id="morningReportContent"></div>
+            <div class="action-bar" style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-whatsapp" onclick="copyMorningReportText()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> העתק לוואטסאפ</button>
+                <button class="btn btn-export" onclick="exportMorningReportPDF()">ייצא PDF</button>
+            </div>
+        </div>
+        <div id="morningSubSpecialists" style="display:none;">
+            <div id="specialistsPanel"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== TAB: REPORTS ====== -->
+<div class="tab-content" id="tab-reports">
+    <div class="main-content">
+        <div class="section-title">
+            <div class="icon" style="background:#e3f2fd;color:var(--primary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+            דוחות וניתוח
+        </div>
+        <div id="reportsSubTabsBar" style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);overflow-x:auto;"></div>
+        <div id="reportsExistingContent">
+        <div id="reportCompanyFilter" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;"></div>
+        <div class="reports-grid">
+            <div class="report-card">
+                <div class="report-icon" style="background:#e3f2fd;color:#1565c0;">
+                    <i data-lucide="users" style="width:24px;height:24px;"></i>
+                </div>
+                <h3>דו"ח פלוגות</h3>
+                <p>רשימת כוח אדם לכל פלוגה</p>
+                <div class="report-export-btns" style="justify-content:center;">
+                    <button class="btn btn-sm btn-primary" onclick="previewReport('company')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> הצג</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportPDF('company')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportExcel('company')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+                </div>
+            </div>
+            <div class="report-card">
+                <div class="report-icon" style="background:#fff3e0;color:#e65100;">
+                    <i data-lucide="calendar-days" style="width:24px;height:24px;"></i>
+                </div>
+                <h3>דו"ח שיבוצים</h3>
+                <p>שיבוצים פעילים לפי פלוגה ומשימה</p>
+                <div class="report-export-btns" style="justify-content:center;">
+                    <button class="btn btn-sm btn-primary" onclick="previewReport('shifts')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> הצג</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportPDF('shifts')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportExcel('shifts')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+                </div>
+            </div>
+            <div class="report-card">
+                <div class="report-icon" style="background:#fce4ec;color:#c62828;">
+                    <i data-lucide="home" style="width:24px;height:24px;"></i>
+                </div>
+                <h3>דו"ח יציאות</h3>
+                <p>יציאות פעילות ומתוכננות</p>
+                <div class="report-export-btns" style="justify-content:center;">
+                    <button class="btn btn-sm btn-primary" onclick="previewReport('leaves')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> הצג</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportPDF('leaves')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
+                    <button class="btn btn-sm btn-export" onclick="exportReportExcel('leaves')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
+                </div>
+            </div>
+        </div>
+        <div id="reportPreviewOutput" class="report-output"></div>
+        </div><!-- /reportsExistingContent -->
+        <div id="reportsEnhancedContent" style="display:none;"></div>
+    </div>
+</div>
+
+
+<!-- ====== TAB: CONSTRAINTS (אילוצים) ====== -->
+<div class="tab-content" id="tab-constraints">
+    <div class="main-content" style="max-width:800px;margin:0 auto;">
+        <div id="constraintsContent"></div>
+        <div style="text-align:center;margin-top:20px;">
+            <button class="btn btn-add" onclick="if(typeof openAddConstraint==='function')openAddConstraint()"><i data-lucide="plus"></i> אילוץ חדש</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== TAB: EQUIPMENT (צל"מ) ====== -->
+<div class="tab-content" id="tab-equipment">
+    <div class="main-content">
+        <!-- Sub-tab navigation -->
+        <div class="pakal-subtabs" id="equipmentSubTabs">
+            <button class="subtab-btn active" onclick="switchEquipmentSubTab('items')">צל"מ וציוד</button>
+
+            <button class="subtab-btn" onclick="switchEquipmentSubTab('reports')">דוחות ציוד</button>
+            <button class="subtab-btn" onclick="switchEquipmentSubTab('transfer')">החלפת חתימות</button>
+        </div>
+
+        <!-- Sub-tab: Equipment Items (existing) -->
+        <div class="equip-subtab" id="subtab-items">
+            <div class="info-box">
+                <span class="info-icon"><i data-lucide="clipboard-list"></i></span>
+                <div>
+                    <strong>ניהול צל"מ:</strong> חתימה דיגיטלית על ציוד, זיכוי, מעקב מחזיקים.
+                </div>
+            </div>
+            <div class="action-bar">
+                <button id="btnSignEquip" class="btn btn-success" onclick="openSignEquipment()"><i data-lucide="pen-line"></i> חתימה על ציוד</button>
+                <button id="btnReturnEquip" class="btn btn-warning" onclick="openReturnEquipment()"><i data-lucide="undo-2"></i> זיכוי</button>
+                <button class="btn btn-add" onclick="openAddEquipment()"><i data-lucide="plus"></i> הוספת פריטים</button>
+                <button class="btn btn-sync" onclick="openImportEquipment()"><i data-lucide="upload"></i> ייבוא</button>
+                <button class="btn btn-export" onclick="openExportFilter()"><i data-lucide="download"></i> ייצוא</button>
+            </div>
+            <div class="quick-stats" id="equipmentStats"></div>
+            <div class="search-bar">
+                <span class="search-icon"><i data-lucide="search"></i></span>
+                <input type="text" id="equipmentSearch" placeholder="חיפוש לפי שם פריט, מספר סידורי, חייל..." oninput="renderEquipmentTab()">
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="setEquipmentFilter('all',this)">הכל</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('assigned',this)">מוחזק</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('available',this)">פנוי</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('faulty',this)">תקול</button>
+                    <button class="filter-btn" onclick="setEquipmentFilter('lost',this)">אובדן/מת"ש</button>
+                </div>
+                <select id="equipWarehouseFilter" onchange="renderEquipmentTab()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:0.85em;">
+                    <option value="all">כל המחסנים</option>
+                    <option value="מחסן גדוד">מחסן גדוד</option>
+                    <option value="מחסן אוגדה">מחסן אוגדה</option>
+                    <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                </select>
+            </div>
+            <div class="sub-section">
+                <div class="section-title">
+                    <div class="icon" style="background:#f5f5f5;color:#333;"><i data-lucide="package"></i></div>
+                    רשימת ציוד (<span id="equipmentCount">0</span> פריטים)
+                </div>
+                <div id="equipmentTableContainer"></div>
+            </div>
+            <div class="sub-section">
+                <div class="section-title">
+                    <div class="icon" style="background:#f5f5f5;color:#333;"><i data-lucide="history"></i></div>
+                    היסטוריית חתימות (<span id="signatureHistoryCount">0</span>)
+                </div>
+                <div id="signatureHistoryContainer"></div>
+            </div>
+            <div class="sub-section">
+                <div class="section-title">
+                    <div class="icon" style="background:#f5f5f5;color:#333;"><i data-lucide="settings"></i></div>
+                    הגדרות סט ציוד
+                </div>
+                <p style="font-size:0.83em;color:var(--text-light);margin-bottom:12px;">רשימת הציוד שכל לוחם מקבל בעת ההצטיידות.</p>
+                <div id="equipmentSetsEditor"></div>
+            </div>
+        </div>
+
+
+
+
+        <!-- Sub-tab: Equipment Reports -->
+        <div class="equip-subtab" id="subtab-reports" style="display:none;">
+            <div class="info-box">
+                <span class="info-icon"><i data-lucide="bar-chart-3"></i></span>
+                <div><strong>דוחות ציוד:</strong> פריסת ציוד לפי קטגוריה, סוג, מחזיק, פלוגה או ציוד פנוי.</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">
+                <div style="flex:1;min-width:160px;">
+                    <label style="font-size:0.82em;font-weight:600;display:block;margin-bottom:4px;">סוג דוח</label>
+                    <select id="reportType" class="form-control" onchange="renderEquipmentReports()">
+                        <option value="byCategory">לפי קטגוריה</option>
+                        <option value="byType">לפי סוג ציוד</option>
+                        <option value="byHolder">לפי מחזיק</option>
+                        <option value="byCompany">לפי פלוגה</option>
+                        <option value="unsigned">ציוד לא מוחתם</option>
+                        <option value="byLoss">אובדן / מת"ש</option>
+                        <option value="byFaulty">תקולים לתיקון</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:140px;" id="reportFilterGroup">
+                    <label style="font-size:0.82em;font-weight:600;display:block;margin-bottom:4px;">סינון</label>
+                    <select id="reportFilter" class="form-control" onchange="renderEquipmentReports()">
+                        <option value="all">הכל</option>
+                    </select>
+                </div>
+                <button class="btn btn-export btn-sm" onclick="exportReportCSV()" style="height:36px;"><i data-lucide="download"></i> CSV</button>
+                <button class="btn btn-export btn-sm" onclick="exportReportPDF()" style="height:36px;"><i data-lucide="file-down"></i> PDF</button>
+            </div>
+            <div id="equipmentReportContent"></div>
+        </div>
+
+        <!-- Transfer sub-tab -->
+        <div class="equip-subtab" id="subtab-transfer" style="display:none;">
+            <div class="info-box">
+                <span class="info-icon"><i data-lucide="repeat-2"></i></span>
+                <div><strong>החלפת חתימות:</strong> העברת ציוד מחייל לחייל עם חתימות דיגיטליות.</div>
+            </div>
+            <div class="action-bar">
+                <button class="btn btn-add" onclick="openTransferEquip()"><i data-lucide="repeat-2"></i> העברת ציוד חדשה</button>
+            </div>
+            <div id="transferHistoryContent"></div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ====== TAB: SOLDIER VIEW / PERSONAL DASHBOARD ====== -->
+<div class="tab-content" id="tab-myequipment" style="display:none;">
+    <div class="main-content" style="max-width:900px;margin:0 auto;">
+        <div id="personalDashboardContent"></div>
+        <div style="text-align:center;margin-top:24px;">
+            <button class="btn btn-danger" onclick="doLogout()"><i data-lucide="log-out"></i> יציאה</button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== TAB: TRAINING ====== -->
+<div class="tab-content" id="tab-training">
+    <div class="main-content">
+        <div id="trainingSubTabs" style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);overflow-x:auto;">
+            <button class="subtab-btn active" onclick="switchTrainingSubTab('readiness')">מעקב כשירות</button>
+            <button class="subtab-btn" onclick="switchTrainingSubTab('events')">מערך האימונים</button>
+            <button class="subtab-btn" onclick="switchTrainingSubTab('shooting')">מקצי ירי</button>
+        </div>
+        <div class="training-subtab" id="training-subtab-readiness"><div id="content-training"></div></div>
+        <div class="training-subtab" id="training-subtab-events" style="display:none;"><div id="content-training-events"></div></div>
+        <div class="training-subtab" id="training-subtab-shooting" style="display:none;"><div id="content-shooting"></div></div>
+    </div>
+</div>
+
+<!-- ====== TAB: WEAPONS PROJECT ====== -->
+<div class="tab-content" id="tab-weapons">
+    <div class="main-content">
+        <div class="info-box">
+            <span class="info-icon"><img src="m4.png" width="36" height="13" style="opacity:0.7;" alt=""></span>
+            <div>
+                <strong>סטטוס הגשת טפסים לנשק:</strong> מעקב אחר חתימת טפסי נשק דיגיטליים.
+                ניתן לשלוח קישור לחתימה בוואטסאפ.
+            </div>
+        </div>
+        <div class="company-tabs" style="margin-bottom:12px;gap:4px;">
+            <button class="company-tab-btn active" data-comp="all" onclick="setWeaponsCompany('all',this)" style="font-size:0.8em;padding:5px 10px;">הכל</button>
+            <button class="company-tab-btn" data-comp="a" onclick="setWeaponsCompany('a',this)" style="font-size:0.8em;padding:5px 10px;">א</button>
+            <button class="company-tab-btn" data-comp="b" onclick="setWeaponsCompany('b',this)" style="font-size:0.8em;padding:5px 10px;">ב</button>
+            <button class="company-tab-btn" data-comp="c" onclick="setWeaponsCompany('c',this)" style="font-size:0.8em;padding:5px 10px;">ג</button>
+            <button class="company-tab-btn" data-comp="d" onclick="setWeaponsCompany('d',this)" style="font-size:0.8em;padding:5px 10px;">ד</button>
+            <button class="company-tab-btn" data-comp="gdudi" onclick="setWeaponsCompany('gdudi',this)" style="font-size:0.8em;padding:5px 10px;">גדודי</button>
+        </div>
+        <select id="weaponsSendCompany" style="display:none;">
+            <option value="all" selected>הכל</option>
+            <option value="a">א</option>
+            <option value="b">ב</option>
+            <option value="c">ג</option>
+            <option value="d">ד</option>
+            <option value="gdudi">גדודי</option>
+        </select>
+        <div class="quick-stats" id="weaponsStats"></div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="filter-buttons" style="margin:0;">
+                <button class="filter-btn active" onclick="setWeaponsFilter('all',this)">הכל</button>
+                <button class="filter-btn" onclick="setWeaponsFilter('signed',this)">נחתם</button>
+                <button class="filter-btn" onclick="setWeaponsFilter('inprogress',this)">בתהליך</button>
+                <button class="filter-btn" onclick="setWeaponsFilter('unsigned',this)">טרם נחתם</button>
+            </div>
+            <div class="search-bar" style="max-width:180px;margin:0;">
+                <span class="search-icon"><i data-lucide="search"></i></span>
+                <input type="text" id="weaponsSearch" placeholder="חיפוש..." oninput="renderWeaponsTab()">
+            </div>
+            <button class="btn btn-whatsapp btn-sm" onclick="openWeaponsWhatsAppModal()" id="btnSendWeaponsQ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                שליחה מרוכזת
+            </button>
+            <button class="btn btn-sync btn-sm" onclick="syncWeaponsEasyDoStatus(false).then(()=>renderWeaponsTab())" id="btnSyncEasyDo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
+                סנכרן
+            </button>
+            <button class="btn btn-export btn-sm" onclick="exportWeaponsCSV()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-left:3px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                CSV
+            </button>
+            <button class="btn btn-export btn-sm" onclick="exportWeaponsPDF()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-left:3px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                PDF
+            </button>
+        </div>
+        <div style="font-size:0.85em;color:var(--text-light);margin-bottom:8px;"><span id="weaponsSoldiersCount">0</span> חיילים</div>
+        <div id="weaponsTableContainer"></div>
+    </div>
+</div>
+
+<!-- ====== MODALS ====== -->
+
+<!-- Soldier Profile Card Modal -->
+<div class="modal-overlay" id="soldierProfileModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header">
+            <h3 id="profileTitle">כרטיס חייל</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('soldierProfileModal')">&times;</button>
+        </div>
+        <div id="soldierProfileContent" style="padding:0 20px 20px;max-height:70vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- Add/Edit Soldier Modal -->
+<div class="modal-overlay" id="addSoldierModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="soldierModalTitle">הוספת חייל</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('addSoldierModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="soldierEditId" value="">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>שם פרטי</label>
+                    <input type="text" id="soldierFirstName" placeholder="שם פרטי">
+                </div>
+                <div class="form-group">
+                    <label>שם משפחה</label>
+                    <input type="text" id="soldierLastName" placeholder="שם משפחה">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מספר אישי</label>
+                    <input type="text" id="soldierId" placeholder="מספר אישי">
+                </div>
+                <div class="form-group">
+                    <label>טלפון</label>
+                    <input type="text" id="soldierPhone" placeholder="050-0000000">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="soldierCompany" onchange="updateSoldierUnits()">
+                        <option value="a">פלוגה א (עתודה)</option>
+                        <option value="b">פלוגה ב (מבוא חורון)</option>
+                        <option value="c">פלוגה ג (חשמונאים)</option>
+                        <option value="d">פלוגה ד (443)</option>
+                        <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                        <option value="agam">אג"מ</option>
+                        <option value="palsam">פלס"ם</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מחלקה</label>
+                    <select id="soldierUnit">
+                        <option value="">-- בחר --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>דרגה</label>
+                    <select id="soldierRank">
+                        <option value="טוראי">טוראי</option>
+                        <option value="רב&quot;ט">רב"ט</option>
+                        <option value="סמל">סמל</option>
+                        <option value="סמ&quot;ר">סמ"ר</option>
+                        <option value="רס&quot;ל">רס"ל</option>
+                        <option value="רס&quot;ר">רס"ר</option>
+                        <option value="סגן">סגן</option>
+                        <option value="סרן">סרן</option>
+                        <option value="רס&quot;ן">רס"ן</option>
+                        <option value="סא&quot;ל">סא"ל</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>תפקיד (ניתן לבחור עד 2)</label>
+                    <div id="soldierRoleMulti" class="role-multi-select">
+                        <div class="role-multi-selected" id="roleSelectedTags" onclick="toggleRoleDropdown()">
+                            <span class="role-placeholder">-- בחר תפקיד --</span>
+                        </div>
+                        <div class="role-multi-dropdown" id="roleDropdown" style="display:none;">
+                            <div class="role-group-label">לוחמים</div>
+                            <label class="role-option"><input type="checkbox" value="לוחם"><span>לוחם</span></label>
+                            <label class="role-option"><input type="checkbox" value="קלע"><span>קלע</span></label>
+                            <label class="role-option"><input type="checkbox" value="צלף"><span>צלף</span></label>
+                            <label class="role-option"><input type="checkbox" value="נגביסט"><span>נגביסט</span></label>
+                            <label class="role-option"><input type="checkbox" value="מאגיסט"><span>מאגיסט</span></label>
+                            <label class="role-option"><input type="checkbox" value="חובש"><span>חובש</span></label>
+                            <label class="role-option"><input type="checkbox" value="רחפניסט"><span>רחפניסט</span></label>
+                            <label class="role-option"><input type="checkbox" value="קשר"><span>קשר</span></label>
+                            <div class="role-group-label">מפקדים</div>
+                            <label class="role-option"><input type="checkbox" value="מפקד חוליה"><span>מפקד חוליה</span></label>
+                            <label class="role-option"><input type="checkbox" value="מ&quot;כ"><span>מ"כ</span></label>
+                            <label class="role-option"><input type="checkbox" value="סמ&quot;ח"><span>סמ"ח</span></label>
+                            <label class="role-option"><input type="checkbox" value="מ&quot;מ"><span>מ"מ</span></label>
+                            <label class="role-option"><input type="checkbox" value="סמ&quot;פ"><span>סמ"פ</span></label>
+                            <label class="role-option"><input type="checkbox" value="מ&quot;פ"><span>מ"פ</span></label>
+                            <div class="role-group-label">מטה / תמיכה</div>
+                            <label class="role-option"><input type="checkbox" value="נהג"><span>נהג</span></label>
+                            <label class="role-option"><input type="checkbox" value="רופא"><span>רופא</span></label>
+                            <label class="role-option"><input type="checkbox" value="שליש"><span>שליש</span></label>
+                            <label class="role-option"><input type="checkbox" value="מש&quot;ק משא&quot;ן"><span>מש"ק משא"ן</span></label>
+                            <label class="role-option"><input type="checkbox" value="רב"><span>רב</span></label>
+                            <label class="role-option"><input type="checkbox" value="לוגיסטיקה"><span>לוגיסטיקה</span></label>
+                            <label class="role-option"><input type="checkbox" value="נהג מנהלתי"><span>נהג מנהלתי</span></label>
+                            <label class="role-option"><input type="checkbox" value="נהג משא"><span>נהג משא</span></label>
+                            <label class="role-option"><input type="checkbox" value="מאבחן נשק"><span>מאבחן נשק</span></label>
+                            <label class="role-option"><input type="checkbox" value="מכונאי"><span>מכונאי</span></label>
+                            <label class="role-option"><input type="checkbox" value="חשמלאי"><span>חשמלאי</span></label>
+                            <label class="role-option"><input type="checkbox" value="מנהל עבודה"><span>מנהל עבודה</span></label>
+                            <label class="role-option"><input type="checkbox" value="מודיעין"><span>מודיעין</span></label>
+                            <label class="role-option"><input type="checkbox" value="מטבח"><span>מטבח</span></label>
+                            <label class="role-option"><input type="checkbox" value="רפואה"><span>רפואה</span></label>
+                            <label class="role-option"><input type="checkbox" value="אג&quot;מ"><span>אג"מ</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מידת נעליים</label>
+                    <select id="soldierShoeSize">
+                        <option value="">--</option>
+                        <option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                        <option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option>
+                        <option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מידת חולצה</label>
+                    <select id="soldierShirtSize">
+                        <option value="">--</option>
+                        <option value="קק">קק</option><option value="ק">ק</option>
+                        <option value="ב1">ב1</option><option value="ב2">ב2</option><option value="ב3">ב3</option>
+                        <option value="ג1">ג1</option><option value="ג2">ג2</option><option value="ג3">ג3</option>
+                        <option value="מ1">מ1</option><option value="מ2">מ2</option><option value="מ3">מ3</option><option value="מ4">מ4</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מידת מכנס</label>
+                    <select id="soldierPantsSize">
+                        <option value="">--</option>
+                        <option value="קק">קק</option><option value="ק">ק</option>
+                        <option value="ב1">ב1</option><option value="ב2">ב2</option><option value="ב3">ב3</option>
+                        <option value="ג1">ג1</option><option value="ג2">ג2</option><option value="ג3">ג3</option>
+                        <option value="מ1">מ1</option><option value="מ2">מ2</option><option value="מ3">מ3</option><option value="מ4">מ4</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הגבלת משימות</label>
+                <select id="soldierTaskRestriction">
+                    <option value="">ללא הגבלה — ניתן לשבץ בכל משימה</option>
+                    <option value="hafak_only">חפ"ק בלבד</option>
+                    <option value="static_only">עמדות סטטיות בלבד</option>
+                    <option value="no_night">ללא משמרות לילה</option>
+                    <option value="light_duty">תפקוד קל בלבד</option>
+                </select>
+            </div>
+            <div class="form-group" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <label style="font-weight:600;">תקופות שירות (פיצול)</label>
+                <div id="servicePeriodsContainer"></div>
+                <button type="button" class="btn btn-sm" style="margin-top:6px;background:var(--bg);" onclick="addServicePeriodRow()">+ הוסף תקופה</button>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <textarea id="soldierNotes" rows="3" placeholder="הערות על החייל..." style="width:100%;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveSoldier()">שמור</button>
+            <button class="btn btn-cancel" onclick="closeModal('addSoldierModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Constraints Modal -->
+<div class="modal-overlay" id="constraintsModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header">
+            <h3 id="constraintsTitle">אילוצים</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('constraintsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius);">
+                <select id="constraintSoldier" style="flex:2;min-width:140px;">
+                    <option value="">-- בחר חייל --</option>
+                </select>
+                <input type="date" id="constraintStart" style="flex:1;">
+                <input type="date" id="constraintEnd" style="flex:1;">
+                <input type="text" id="constraintReason" placeholder="סיבה" style="flex:2;">
+                <button class="btn btn-primary btn-sm" onclick="addConstraint()">+ הוסף</button>
+            </div>
+            <div id="constraintsList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Replacement Suggestion Modal -->
+<div class="modal-overlay" id="replacementModal">
+    <div class="modal" style="max-width:550px;">
+        <div class="modal-header">
+            <h3>הצעת מחליפים</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('replacementModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="replacementContent"></div>
+    </div>
+</div>
+
+<!-- Auto Schedule Modal -->
+<div class="modal-overlay" id="autoScheduleModal">
+    <div class="modal" style="max-width:90vw;width:900px;max-height:90vh;">
+        <div class="modal-header">
+            <h3 id="autoScheduleTitle">שיבוץ אוטומטי</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('autoScheduleModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:16px;align-items:flex-end;justify-content:center;margin-bottom:20px;flex-wrap:wrap;">
+                <div style="display:flex;flex-direction:column;"><label style="font-size:0.82em;font-weight:600;margin-bottom:4px;text-align:right;">מתאריך</label><input type="date" id="autoSchedStart" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;"></div>
+                <div style="display:flex;flex-direction:column;"><label style="font-size:0.82em;font-weight:600;margin-bottom:4px;text-align:right;">עד תאריך</label><input type="date" id="autoSchedEnd" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;"></div>
+                <button class="btn btn-special" onclick="runAutoSchedule()" id="autoSchedRunBtn" style="height:38px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> הצע שיבוץ</button>
+            </div>
+            <div id="autoSchedPreview"></div>
+        </div>
+        <div class="modal-footer" id="autoSchedFooter" style="display:none;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;">
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-success" onclick="approveScheduleProposal()" style="font-size:1em;padding:10px 24px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;"><polyline points="20 6 9 17 4 12"/></svg> אשר נבחרים</button>
+                <button class="btn btn-cancel" onclick="closeModal('autoScheduleModal')">ביטול</button>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-sm" style="background:var(--primary);color:#fff;padding:6px 14px;" onclick="toggleAllProposalShifts(true)">&#10003; סמן הכל</button>
+                <button class="btn btn-sm" style="background:var(--danger);color:#fff;padding:6px 14px;" onclick="toggleAllProposalShifts(false)">&#10005; נקה הכל</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Shift Modal -->
+<div class="modal-overlay" id="addShiftModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="shiftModalTitle">שיבוץ למשמרת</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('addShiftModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="shiftEditId" value="">
+            <div class="form-group">
+                <label>פלוגה</label>
+                <select id="shiftCompany" onchange="updateShiftOptions()">
+                    <option value="a">פלוגה א (עתודה)</option>
+                    <option value="b">פלוגה ב (מבוא חורון)</option>
+                    <option value="c">פלוגה ג (חשמונאים)</option>
+                    <option value="d">פלוגה ד (443)</option>
+                    <option value="hq">חפ"ק מג"ד/סמג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>משימה / פעילות</label>
+                <select id="shiftTask"></select>
+            </div>
+            <div class="form-group">
+                <label>תאריך</label>
+                <input type="date" id="shiftDate" onchange="updateShiftOptions()">
+            </div>
+            <div class="form-group">
+                <label>סוג משמרת</label>
+                <select id="shiftTypeSelect" onchange="applyShiftType(this.value)">
+                    <option value="">-- בחר סוג --</option>
+                    <option value="4:8">4:8 — 4 שעות פעילות, 8 מנוחה</option>
+                    <option value="6:18">6:18 — 6 שעות פעילות, 18 מנוחה</option>
+                    <option value="8:16">8:16 — 8 שעות פעילות, 16 מנוחה</option>
+                    <option value="12">12 שעות</option>
+                    <option value="24">יום שלם (24 שעות)</option>
+                    <option value="5days">5 ימים</option>
+                    <option value="week">שבוע שלם (א׳–שבת)</option>
+                    <option value="custom">מותאם אישית</option>
+                </select>
+            </div>
+            <div class="form-group" id="shiftSubPresets" style="display:none;">
+                <label>תבנית שעות</label>
+                <div class="shift-presets" id="shiftPresetsContainer"></div>
+            </div>
+            <div id="multiDayShiftRow" style="display:none;margin-top:8px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>תאריך סיום</label>
+                        <input type="date" id="shiftEndDate" onchange="updateMultiDayInfo()">
+                    </div>
+                    <div class="form-group" style="align-self:flex-end;">
+                        <span id="multiDayInfo" style="font-size:0.82em;color:var(--text-light);"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>שם המשמרת</label>
+                    <input type="text" id="shiftName" placeholder='בוקר / צהריים / לילה'>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>שעת התחלה</label>
+                    <input type="time" id="shiftStart" value="08:00" onchange="updateShiftOptions()">
+                </div>
+                <div class="form-group">
+                    <label>שעת סיום</label>
+                    <input type="time" id="shiftEnd" value="16:00" onchange="updateShiftOptions()">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>שיבוץ לפי תפקיד</label>
+                <div id="shiftRoleSlots">
+                    <div style="padding:12px;text-align:center;color:var(--text-light);font-size:0.85em;">בחר משימה לשיבוץ</div>
+                </div>
+            </div>
+            <div class="form-group" id="taskCommanderGroup" style="display:none">
+                <label>מפקד המשימה</label>
+                <select id="taskCommanderSelect">
+                    <option value="">-- בחר מפקד משימה --</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveShift()">שמור משמרת</button>
+            <button class="btn btn-cancel" onclick="closeModal('addShiftModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Leave Modal -->
+<div class="modal-overlay" id="addLeaveModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="leaveModalTitle">יציאה הביתה</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('addLeaveModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="leaveEditId" value="">
+            <div class="form-group">
+                <label>פלוגה</label>
+                <select id="leaveCompany" onchange="updateLeaveSoldiers()">
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group" id="leaveSoldierGroup">
+                <label>חיילים</label>
+                <div class="checkbox-list-wrap">
+                    <input type="text" class="checkbox-list-search" placeholder="חיפוש חייל..." oninput="filterCheckboxList('leaveSoldier', this.value)">
+                    <div class="checkbox-list" id="leaveSoldier"></div>
+                </div>
+            </div>
+            <div class="form-group" id="leaveSoldierDisplay" style="display:none;">
+                <label>חייל</label>
+                <div id="leaveSoldierName" style="padding:8px 12px;background:var(--bg);border-radius:8px;font-weight:600;"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תאריך יציאה</label>
+                    <input type="date" id="leaveStart">
+                </div>
+                <div class="form-group">
+                    <label>שעת יציאה</label>
+                    <input type="time" id="leaveStartTime" value="17:00">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תאריך חזרה</label>
+                    <input type="date" id="leaveEnd">
+                </div>
+                <div class="form-group">
+                    <label>שעת חזרה</label>
+                    <input type="time" id="leaveEndTime" value="08:00">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <input type="text" id="leaveNotes" placeholder="סיבה / הערות">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-warning" onclick="saveLeave()">שמור יציאה</button>
+            <button class="btn btn-cancel" onclick="closeModal('addLeaveModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ====== TAB: SETTINGS ====== -->
+<div class="tab-content" id="tab-settings">
+    <div class="main-content">
+        <div class="info-box">
+            <span class="info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+            <div><strong>הגדרות מערכת</strong> - שינויים נשמרים אוטומטית. רק מנהל המערכת יכול לגשת לדף זה.</div>
+        </div>
+        <div class="settings-grid" id="settingsContent"></div>
+    </div>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal-overlay" id="addEquipmentModal">
+    <div class="modal">
+        <div class="modal-header" style="background:#FF5722;">
+            <h3 id="equipmentModalTitle">הוספת פריט ציוד</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('addEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="equipEditId" value="">
+            <div class="form-group">
+                <label>סוג ציוד</label>
+                <select id="equipType">
+                    <!-- Populated dynamically from baseSet by populateEquipTypeDropdown() -->
+                    <option value="">בחר סוג...</option>
+                </select>
+            </div>
+            <div class="form-group" id="equipCustomTypeGroup" style="display:none;">
+                <label>שם הציוד</label>
+                <input type="text" id="equipCustomType" placeholder="הזן שם ציוד">
+            </div>
+            <div class="form-group">
+                <label>מספר סידורי</label>
+                <input type="text" id="equipSerial" placeholder="מספר סידורי / קטלוגי">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="equipCompany">
+                        <option value="a">פלוגה א</option>
+                        <option value="b">פלוגה ב</option>
+                        <option value="c">פלוגה ג</option>
+                        <option value="d">פלוגה ד</option>
+                        <option value="hq">חפ"ק מג"ד</option>
+                        <option value="palsam">פלס"ם</option>
+                        <option value="gdudi">גדודי</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מצב</label>
+                    <select id="equipCondition" onchange="onEquipConditionChange()">
+                        <option value="תקין">תקין</option>
+                        <option value="תקול">תקול</option>
+                        <option value="אובדן">אובדן</option>
+                        <option value="מת&quot;ש">מת"ש</option>
+                    </select>
+                </div>
+            </div>
+            <div id="lossFieldsGroup" style="display:none;">
+                <div class="form-group">
+                    <label>תיאור האירוע</label>
+                    <textarea id="lossDescription" rows="2" placeholder="מה קרה?" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:8px;"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>תאריך אירוע</label>
+                        <input type="date" id="lossDate">
+                    </div>
+                    <div class="form-group">
+                        <label>חייל מדווח</label>
+                        <input type="text" id="lossReportingSoldier" placeholder="שם החייל">
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מחסן</label>
+                    <select id="equipWarehouse" onchange="toggleCustomWarehouse()">
+                        <option value="מחסן גדוד">מחסן גדוד</option>
+                        <option value="מחסן אוגדה">מחסן אוגדה</option>
+                        <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                        <option value="אחר">אחר</option>
+                    </select>
+                </div>
+                <div class="form-group" id="equipCustomWarehouseGroup" style="display:none;">
+                    <label>שם מחסן</label>
+                    <input type="text" id="equipCustomWarehouse" placeholder="הזן שם מחסן">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>כמות ברירת מחדל</label>
+                    <input type="number" id="equipDefaultQty" min="1" value="1" style="width:80px;">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>הערות</label>
+                    <input type="text" id="equipNotes" placeholder="הערות נוספות">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveEquipment()">שמור פריט</button>
+            <button class="btn btn-cancel" onclick="closeModal('addEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Import Equipment Modal -->
+<div class="modal-overlay" id="importEquipmentModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#00BCD4;">
+            <h3><i data-lucide="upload"></i> ייבוא ציוד מקובץ</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('importEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="info-box">
+                <span class="info-icon"><i data-lucide="info"></i></span>
+                <div>העלה קובץ CSV או Excel עם עמודות: סוג ציוד, מספר סידורי, קטגוריה, מצב, הערות</div>
+            </div>
+            <div class="form-row" style="margin-bottom:12px;">
+                <div class="form-group" style="flex:2;">
+                    <label>בחר קובץ</label>
+                    <input type="file" id="importEquipFile" accept=".csv,.xlsx,.xls" onchange="previewImportEquipment()" style="border:1px solid var(--border);padding:6px;border-radius:var(--radius);width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>מחסן יעד</label>
+                    <select id="importWarehouse">
+                        <option value="מחסן גדוד">מחסן גדוד</option>
+                        <option value="מחסן אוגדה">מחסן אוגדה</option>
+                        <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="importCompany">
+                        <option value="gdudi">גדודי</option>
+                        <option value="a">פלוגה א</option>
+                        <option value="b">פלוגה ב</option>
+                        <option value="c">פלוגה ג</option>
+                        <option value="d">פלוגה ד</option>
+                        <option value="hq">חפ"ק</option>
+                        <option value="palsam">פלס"ם</option>
+                    </select>
+                </div>
+            </div>
+            <div id="importPreviewContainer" style="display:none;max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;"></div>
+            <div id="importSummary" style="display:none;text-align:center;padding:10px;font-weight:600;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-sync" id="importConfirmBtn" style="display:none;" onclick="confirmImportEquipment()"><i data-lucide="check"></i> ייבא ציוד</button>
+            <button class="btn btn-cancel" onclick="closeModal('importEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Equipment Modal -->
+<div class="modal-overlay" id="transferEquipModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#9C27B0;">
+            <h3><i data-lucide="repeat-2"></i> העברת ציוד בין חיילים</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('transferEquipModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="">
+            <div class="wizard-steps" id="transferSteps"></div>
+            <div id="transferStepContent"></div>
+        </div>
+        <div class="modal-footer" id="transferFooter">
+            <button class="btn btn-cancel" id="transferPrevBtn" onclick="transferPrevStep()">חזרה</button>
+            <button class="btn btn-primary" id="transferNextBtn" onclick="transferNextStep()">הבא</button>
+            <button class="btn btn-cancel" onclick="closeModal('transferEquipModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Export Filter Modal -->
+<div class="modal-overlay" id="exportFilterModal">
+    <div class="modal" style="max-width:500px;">
+        <div class="modal-header">
+            <h3><i data-lucide="download"></i> ייצוא ציוד לקובץ</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('exportFilterModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label style="font-weight:600;margin-bottom:6px;display:block;">קטגוריות</label>
+                <div id="exportCategoryChecks" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+            </div>
+            <div class="form-row" style="margin-top:12px;">
+                <div class="form-group">
+                    <label>מחסן</label>
+                    <select id="exportWarehouseFilter" onchange="updateExportPreviewCount()">
+                        <option value="all">הכל</option>
+                        <option value="מחסן גדוד">מחסן גדוד</option>
+                        <option value="מחסן אוגדה">מחסן אוגדה</option>
+                        <option value="ימ"ח רנטיס">ימ"ח רנטיס</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>סטטוס</label>
+                    <select id="exportStatusFilter" onchange="updateExportPreviewCount()">
+                        <option value="all">הכל</option>
+                        <option value="assigned">מוחזק</option>
+                        <option value="available">פנוי</option>
+                        <option value="faulty">תקול</option>
+                        <option value="lost">אובדן</option>
+                        <option value="writeoff">מת"ש</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>פלוגה</label>
+                <select id="exportCompanyFilter" onchange="updateExportPreviewCount()">
+                    <option value="all">הכל</option>
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק</option>
+                    <option value="palsam">פלס"ם</option>
+                    <option value="gdudi">גדודי</option>
+                </select>
+            </div>
+            <div id="exportPreviewCount" style="text-align:center;padding:12px;font-weight:600;font-size:1.1em;color:var(--primary);"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-export" onclick="doFilteredExportCSV()"><i data-lucide="download"></i> CSV</button>
+            <button class="btn btn-export" onclick="doFilteredExportPDF()"><i data-lucide="file-down"></i> PDF</button>
+            <button class="btn btn-cancel" onclick="closeModal('exportFilterModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sign Equipment Modal -->
+<div class="modal-overlay" id="signEquipmentModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#4CAF50;">
+            <h3 id="signModalTitle">חתימה על ציוד</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('signEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <!-- Step 1: Soldier selection -->
+            <div class="form-group" id="signCompanyGroup" style="margin-bottom:8px;">
+                <select id="signCompany" onchange="updateSignSoldiers()" style="padding:6px 10px;font-size:0.85em;">
+                    <option value="all">כל הפלוגות</option>
+                    <option value="a">פלוגה א</option><option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option><option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק</option><option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:8px;">
+                <input type="text" id="signSoldierSearch" placeholder="חפש חייל לפי שם..." oninput="filterSignSoldiers()" style="padding:8px 12px;font-size:0.9em;">
+            </div>
+            <div class="form-group" style="margin-bottom:10px;display:flex;gap:6px;align-items:center;">
+                <select id="signSoldier" onchange="onSignSoldierSelect()" style="padding:8px 12px;font-size:0.9em;flex:1;">
+                    <option value="">-- בחר חייל --</option>
+                </select>
+                <button class="btn btn-sm btn-add" onclick="openAddSoldierFromSign()" style="white-space:nowrap;padding:8px 10px;" title="הוסף חייל חדש">+ חדש</button>
+            </div>
+            <div id="signSoldierInfo" style="display:none;background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;"></div>
+
+            <!-- Step 2: Equipment sets (shown after soldier selected) -->
+            <div id="signEquipSection" style="display:none;">
+                <div id="signEquipCheckboxList"></div>
+            </div>
+
+            <!-- Issuer details (shown before signature) -->
+            <div id="signIssuerInfo" style="display:none;background:#E8EAF6;border-radius:8px;padding:10px 14px;margin-bottom:10px;border-right:4px solid #5C6BC0;"></div>
+
+            <!-- Step 3: Signature -->
+            <div id="signSignatureSection" style="display:none;">
+                <div style="font-weight:600;font-size:0.85em;margin-bottom:6px;">חתימה דיגיטלית:</div>
+                <div class="signature-container">
+                    <canvas id="signatureCanvas" width="600" height="160"></canvas>
+                    <button class="btn btn-sm" style="background:var(--bg);margin-top:4px;" onclick="clearSignatureCanvas()">נקה</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-success" onclick="confirmSignEquipment()">אשר חתימה והדפס</button>
+            <button class="btn btn-cancel" onclick="closeModal('signEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Return Equipment Modal -->
+<div class="modal-overlay" id="returnEquipmentModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#FF9800;">
+            <h3>זיכוי / החזרת ציוד</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('returnEquipmentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group" id="returnCompanyGroup">
+                <label>סנן לפי פלוגה</label>
+                <select id="returnCompany" onchange="updateReturnSoldiers()">
+                    <option value="all">כל הפלוגות</option>
+                    <option value="a">פלוגה א (עתודה)</option>
+                    <option value="b">פלוגה ב (מבוא חורון)</option>
+                    <option value="c">פלוגה ג (חשמונאים)</option>
+                    <option value="d">פלוגה ד (443)</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>בחר חייל</label>
+                <select id="returnSoldier" onchange="onReturnSoldierSelect()">
+                    <option value="">-- בחר חייל --</option>
+                </select>
+            </div>
+            <div id="returnSoldierEquipCard" style="display:none;margin-bottom:14px;"></div>
+            <div class="form-group">
+                <label>חתימת מחזיר (חתום עם האצבע או העכבר)</label>
+                <div class="signature-container">
+                    <canvas id="returnSignatureCanvas" width="600" height="200"></canvas>
+                    <button class="btn btn-sm" style="background:var(--bg);margin-top:6px;" onclick="clearReturnSignatureCanvas()">נקה חתימה</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <input type="text" id="returnNotes" placeholder="מצב הציוד בהחזרה">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-warning" onclick="confirmReturnEquipment()">אשר זיכוי</button>
+            <button class="btn btn-cancel" onclick="closeModal('returnEquipmentModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Weapons Form Wizard Modal -->
+<!-- Transfer Soldier Modal -->
+<div class="modal-overlay" id="transferSoldierModal">
+    <div class="modal">
+        <div class="modal-header" style="background:#9C27B0;">
+            <h3>העברת חייל בין פלוגות</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('transferSoldierModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="transferSoldierId" value="">
+            <div id="transferSoldierInfo" style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+            <div class="form-group">
+                <label>פלוגה נוכחית</label>
+                <input type="text" id="transferFromCompany" disabled style="background:var(--bg);">
+            </div>
+            <div class="form-group">
+                <label>פלוגת יעד</label>
+                <select id="transferToCompany">
+                    <option value="">-- בחר פלוגה --</option>
+                    <option value="a">פלוגה א</option>
+                    <option value="b">פלוגה ב</option>
+                    <option value="c">פלוגה ג</option>
+                    <option value="d">פלוגה ד</option>
+                    <option value="hq">חפ"ק מג"ד</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>סיבת העברה (אופציונלי)</label>
+                <input type="text" id="transferNotes" placeholder="סיבת ההעברה">
+            </div>
+            <div id="transferWarnings" style="display:none;background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:12px;margin-top:10px;color:#e65100;font-size:0.9em;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-special" onclick="confirmTransferSoldier()">אשר העברה</button>
+            <button class="btn btn-cancel" onclick="closeModal('transferSoldierModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Footer Credit -->
+<div class="app-footer" style="text-align:center;padding:20px;background:var(--primary-dark);color:rgba(255,255,255,0.6);font-size:0.8em;margin-right:260px;transition:margin-right 0.3s cubic-bezier(0.4,0,0.2,1);">
+    <a href="https://wa.me/972542012000" target="_blank" style="color:rgba(255,255,255,0.8);text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        נבנה ע"י אלחי פיין | 054-2012000
+    </a>
+    <div style="margin-top:4px;font-size:0.85em;opacity:0.5;">גרסה <span id="appVersion"></span></div>
+</div>
+<script>document.getElementById('appVersion').textContent = _cb;</script>
+</div><!-- end mainApp -->
+
+<!-- Firebase SDK (loaded before app for sync) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>document.write('<script src="firebase-config.js?' + _cb + '"><\/script>');</script>
+
+<!-- WhatsApp Send Modal -->
+<div class="modal-overlay" id="weaponsWhatsAppModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#25D366;">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="vertical-align:middle;margin-left:8px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                שליחת הודעת וואטסאפ - טפסי נשקים
+            </h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('weaponsWhatsAppModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+                <label style="font-weight:600;">פלוגה:</label>
+                <select id="waCompanyFilter" class="form-select" style="width:auto;min-width:140px;" onchange="updateWaSoldierList()">
+                    <option value="all">כל הפלוגות</option>
+                    <option value="a">פלוגה א'</option>
+                    <option value="b">פלוגה ב'</option>
+                    <option value="c">פלוגה ג'</option>
+                    <option value="d">פלוגה ד'</option>
+                    <option value="hq">חפ"ק</option>
+                    <option value="palsam">פלס"ם</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:5px;margin-right:10px;">
+                    <input type="checkbox" id="waOnlyUnsigned" checked onchange="updateWaSoldierList()">
+                    רק מי שלא חתם ב-EasyDo
+                </label>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">בחר חיילים לשליחה:</label>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                    <button class="btn btn-sm btn-outline" onclick="waSelectAll(true)">סמן הכל</button>
+                    <button class="btn btn-sm btn-outline" onclick="waSelectAll(false)">נקה הכל</button>
+                    <span id="waSelectedCount" style="color:var(--text-light);font-size:13px;"></span>
+                    <input type="text" id="waSoldierSearch" class="form-control" placeholder="חיפוש חייל..." oninput="filterWaSoldierList()" style="width:180px;margin-right:auto;">
+                </div>
+                <div id="waSoldierList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;scrollbar-width:thin;"></div>
+            </div>
+            <div style="margin-bottom:18px;">
+                <label style="font-weight:600;display:block;margin-bottom:8px;font-size:15px;">תוכן ההודעה:</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:help;" title="יוחלף בשם הפרטי של החייל">{שם}</span>
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:help;" title="קישור לטופס הרופא">{קישור_רופא}</span>
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:help;" title="קישור ל-EasyDo לפי פלוגה">{קישור_easydo}</span>
+                </div>
+                <textarea id="waMessageTemplate" class="form-control" rows="8" style="font-size:14px;line-height:1.8;direction:rtl;padding:14px;border-radius:10px;width:100%;min-width:0;resize:vertical;" oninput="updateWaPreview()"></textarea>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:8px;font-size:15px;">תצוגה מקדימה:</label>
+                <div id="waPreview" style="background:#dcf8c6;border:1px solid #b5d9a0;border-radius:12px;padding:14px 16px;white-space:pre-wrap;font-size:14px;line-height:1.7;direction:rtl;color:#111;font-family:inherit;"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:5px;">
+                    <span style="font-weight:600;">השהיה בין הודעות:</span>
+                    <input type="number" id="waSendDelay" class="form-control" style="width:70px;" value="3" min="1" max="30">
+                    שניות
+                </label>
+            </div>
+            <details style="margin-top:14px;">
+                <summary style="font-weight:600;font-size:14px;cursor:pointer;">היסטוריית שליחות</summary>
+                <div id="waSendHistory" style="border:1px solid var(--border);border-radius:8px;margin-top:8px;"></div>
+            </details>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;">
+            <div id="waSendProgress" style="font-size:13px;color:var(--text-light);"></div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-cancel" onclick="closeModal('weaponsWhatsAppModal')">ביטול</button>
+                <button class="btn" id="btnWaAbort" style="display:none;background:#e74c3c;color:#fff;font-weight:600;" onclick="abortWaSend()">⛔ עצור שליחה</button>
+                <button class="btn btn-whatsapp" id="btnWaSend" onclick="sendWeaponsWhatsApp()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    שלח עכשיו
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Group WhatsApp Modal -->
+<div class="modal-overlay" id="groupWaModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#25D366;">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="vertical-align:middle;margin-left:8px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                שליחת הודעת וואטסאפ לקבוצה
+            </h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('groupWaModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="groupWaGroups" style="margin-bottom:14px;"></div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">נמענים:</label>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                    <button class="btn btn-sm btn-outline" onclick="groupWaSelectAll(true)">סמן הכל</button>
+                    <button class="btn btn-sm btn-outline" onclick="groupWaSelectAll(false)">נקה הכל</button>
+                    <span id="groupWaCount" style="color:var(--text-light);font-size:13px;"></span>
+                </div>
+                <div id="groupWaRecipients" style="border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:8px;">תוכן ההודעה:</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:pointer;" onclick="insertGroupWaVar('{שם}')" title="שם פרטי">{שם}</span>
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:pointer;" onclick="insertGroupWaVar('{פלוגה}')" title="שם הפלוגה">{פלוגה}</span>
+                    <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--primary);font-weight:500;cursor:pointer;" onclick="insertGroupWaVar('{תפקיד}')" title="תפקיד/דרגה">{תפקיד}</span>
+                </div>
+                <textarea id="groupWaMessage" class="form-control" rows="5" style="font-size:14px;line-height:1.8;direction:rtl;padding:14px;border-radius:10px;width:100%;resize:vertical;" oninput="updateGroupWaPreview()" placeholder="כתוב כאן את ההודעה..."></textarea>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:600;display:block;margin-bottom:8px;">תצוגה מקדימה:</label>
+                <div id="groupWaPreview" style="background:#dcf8c6;border:1px solid #b5d9a0;border-radius:12px;padding:14px 16px;white-space:pre-wrap;font-size:14px;line-height:1.7;direction:rtl;color:#111;font-family:inherit;min-height:40px;"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:5px;">
+                    <span style="font-weight:600;">השהיה בין הודעות:</span>
+                    <input type="number" id="groupWaDelay" class="form-control" style="width:70px;" value="3" min="1" max="30">
+                    שניות
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;">
+            <div id="groupWaProgress" style="font-size:13px;color:var(--text-light);"></div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-cancel" onclick="closeModal('groupWaModal')">ביטול</button>
+                <button class="btn" id="btnGroupWaAbort" style="display:none;background:#e74c3c;color:#fff;font-weight:600;" onclick="abortWaSend()">⛔ עצור שליחה</button>
+                <button class="btn" style="background:#607D8B;color:#fff;" onclick="sendGroupWaTest()">🧪 שלח ניסיון</button>
+                <button class="btn btn-whatsapp" id="btnGroupWaSend" onclick="sendGroupWa()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" style="vertical-align:-2px;margin-left:4px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    שלח לכולם
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Training Event Modal -->
+<div class="modal-overlay" id="trainingEventModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#2e7d32;">
+            <h3 id="trainingEventModalTitle">הוספת תרגיל</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('trainingEventModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="trainingEventEditId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>סוג תרגיל</label>
+                    <select id="teExerciseType">
+                        <option value="">-- בחר סוג --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>שם התרגיל</label>
+                    <input type="text" id="teEventName" placeholder="שם התרגיל">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תאריך</label>
+                    <input type="date" id="teDate">
+                </div>
+                <div class="form-group">
+                    <label>שעה</label>
+                    <input type="time" id="teTime">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="teCompany" onchange="updateTeUnits()">
+                        <option value="">כל הגדוד</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מחלקה</label>
+                    <select id="teUnit">
+                        <option value="">הכל</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מפקד</label>
+                    <input type="text" id="teCommander" placeholder="שם המפקד">
+                </div>
+                <div class="form-group">
+                    <label>מדריך</label>
+                    <input type="text" id="teInstructor" placeholder="שם המדריך">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תנאי תרגיל</label>
+                    <select id="teCondition">
+                        <option value="dry">יבש</option>
+                        <option value="wet">חי</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>הערות</label>
+                <textarea id="teNotes" rows="2" placeholder="הערות נוספות..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveTrainingEvent()">שמור</button>
+            <button class="btn btn-cancel" onclick="closeModal('trainingEventModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Exercise Type Manager Modal -->
+<div class="modal-overlay" id="exerciseTypeModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#1565c0;">
+            <h3>ניהול סוגי תרגילים</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('exerciseTypeModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;" id="exerciseTypeContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-add" onclick="addExerciseType()">+ הוסף סוג</button>
+            <button class="btn btn-cancel" onclick="closeModal('exerciseTypeModal')">סגור</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shooting Drill Modal -->
+<div class="modal-overlay" id="shootingDrillModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-header" style="background:#b71c1c;">
+            <h3 id="shootingDrillModalTitle">הוספת מקצה ירי</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('shootingDrillModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="sdEditId">
+            <div class="form-row">
+                <div class="form-group" style="flex:2;">
+                    <label>שם המקצה</label>
+                    <input type="text" id="sdDrillName" placeholder="שם המקצה">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>יוצר</label>
+                    <input type="text" id="sdCreator" placeholder="שם היוצר">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>כדורים מחסנית 1 (1-30)</label>
+                    <input type="number" id="sdMag1" min="1" max="30" value="5">
+                </div>
+                <div class="form-group">
+                    <label>כדורים מחסנית 2 (0-30)</label>
+                    <input type="number" id="sdMag2" min="0" max="30" value="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>טווח 1 (מ')</label>
+                    <input type="number" id="sdRange1" placeholder="למשל 25">
+                </div>
+                <div class="form-group">
+                    <label>טווח 2 (מ')</label>
+                    <input type="number" id="sdRange2" placeholder="למשל 50">
+                </div>
+                <div class="form-group">
+                    <label>טווח 3 (מ')</label>
+                    <input type="number" id="sdRange3" placeholder="למשל 100">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מגבלת זמן (שניות, 0=ללא)</label>
+                    <input type="number" id="sdTimeLimit" min="0" value="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>תיאור / הערות</label>
+                <textarea id="sdDescription" rows="3" placeholder="תיאור המקצה, הנחיות מיוחדות..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveShootingDrill()">שמור</button>
+            <button class="btn btn-cancel" onclick="closeModal('shootingDrillModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shooting Execution Modal -->
+<div class="modal-overlay" id="shootingExecutionModal">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#b71c1c;">
+            <h3 id="shootingExecModalTitle">ביצוע מקצה</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('shootingExecutionModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="seEditId">
+            <div class="form-group">
+                <label>מקצה ירי</label>
+                <select id="seDrill">
+                    <option value="">-- בחר מקצה --</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>תאריך</label>
+                    <input type="date" id="seDate">
+                </div>
+                <div class="form-group">
+                    <label>פלוגה</label>
+                    <select id="seCompany" onchange="updateSeUnits()">
+                        <option value="">-- בחר --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>מחלקה</label>
+                    <select id="seUnit">
+                        <option value="">הכל</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>מילא</label>
+                    <input type="text" id="seFilledBy" placeholder="שם הממלא">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="saveShootingExecution()">שמור</button>
+            <button class="btn btn-cancel" onclick="closeModal('shootingExecutionModal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shooting Results Modal -->
+<div class="modal-overlay" id="shootingResultsModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#b71c1c;">
+            <h3 id="shootingResultsTitle">תוצאות ירי</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('shootingResultsModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;" id="shootingResultsContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeModal('shootingResultsModal')">סגור</button>
+        </div>
+    </div>
+</div>
+
+<!-- Soldier Rating Modal (per training event) -->
+<div class="modal-overlay" id="soldierRatingModal">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header" style="background:#2e7d32;">
+            <h3 id="soldierRatingTitle">דירוג חיילים</h3>
+            <button class="modal-close" style="background:transparent;border:none;color:#fff;font-size:1.4em;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.85;border-radius:6px;" onclick="closeModal('soldierRatingModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;" id="soldierRatingContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeModal('soldierRatingModal')">סגור</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://smoovsign.com/smoov-sdk.js"></script>
+<script>document.write('<script src="app.js?' + _cb + '"><\/script>');</script>
+<script>document.write('<script src="personal-dashboard.js?' + _cb + '"><\/script>');</script>
+<script>document.write('<script src="attendance.js?' + _cb + '"><\/script>');</script>
+<script>document.write('<script src="reports-enhanced.js?' + _cb + '"><\/script>');</script>
+<script>document.write('<script src="constraints.js?' + _cb + '"><\/script>');</script>
+<script>document.addEventListener('DOMContentLoaded', function() { if (typeof lucide !== 'undefined') lucide.createIcons(); });</script>
+<!-- FAB: mobile floating action button -->
+<button id="fabBtn" class="fab-btn" onclick="fabAction()" title="הוסף" aria-label="פעולה ראשית">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+</body>
+</html>
