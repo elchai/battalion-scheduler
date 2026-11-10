@@ -2,7 +2,7 @@
     "name": "מערכת ניהול גדודי",
     "short_name": "ניהול גדודי",
     "description": "מערכת ניהול תעסוקה מבצעית - דמו",
-    "start_url": "/battalion-scheduler/",
+    "start_url": "./",
     "display": "standalone",
     "background_color": "#1a237e",
     "theme_color": "#1a237e",

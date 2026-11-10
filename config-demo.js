@@ -1171,7 +1171,7 @@ const CONFIG = {
     sheetId: '',
 
     // --- נתיבים ---
-    deployPath: '/battalion-scheduler/demo',
+    deployPath: 'demo',
     logoPath: 'demo/logo.png',
     loginLogoPath: 'demo/logo-login.png',
     docLogoPath: 'demo/doc-logo.png',

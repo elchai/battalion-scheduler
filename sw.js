@@ -1,24 +1,24 @@
-const CACHE_NAME = 'battalion-v307';
+const CACHE_NAME = 'battalion-v308';
 const ASSETS = [
-    '/battalion-scheduler/',
-    '/battalion-scheduler/index.html',
-    '/battalion-scheduler/config-demo.js',
-    '/battalion-scheduler/style.css',
-    '/battalion-scheduler/app.js',
-    '/battalion-scheduler/personal-dashboard.js',
-    '/battalion-scheduler/attendance.js',
-    '/battalion-scheduler/reports-enhanced.js',
-    '/battalion-scheduler/constraints.js',
-    '/battalion-scheduler/firebase-config.js',
-    '/battalion-scheduler/training-icon.png',
-    '/battalion-scheduler/m4.png',
-    '/battalion-scheduler/manifest.json',
-    '/battalion-scheduler/weapons-form.pdf',
-    '/battalion-scheduler/demo/',
-    '/battalion-scheduler/demo/index.html',
-    '/battalion-scheduler/demo/logo.png',
-    '/battalion-scheduler/demo/doc-logo.png',
-    '/battalion-scheduler/demo/stamp.png'
+    './',
+    './index.html',
+    './config-demo.js',
+    './style.css',
+    './app.js',
+    './personal-dashboard.js',
+    './attendance.js',
+    './reports-enhanced.js',
+    './constraints.js',
+    './firebase-config.js',
+    './training-icon.png',
+    './m4.png',
+    './manifest.json',
+    './weapons-form.pdf',
+    './demo/',
+    './demo/index.html',
+    './demo/logo.png',
+    './demo/doc-logo.png',
+    './demo/stamp.png'
 ];
 
 // Install: cache core assets
