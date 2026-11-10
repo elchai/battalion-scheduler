@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a237e">
-    <title>מערכת ניהול גדודי | תעסוקה מבצעית</title>
+    <title>מערכת ניהול גדודי | דמו</title>
     <link rel="icon" id="favicon" href="demo/logo.png" type="image/png">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" id="appleTouchIcon" href="demo/logo.png">
@@ -71,7 +71,8 @@
         <div id="loginDemoPassword" style="display:none;">
             <div class="login-field">
                 <label>סיסמה</label>
-                <input type="password" id="loginDemoPass" placeholder="הזן סיסמה" autocomplete="off"
+                <div style="font-size:13px;color:#555;margin:2px 0 6px;">הסיסמה לדמו: <b dir="ltr">2024</b></div>
+                <input type="password" id="loginDemoPass" placeholder="הזן סיסמה: 2024" autocomplete="off"
                        onkeypress="if(event.key==='Enter')unlockDemo()">
             </div>
             <button class="login-btn" onclick="unlockDemo()">המשך</button>
