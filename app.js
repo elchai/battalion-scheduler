@@ -8769,7 +8769,7 @@ function getMorningReportText() {
 function copyMorningReportText() {
     const text = getMorningReportText();
     navigator.clipboard.writeText(text).then(() => {
-        showToast('דו"ח הועתק ללוח - הדבק בוואטסאפ');
+        showToast('דו"ח הועתק ללוח - הדבק בוואצאפ');
     }).catch(() => {
         // Fallback
         const ta = document.createElement('textarea');
